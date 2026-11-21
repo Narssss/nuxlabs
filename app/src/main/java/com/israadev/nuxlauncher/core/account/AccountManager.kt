@@ -35,6 +35,17 @@ object AccountManager {
 
     private var appContext: Context? = null
 
+    private fun createOfflineLauncherUser(): AuthUser {
+        return AuthUser(
+            uid = "local-guest-uid",
+            email = "guest@nuxlauncher.local",
+            username = "Guest",
+            photoURL = "",
+            isActivated = true,
+            tier = "free"
+        )
+    }
+
     fun init(context: Context) {
         appContext = context.applicationContext
         // --- A. Load Launcher Auth Session ---
@@ -101,6 +112,13 @@ object AccountManager {
                 e.printStackTrace()
             }
         }
+
+        // Bypass login gateway: otomatis buat sesi lokal jika belum ada sesi
+        if (_launcherUser.value == null) {
+            val offlineUser = createOfflineLauncherUser()
+            _launcherUser.value = offlineUser
+            saveSession(context, offlineUser)
+        }
     }
 
     // ==========================================
@@ -147,15 +165,9 @@ object AccountManager {
     }
 
     fun logout(context: Context) {
-        _launcherUser.value = null
-        try {
-            val file = getSessionFile(context)
-            if (file.exists()) {
-                file.delete()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        val offlineUser = createOfflineLauncherUser()
+        _launcherUser.value = offlineUser
+        saveSession(context, offlineUser)
     }
 
     private fun saveSession(context: Context, user: AuthUser) {
