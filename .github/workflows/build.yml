@@ -19,13 +19,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Terima Lisensi Android SDK
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
 
       - name: Siapkan local.properties
         run: |
           cp local.properties.example local.properties || touch local.properties
           sed -i "s|^sdk.dir=.*|sdk.dir=$ANDROID_HOME|g" local.properties
+          grep -q "^sdk.dir=" local.properties || echo "sdk.dir=$ANDROID_HOME" >> local.properties
 
       - name: Beri izin eksekusi Gradle
         run: chmod +x gradlew
