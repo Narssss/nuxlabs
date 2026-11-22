@@ -1,6 +1,14 @@
 package com.israadev.nuxlauncher.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.Toast
+import android.widget.VideoView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -37,7 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
+import androidx.compose.ui.viewinterop.AndroidView
 import com.israadev.nuxlauncher.R
 import com.israadev.nuxlauncher.core.account.AccountManager
 import com.israadev.nuxlauncher.core.crash.CrashManager
@@ -53,27 +61,141 @@ import com.israadev.nuxlauncher.core.runtime.JavaRuntimeManager
 import com.israadev.nuxlauncher.core.settings.SettingsManager
 import com.israadev.nuxlauncher.ui.components.NuxNetworkImage
 import com.israadev.nuxlauncher.ui.dialogs.*
-import com.israadev.nuxlauncher.ui.theme.NuxColors
 import com.israadev.nuxlauncher.ui.theme.resp
+import kotlinx.coroutines.launch
 
-private data class BellTopTab(
+private const val PREF_BG_MEDIA = "custom_dashboard_bg_prefs"
+private const val KEY_BG_URI = "bg_media_uri"
+private const val KEY_BG_TYPE = "bg_media_type" // "image" | "video" | ""
+
+private val UiBgBase = Color(0xFF0A0A0C)
+private val UiSurface = Color(0xFF141418)
+private val UiSurfaceAlt = Color(0xFF1C1C22)
+private val UiBorder = Color(0xFF2C2C34)
+private val UiAccent = Color(0xFFE4E4E7)
+private val UiMuted = Color(0xFFA1A1AA)
+private val UiSuccess = Color(0xFFD4D4D8)
+
+private data class NavTabItem(
     val id: String,
     val label: String,
     val icon: ImageVector
 )
 
-private val BELL_TOP_TABS = listOf(
-    BellTopTab("home", "HOME", Icons.Outlined.Home),
-    BellTopTab("mods", "MODS", Icons.Outlined.Extension),
-    BellTopTab("accounts", "ACCOUNTS", Icons.Outlined.Person),
-    BellTopTab("ai", "BELL AI", Icons.Outlined.Psychology),
-    BellTopTab("settings", "SETTINGS", Icons.Outlined.Settings)
+private val TOP_NAV_TABS = listOf(
+    NavTabItem("home", "HOME", Icons.Outlined.Home),
+    NavTabItem("mods", "MODS", Icons.Outlined.Extension),
+    NavTabItem("accounts", "ACCOUNTS", Icons.Outlined.Person),
+    NavTabItem("ai", "ASSISTANT", Icons.Outlined.Psychology),
+    NavTabItem("settings", "SETTINGS", Icons.Outlined.Settings)
 )
+
+@Composable
+private fun LocalDashboardBackground(
+    mediaUriString: String?,
+    mediaType: String
+) {
+    val context = LocalContext.current
+    val parsedUri = remember(mediaUriString) {
+        mediaUriString?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+    }
+
+    if (parsedUri != null && mediaType == "video") {
+        AndroidView(
+            factory = { ctx ->
+                VideoView(ctx).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    setVideoURI(parsedUri)
+                    setOnPreparedListener { mp ->
+                        mp.isLooping = true
+                        mp.setVolume(0f, 0f)
+                        start()
+                    }
+                    setOnErrorListener { _, _, _ -> true }
+                }
+            },
+            update = { videoView ->
+                if (videoView.tag != parsedUri.toString()) {
+                    videoView.tag = parsedUri.toString()
+                    videoView.setVideoURI(parsedUri)
+                    videoView.setOnPreparedListener { mp ->
+                        mp.isLooping = true
+                        mp.setVolume(0f, 0f)
+                        mp.start()
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    } else if (parsedUri != null && mediaType == "image") {
+        NuxNetworkImage(
+            model = parsedUri.toString(),
+            contentDescription = "Custom Background",
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+        Image(
+            painter = painterResource(id = R.drawable.mc_hero_bg),
+            contentDescription = "Background",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            alpha = 0.35f
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xF20A0A0C),
+                        Color(0xCC0A0A0C),
+                        Color(0x550A0A0C)
+                    )
+                )
+            )
+    )
+}
 
 @Composable
 fun DashboardScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val bgPrefs = remember { context.getSharedPreferences(PREF_BG_MEDIA, Context.MODE_PRIVATE) }
+
+    var bgUriString by remember { mutableStateOf(bgPrefs.getString(KEY_BG_URI, null)) }
+    var bgMediaType by remember { mutableStateOf(bgPrefs.getString(KEY_BG_TYPE, "") ?: "") }
+
+    val mediaPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: SecurityException) {
+            }
+            val mime = context.contentResolver.getType(uri).orEmpty()
+            val detectedType = if (mime.startsWith("video/")) "video" else "image"
+            bgPrefs.edit()
+                .putString(KEY_BG_URI, uri.toString())
+                .putString(KEY_BG_TYPE, detectedType)
+                .apply()
+            bgUriString = uri.toString()
+            bgMediaType = detectedType
+            Toast.makeText(
+                context,
+                if (detectedType == "video") "Latar belakang video lokal diterapkan" else "Latar belakang gambar lokal diterapkan",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     var currentTab by remember { mutableStateOf("home") }
 
@@ -97,7 +219,7 @@ fun DashboardScreen() {
 
     val handleRequestCreateInstance = {
         if (instances.size >= 3 && launcherUser?.isActivated != true) {
-            premiumInitialPrompt = "Free accounts are limited to a maximum of 3 instances. Upgrade to Bell Premium to create unlimited instances!"
+            premiumInitialPrompt = "Free accounts are limited to a maximum of 3 instances. Upgrade to unlock unlimited instances."
             showPremiumDialog = true
         } else {
             showAddDialog = true
@@ -123,14 +245,14 @@ fun DashboardScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF090E1A))
+                .background(UiBgBase)
         ) {
-            // 1. TOP COMMAND BAR
+            // 1. TOP BAR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height((48.dp).resp())
-                    .background(Color(0xFF0E1525))
+                    .background(UiSurface)
                     .padding(horizontal = (14.dp).resp()),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -148,22 +270,23 @@ fun DashboardScreen() {
                     Box(
                         modifier = Modifier
                             .size((28.dp).resp())
-                            .background(NuxColors.ForestGreen, RoundedCornerShape((7.dp).resp())),
+                            .background(UiSurfaceAlt, RoundedCornerShape((7.dp).resp()))
+                            .border(1.dp, UiBorder, RoundedCornerShape((7.dp).resp())),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Bell Launcher",
+                            imageVector = Icons.Outlined.Terminal,
+                            contentDescription = "Workspace",
                             tint = Color.White,
-                            modifier = Modifier.size((16.dp).resp())
+                            modifier = Modifier.size((15.dp).resp())
                         )
                     }
                     Text(
-                        text = "BELL LAUNCHER",
+                        text = "WORKSPACE",
                         color = Color.White,
                         fontWeight = FontWeight.Black,
                         fontSize = (12.sp).resp(),
-                        letterSpacing = (0.8.sp).resp()
+                        letterSpacing = (1.sp).resp()
                     )
                 }
 
@@ -176,14 +299,14 @@ fun DashboardScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy((4.dp).resp())) {
-                        BELL_TOP_TABS.forEach { tab ->
+                        TOP_NAV_TABS.forEach { tab ->
                             val isSelected = currentTab == tab.id
                             val tabShape = RoundedCornerShape((7.dp).resp())
                             Row(
                                 modifier = Modifier
                                     .clip(tabShape)
                                     .background(
-                                        if (isSelected) NuxColors.ForestGreen else Color.Transparent,
+                                        if (isSelected) Color.White else Color.Transparent,
                                         tabShape
                                     )
                                     .clickable { currentTab = tab.id }
@@ -194,12 +317,12 @@ fun DashboardScreen() {
                                 Icon(
                                     imageVector = tab.icon,
                                     contentDescription = tab.label,
-                                    tint = if (isSelected) Color.White else NuxColors.GrayNeutral,
+                                    tint = if (isSelected) UiBgBase else UiMuted,
                                     modifier = Modifier.size((14.dp).resp())
                                 )
                                 Text(
                                     text = tab.label,
-                                    color = if (isSelected) Color.White else NuxColors.GrayNeutral,
+                                    color = if (isSelected) UiBgBase else UiMuted,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     fontSize = (10.sp).resp(),
                                     letterSpacing = (0.4.sp).resp(),
@@ -216,15 +339,15 @@ fun DashboardScreen() {
                 ) {
                     val accounts by AccountManager.accounts.collectAsState()
                     val activeUsername = currentAccount?.username ?: launcherUser?.username ?: tr("dashboard.select_account")
-                    val initialLetter = activeUsername.firstOrNull()?.uppercase() ?: "B"
+                    val initialLetter = activeUsername.firstOrNull()?.uppercase() ?: "U"
 
                     Box {
                         val accShape = RoundedCornerShape((8.dp).resp())
                         Row(
                             modifier = Modifier
                                 .clip(accShape)
-                                .background(Color(0xFF162035), accShape)
-                                .border(1.dp, NuxColors.CardBorder, accShape)
+                                .background(UiSurfaceAlt, accShape)
+                                .border(1.dp, UiBorder, accShape)
                                 .clickable { isAccountDropdownExpanded = true }
                                 .padding(horizontal = (8.dp).resp(), vertical = (4.dp).resp()),
                             verticalAlignment = Alignment.CenterVertically,
@@ -243,12 +366,12 @@ fun DashboardScreen() {
                                 Box(
                                     modifier = Modifier
                                         .size((20.dp).resp())
-                                        .background(NuxColors.SageGreen, RoundedCornerShape((5.dp).resp())),
+                                        .background(Color.White, RoundedCornerShape((5.dp).resp())),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = initialLetter,
-                                        color = Color.White,
+                                        color = UiBgBase,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = (10.sp).resp()
                                     )
@@ -268,7 +391,7 @@ fun DashboardScreen() {
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowDown,
                                 contentDescription = tr("dashboard.switch_account"),
-                                tint = NuxColors.GrayNeutral,
+                                tint = UiMuted,
                                 modifier = Modifier.size((14.dp).resp())
                             )
                         }
@@ -277,13 +400,13 @@ fun DashboardScreen() {
                             expanded = isAccountDropdownExpanded,
                             onDismissRequest = { isAccountDropdownExpanded = false },
                             shape = RoundedCornerShape((10.dp).resp()),
-                            containerColor = Color(0xFF0F172A),
-                            border = BorderStroke(1.dp, NuxColors.CardBorder),
+                            containerColor = UiSurface,
+                            border = BorderStroke(1.dp, UiBorder),
                             modifier = Modifier.widthIn(min = (200.dp).resp())
                         ) {
                             if (accounts.isEmpty()) {
                                 DropdownMenuItem(
-                                    text = { Text(tr("dashboard.no_accounts"), color = NuxColors.GrayNeutral, fontSize = (11.sp).resp()) },
+                                    text = { Text(tr("dashboard.no_accounts"), color = UiMuted, fontSize = (11.sp).resp()) },
                                     onClick = { }
                                 )
                             } else {
@@ -298,7 +421,7 @@ fun DashboardScreen() {
                                             ) {
                                                 Text(
                                                     text = acc.username,
-                                                    color = if (isSelected) NuxColors.SkyBlue else Color.White,
+                                                    color = if (isSelected) Color.White else UiAccent,
                                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                                     fontSize = (11.5.sp).resp()
                                                 )
@@ -306,7 +429,7 @@ fun DashboardScreen() {
                                                     Icon(
                                                         imageVector = Icons.Default.Check,
                                                         contentDescription = "Selected",
-                                                        tint = NuxColors.MintGreen,
+                                                        tint = UiSuccess,
                                                         modifier = Modifier.size((15.dp).resp())
                                                     )
                                                 }
@@ -320,13 +443,13 @@ fun DashboardScreen() {
                                 }
                             }
 
-                            HorizontalDivider(color = NuxColors.LightGray, thickness = 1.dp)
+                            HorizontalDivider(color = UiBorder, thickness = 1.dp)
 
                             DropdownMenuItem(
                                 text = {
                                     Text(
                                         text = tr("dashboard.manage_accounts"),
-                                        color = NuxColors.SkyBlue,
+                                        color = Color.White,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = (11.5.sp).resp()
                                     )
@@ -343,15 +466,15 @@ fun DashboardScreen() {
                         modifier = Modifier
                             .size((28.dp).resp())
                             .clip(RoundedCornerShape((7.dp).resp()))
-                            .background(Color(0xFF162035))
-                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape((7.dp).resp()))
+                            .background(UiSurfaceAlt)
+                            .border(1.dp, UiBorder, RoundedCornerShape((7.dp).resp()))
                             .clickable { showAboutDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Info,
                             contentDescription = "About",
-                            tint = NuxColors.SkyBlue,
+                            tint = UiAccent,
                             modifier = Modifier.size((15.dp).resp())
                         )
                     }
@@ -362,7 +485,7 @@ fun DashboardScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(NuxColors.CardBorder)
+                    .background(UiBorder)
             )
 
             // 2. MAIN WORKSPACE STAGE
@@ -395,27 +518,72 @@ fun DashboardScreen() {
                     )
                     else -> {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            Image(
-                                painter = painterResource(id = R.drawable.mc_hero_bg),
-                                contentDescription = "Scenery",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                                alpha = 0.55f
+                            LocalDashboardBackground(
+                                mediaUriString = bgUriString,
+                                mediaType = bgMediaType
                             )
 
-                            Box(
+                            // Kontrol ganti/reset latar belakang gambar atau video lokal di pojok kanan bawah
+                            Row(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color(0xF7090E1A),
-                                                Color(0xD9090E1A),
-                                                Color(0x4D090E1A)
-                                            )
+                                    .align(Alignment.BottomEnd)
+                                    .padding((16.dp).resp()),
+                                horizontalArrangement = Arrangement.spacedBy((8.dp).resp()),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape((7.dp).resp()))
+                                        .background(UiSurface.copy(alpha = 0.9f))
+                                        .border(1.dp, UiBorder, RoundedCornerShape((7.dp).resp()))
+                                        .clickable {
+                                            mediaPickerLauncher.launch(arrayOf("image/*", "video/*"))
+                                        }
+                                        .padding(horizontal = (10.dp).resp(), vertical = (6.dp).resp())
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy((5.dp).resp())
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.PermMedia,
+                                            contentDescription = "Pilih Gambar atau Video",
+                                            tint = Color.White,
+                                            modifier = Modifier.size((13.dp).resp())
                                         )
-                                    )
-                            )
+                                        Text(
+                                            text = "BG MEDIA",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = (9.sp).resp(),
+                                            letterSpacing = (0.5.sp).resp()
+                                        )
+                                    }
+                                }
+
+                                if (!bgUriString.isNullOrBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape((7.dp).resp()))
+                                            .background(UiSurface.copy(alpha = 0.9f))
+                                            .border(1.dp, UiBorder, RoundedCornerShape((7.dp).resp()))
+                                            .clickable {
+                                                bgPrefs.edit().clear().apply()
+                                                bgUriString = null
+                                                bgMediaType = ""
+                                                Toast.makeText(context, "Latar belakang direset ke bawaan", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .padding(horizontal = (8.dp).resp(), vertical = (6.dp).resp())
+                                    ) {
+                                        Text(
+                                            text = "RESET",
+                                            color = UiMuted,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = (9.sp).resp()
+                                        )
+                                    }
+                                }
+                            }
 
                             Column(
                                 modifier = Modifier
@@ -431,11 +599,11 @@ fun DashboardScreen() {
                                     Box(
                                         modifier = Modifier
                                             .size((6.dp).resp())
-                                            .background(NuxColors.SkyBlue, CircleShape)
+                                            .background(Color.White, CircleShape)
                                     )
                                     Text(
-                                        text = "OPTIMIZED ENGINE  •  ZERO-OVERDRAW UI",
-                                        color = NuxColors.SkyBlue,
+                                        text = "LOCAL RUNTIME  •  CUSTOM STAGE",
+                                        color = UiAccent,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = (9.sp).resp(),
                                         letterSpacing = (0.8.sp).resp()
@@ -464,14 +632,14 @@ fun DashboardScreen() {
                                             Box(
                                                 modifier = Modifier
                                                     .size((24.dp).resp())
-                                                    .background(Color(0xFF1E293B), RoundedCornerShape((6.dp).resp()))
-                                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape((6.dp).resp())),
+                                                    .background(UiSurfaceAlt, RoundedCornerShape((6.dp).resp()))
+                                                    .border(1.dp, UiBorder, RoundedCornerShape((6.dp).resp())),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Default.KeyboardArrowDown,
                                                     contentDescription = tr("dashboard.select_version"),
-                                                    tint = NuxColors.SkyBlue,
+                                                    tint = Color.White,
                                                     modifier = Modifier.size((16.dp).resp())
                                                 )
                                             }
@@ -482,8 +650,8 @@ fun DashboardScreen() {
                                         expanded = isVersionDropdownExpanded,
                                         onDismissRequest = { isVersionDropdownExpanded = false },
                                         shape = RoundedCornerShape((10.dp).resp()),
-                                        containerColor = Color(0xFF0F172A),
-                                        border = BorderStroke(1.dp, NuxColors.CardBorder),
+                                        containerColor = UiSurface,
+                                        border = BorderStroke(1.dp, UiBorder),
                                         modifier = Modifier.widthIn(min = (250.dp).resp(), max = (330.dp).resp())
                                     ) {
                                         if (instances.isEmpty()) {
@@ -491,7 +659,7 @@ fun DashboardScreen() {
                                                 text = {
                                                     Text(
                                                         text = tr("dashboard.no_instances"),
-                                                        color = NuxColors.GrayNeutral,
+                                                        color = UiMuted,
                                                         fontSize = (11.sp).resp()
                                                     )
                                                 },
@@ -510,14 +678,14 @@ fun DashboardScreen() {
                                                             Column(modifier = Modifier.weight(1f)) {
                                                                 Text(
                                                                     text = inst.name,
-                                                                    color = if (isSelected) NuxColors.SkyBlue else Color.White,
+                                                                    color = if (isSelected) Color.White else UiAccent,
                                                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                                                     fontSize = (12.sp).resp(),
                                                                     maxLines = 1
                                                                 )
                                                                 Text(
                                                                     text = "${inst.loader.uppercase()} • ${inst.mcVersion}",
-                                                                    color = NuxColors.GrayNeutral,
+                                                                    color = UiMuted,
                                                                     fontSize = (9.5.sp).resp()
                                                                 )
                                                             }
@@ -529,7 +697,7 @@ fun DashboardScreen() {
                                                                     Icon(
                                                                         imageVector = Icons.Default.Check,
                                                                         contentDescription = tr("common.selected"),
-                                                                        tint = NuxColors.MintGreen,
+                                                                        tint = UiSuccess,
                                                                         modifier = Modifier.size((15.dp).resp())
                                                                     )
                                                                 }
@@ -537,7 +705,7 @@ fun DashboardScreen() {
                                                                     modifier = Modifier
                                                                         .size((26.dp).resp())
                                                                         .clip(RoundedCornerShape((6.dp).resp()))
-                                                                        .background(Color(0xFF1E293B))
+                                                                        .background(UiSurfaceAlt)
                                                                         .clickable {
                                                                             isVersionDropdownExpanded = false
                                                                             instanceToEdit = inst
@@ -562,7 +730,7 @@ fun DashboardScreen() {
                                             }
                                         }
 
-                                        HorizontalDivider(color = NuxColors.LightGray, thickness = 1.dp)
+                                        HorizontalDivider(color = UiBorder, thickness = 1.dp)
 
                                         DropdownMenuItem(
                                             text = {
@@ -573,12 +741,12 @@ fun DashboardScreen() {
                                                     Icon(
                                                         imageVector = Icons.Default.Add,
                                                         contentDescription = tr("common.add"),
-                                                        tint = NuxColors.SkyBlue,
+                                                        tint = Color.White,
                                                         modifier = Modifier.size((17.dp).resp())
                                                     )
                                                     Text(
                                                         text = tr("dashboard.add_new_instance"),
-                                                        color = NuxColors.SkyBlue,
+                                                        color = Color.White,
                                                         fontWeight = FontWeight.Bold,
                                                         fontSize = (12.sp).resp()
                                                     )
@@ -600,12 +768,12 @@ fun DashboardScreen() {
                                         val inst = selectedInstance!!
                                         Box(
                                             modifier = Modifier
-                                                .background(NuxColors.ForestGreen, RoundedCornerShape((5.dp).resp()))
+                                                .background(Color.White, RoundedCornerShape((5.dp).resp()))
                                                 .padding(horizontal = (8.dp).resp(), vertical = (3.dp).resp())
                                         ) {
                                             Text(
                                                 text = inst.loader.uppercase(),
-                                                color = Color.White,
+                                                color = UiBgBase,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = (9.5.sp).resp()
                                             )
@@ -613,8 +781,8 @@ fun DashboardScreen() {
 
                                         Box(
                                             modifier = Modifier
-                                                .background(Color(0xFF131C31), RoundedCornerShape((5.dp).resp()))
-                                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape((5.dp).resp()))
+                                                .background(UiSurface, RoundedCornerShape((5.dp).resp()))
+                                                .border(1.dp, UiBorder, RoundedCornerShape((5.dp).resp()))
                                                 .padding(horizontal = (8.dp).resp(), vertical = (3.dp).resp())
                                         ) {
                                             Text(
@@ -629,13 +797,13 @@ fun DashboardScreen() {
                                             else JavaRuntimeManager.getRecommendedRuntime(inst.mcVersion)
                                         Box(
                                             modifier = Modifier
-                                                .background(Color(0xFF131C31), RoundedCornerShape((5.dp).resp()))
-                                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape((5.dp).resp()))
+                                                .background(UiSurface, RoundedCornerShape((5.dp).resp()))
+                                                .border(1.dp, UiBorder, RoundedCornerShape((5.dp).resp()))
                                                 .padding(horizontal = (8.dp).resp(), vertical = (3.dp).resp())
                                         ) {
                                             Text(
                                                 text = activeRuntime.replace("jre-", "JAVA "),
-                                                color = NuxColors.GrayNeutral,
+                                                color = UiMuted,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = (9.5.sp).resp()
                                             )
@@ -643,7 +811,7 @@ fun DashboardScreen() {
                                     } else {
                                         Text(
                                             text = tr("dashboard.no_version_selected"),
-                                            color = NuxColors.GrayNeutral,
+                                            color = UiMuted,
                                             fontSize = (11.sp).resp()
                                         )
                                     }
@@ -663,7 +831,7 @@ fun DashboardScreen() {
                                         modifier = Modifier
                                             .height((46.dp).resp())
                                             .clip(playBtnShape)
-                                            .background(NuxColors.ForestGreen, playBtnShape)
+                                            .background(Color.White, playBtnShape)
                                             .clickable {
                                                 if (inst == null) {
                                                     handleRequestCreateInstance()
@@ -742,12 +910,12 @@ fun DashboardScreen() {
                                         Icon(
                                             imageVector = if (inst == null) Icons.Default.Add else if (isFullyDownloaded) Icons.Default.PlayArrow else Icons.Default.Download,
                                             contentDescription = "Action",
-                                            tint = Color.White,
+                                            tint = UiBgBase,
                                             modifier = Modifier.size((20.dp).resp())
                                         )
                                         Text(
                                             text = if (inst == null) tr("dashboard.play_new_instance") else if (isFullyDownloaded) tr("dashboard.play_button") else tr("dashboard.play_download"),
-                                            color = Color.White,
+                                            color = UiBgBase,
                                             fontWeight = FontWeight.Black,
                                             fontSize = (14.sp).resp(),
                                             letterSpacing = (0.8.sp).resp()
@@ -759,8 +927,8 @@ fun DashboardScreen() {
                                             modifier = Modifier
                                                 .size((46.dp).resp())
                                                 .clip(playBtnShape)
-                                                .background(Color(0xFF131C31), playBtnShape)
-                                                .border(1.dp, NuxColors.CardBorder, playBtnShape)
+                                                .background(UiSurface, playBtnShape)
+                                                .border(1.dp, UiBorder, playBtnShape)
                                                 .clickable { instanceToEdit = inst },
                                             contentAlignment = Alignment.Center
                                         ) {
