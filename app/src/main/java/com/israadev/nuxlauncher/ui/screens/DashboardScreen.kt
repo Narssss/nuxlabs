@@ -1,5 +1,6 @@
 package com.israadev.nuxlauncher.ui.screens
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.view.ViewGroup
@@ -83,6 +84,7 @@ private data class SideNavItem(
 private val SIDE_NAV_ITEMS = listOf(
     SideNavItem("home", "HOME", Icons.Outlined.Home),
     SideNavItem("mods", "MODS", Icons.Outlined.Extension),
+    SideNavItem("friends", "FRIENDS", Icons.Outlined.Group),
     SideNavItem("accounts", "ACCOUNTS", Icons.Outlined.Person),
     SideNavItem("ai", "AI", Icons.Outlined.Psychology),
     SideNavItem("settings", "SETTINGS", Icons.Outlined.Settings)
@@ -247,7 +249,7 @@ fun DashboardScreen() {
                 .background(BellBgBase)
         ) {
             // =================================================================
-            // 1. VERTICAL LEFT RAIL (PENGGANTI TOP BAR HORIZONTAL NUX)
+            // 1. VERTICAL LEFT RAIL
             // =================================================================
             Column(
                 modifier = Modifier
@@ -280,7 +282,7 @@ fun DashboardScreen() {
                 // Vertical Navigation Stack
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy((6.dp).resp())
+                    verticalArrangement = Arrangement.spacedBy((5.dp).resp())
                 ) {
                     SIDE_NAV_ITEMS.forEach { tab ->
                         val isSelected = currentTab == tab.id
@@ -291,7 +293,7 @@ fun DashboardScreen() {
                                 .clip(itemShape)
                                 .background(if (isSelected) Color.White else Color.Transparent)
                                 .clickable { currentTab = tab.id }
-                                .padding(vertical = (7.dp).resp()),
+                                .padding(vertical = (6.dp).resp()),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy((2.dp).resp())
                         ) {
@@ -299,7 +301,7 @@ fun DashboardScreen() {
                                 imageVector = tab.icon,
                                 contentDescription = tab.label,
                                 tint = if (isSelected) BellBgBase else BellMuted,
-                                modifier = Modifier.size((17.dp).resp())
+                                modifier = Modifier.size((16.dp).resp())
                             )
                             Text(
                                 text = tab.label,
@@ -608,7 +610,7 @@ fun DashboardScreen() {
                             }
 
                             // -------------------------------------------------
-                            // KIRI BAWAH: QUICK ACTION SHORTCUTS (MODS / NEW INSTANCE)
+                            // KIRI BAWAH: QUICK ACTION SHORTCUTS (NEW INSTANCE / MODS)
                             // -------------------------------------------------
                             Row(
                                 modifier = Modifier
@@ -679,7 +681,7 @@ fun DashboardScreen() {
                             }
 
                             // -------------------------------------------------
-                            // KANAN BAWAH: FLOATING LAUNCH DECK CARD (GAYA ORISINAL BELL)
+                            // KANAN BAWAH: FLOATING LAUNCH DECK CARD
                             // -------------------------------------------------
                             val inst = selectedInstance
                             val isFullyDownloaded = inst != null && inst.isDownloaded && InstanceManager.isInstanceDownloaded(context, inst)
