@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -97,10 +98,10 @@ fun GameLoadingOverlay(
         }
     }
 
-    // Animasi pulsing glow halus untuk logo NUX
+    // Animasi pulsing glow halus untuk ikon Bell Launcher
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
+        initialValue = 0.55f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1200),
@@ -121,81 +122,88 @@ fun GameLoadingOverlay(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFF0F1522),
-                            Color(0xFF07090E),
-                            Color.Black
+                            Color(0xFF0F172A),
+                            Color(0xFF090E1A),
+                            Color(0xFF050811)
                         )
                     )
                 ),
             contentAlignment = Alignment.Center
         ) {
-            val cardShape = RoundedCornerShape(16.dp)
+            val cardShape = RoundedCornerShape(12.dp)
             Box(
                 modifier = Modifier
                     .width(480.dp)
                     .clip(cardShape)
-                    .background(Color(0xE610141E), cardShape)
-                    .border(1.2.dp, Color(0x3810B981), cardShape)
+                    .background(Color(0xF20F172A), cardShape)
+                    .border(1.dp, NuxColors.CardBorder, cardShape)
                     .padding(20.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Header Bar (Logo & Tombol Tutup)
+                    // Header Bar (Bell Launcher Badge & Tombol Tutup)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            val badgeShape = RoundedCornerShape(10.dp)
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(NuxColors.ForestGreen.copy(alpha = 0.2f))
-                                    .border(1.dp, NuxColors.ForestGreen.copy(alpha = pulseAlpha), RoundedCornerShape(8.dp)),
+                                    .size(38.dp)
+                                    .clip(badgeShape)
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(NuxColors.ForestGreen, NuxColors.MintGreen)
+                                        ),
+                                        badgeShape
+                                    )
+                                    .border(1.dp, Color(0x93C5FD).copy(alpha = pulseAlpha), badgeShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "N",
-                                    color = NuxColors.MintGreen,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 18.sp,
-                                    fontFamily = FontFamily.Monospace
+                                Icon(
+                                    imageVector = Icons.Outlined.Notifications,
+                                    contentDescription = "Bell Launcher",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "LOADING GAME",
+                                    text = "BELL LAUNCHER • LOADING",
                                     color = Color.White,
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 14.sp,
-                                    letterSpacing = 0.5.sp
+                                    fontSize = 13.5.sp,
+                                    letterSpacing = 0.6.sp
                                 )
                                 Text(
-                                    text = "v$mcVersion · $instanceName",
-                                    color = NuxColors.MintGreen,
+                                    text = "Minecraft $mcVersion  •  $instanceName",
+                                    color = NuxColors.SkyBlue,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
 
-                        // Tombol Close manual jika user ingin mengintip render di baliknya
+                        // Tombol Close manual
+                        val closeShape = RoundedCornerShape(8.dp)
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF1E222D))
+                                .size(30.dp)
+                                .clip(closeShape)
+                                .background(Color(0xFF1E293B), closeShape)
+                                .border(1.dp, NuxColors.CardBorder, closeShape)
                                 .clickable { onClose() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close Loading",
-                                tint = Color(0xFFA1A1AA),
+                                tint = NuxColors.GrayNeutral,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -203,14 +211,14 @@ fun GameLoadingOverlay(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Progress bar
+                    // Progress bar Cobalt Blue
                     LinearProgressIndicator(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp)),
-                        color = NuxColors.ForestGreen,
-                        trackColor = Color(0xFF1E2A27)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = NuxColors.MintGreen,
+                        trackColor = Color(0xFF1E293B)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -222,13 +230,13 @@ fun GameLoadingOverlay(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(12.dp),
-                            color = NuxColors.MintGreen,
+                            color = NuxColors.SkyBlue,
                             strokeWidth = 1.5.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (latestLog.isNotBlank()) latestLog else "Preparing Java & Graphics engine...",
-                            color = Color(0xFF94A3B8),
+                            color = NuxColors.GrayNeutral,
                             fontSize = 10.5.sp,
                             fontFamily = FontFamily.Monospace,
                             maxLines = 1,
@@ -239,36 +247,45 @@ fun GameLoadingOverlay(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // KOTAK TIPS LAUNCHER (CYBER TIPS CARD)
+                    // KOTAK TIPS BELL LAUNCHER
                     val tipBoxShape = RoundedCornerShape(10.dp)
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(tipBoxShape)
-                            .background(Color(0xFF161B26), tipBoxShape)
-                            .border(1.dp, Color(0x2838BDF8), tipBoxShape)
-                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                            .background(Color(0xFF131C31), tipBoxShape)
+                            .border(1.dp, NuxColors.CardBorder, tipBoxShape)
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .height(36.dp)
+                                .background(NuxColors.ForestGreen, CircleShape)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Lightbulb,
                                     contentDescription = null,
-                                    tint = Color(0xFFFBBF24),
-                                    modifier = Modifier.size(15.dp)
+                                    tint = NuxColors.SkyBlue,
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "NUX LAUNCHER TIPS",
-                                    color = Color(0xFFFBBF24),
+                                    text = "BELL LAUNCHER TIPS",
+                                    color = NuxColors.SkyBlue,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
-                                    letterSpacing = 0.5.sp
+                                    letterSpacing = 0.6.sp
                                 )
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(5.dp))
 
-                            // Animated Tip Text
                             AnimatedContent(
                                 targetState = GAME_TIPS.getOrElse(tipIndex) { GAME_TIPS[0] },
                                 transitionSpec = {
@@ -297,15 +314,17 @@ fun GameLoadingOverlay(
                     ) {
                         Text(
                             text = "Waiting for Mojang logo...",
-                            color = Color(0xFF64748B),
+                            color = NuxColors.GrayNeutral,
                             fontSize = 10.sp,
                             modifier = Modifier.alpha(pulseAlpha)
                         )
 
+                        val logBtnShape = RoundedCornerShape(8.dp)
                         Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFF1E2430))
+                                .clip(logBtnShape)
+                                .background(Color(0xFF1E293B), logBtnShape)
+                                .border(1.dp, NuxColors.CardBorder, logBtnShape)
                                 .clickable { onViewLog() }
                                 .padding(horizontal = 10.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -313,13 +332,13 @@ fun GameLoadingOverlay(
                             Icon(
                                 imageVector = Icons.Default.Terminal,
                                 contentDescription = null,
-                                tint = NuxColors.MintGreen,
+                                tint = NuxColors.SkyBlue,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "View Logs",
-                                color = NuxColors.MintGreen,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp
                             )
