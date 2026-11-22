@@ -43,17 +43,56 @@ data class CrashInfo(
     val rawLog: String = ""
 )
 
+private fun readProp(obj: Any?, vararg names: String): Any? {
+    if (obj == null) return null
+    for (name in names) {
+        try {
+            val getter = obj.javaClass.methods.firstOrNull {
+                it.name.equals("get${name.replaceFirstChar { c -> c.uppercase() }}", ignoreCase = false) && it.parameterCount == 0
+            }
+            if (getter != null) return getter.invoke(obj)
+        } catch (_: Exception) {
+        }
+        try {
+            val field = obj.javaClass.declaredFields.firstOrNull { it.name == name }
+            if (field != null) {
+                field.isAccessible = true
+                return field.get(obj)
+            }
+        } catch (_: Exception) {
+        }
+    }
+    return null
+}
+
+private fun toCrashInfo(source: Any?): CrashInfo {
+    if (source is CrashInfo) return source
+    val exitCode = (readProp(source, "exitCode", "code") as? Number)?.toInt() ?: -1
+    val instanceName = readProp(source, "instanceName", "instance", "profileName", "name")?.toString() ?: "Default"
+    val mcVersion = readProp(source, "mcVersion", "version", "gameVersion")?.toString() ?: ""
+    val summary = readProp(source, "summary", "reason", "message", "description")?.toString() ?: ""
+    val rawLog = readProp(source, "rawLog", "log", "crashLog", "stackTrace")?.toString() ?: ""
+    return CrashInfo(
+        exitCode = exitCode,
+        instanceName = instanceName,
+        mcVersion = mcVersion,
+        summary = summary,
+        rawLog = rawLog
+    )
+}
+
 /**
  * Bell Launcher Crash Diagnostic Dialog (Slate Navy & Cobalt Blue)
  */
 @Composable
 fun NuxCrashDialog(
-    crashInfo: CrashInfo,
+    crashInfo: Any,
     onDismiss: () -> Unit,
     onAnalyzeWithAi: (() -> Unit)? = null,
     onUploadLog: (() -> Unit)? = null,
     onShareLog: (() -> Unit)? = null
 ) {
+    val info = remember(crashInfo) { toCrashInfo(crashInfo) }
     val context = LocalContext.current
     var aiAnalysisText by remember { mutableStateOf<String?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
@@ -112,7 +151,7 @@ fun NuxCrashDialog(
                                 .padding(horizontal = (6.dp).resp(), vertical = (2.dp).resp())
                         ) {
                             Text(
-                                text = "Signal ${crashInfo.exitCode}",
+                                text = "Signal ${info.exitCode}",
                                 color = Color(0xFFFCA5A5),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = (9.sp).resp()
@@ -173,14 +212,14 @@ fun NuxCrashDialog(
                             letterSpacing = (0.6.sp).resp()
                         )
                         Text(
-                            text = "${crashInfo.instanceName} (MC ${crashInfo.mcVersion})",
+                            text = if (info.mcVersion.isNotBlank()) "${info.instanceName} (MC ${info.mcVersion})" else info.instanceName,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = (11.5.sp).resp()
                         )
                         Text(
-                            text = crashInfo.summary.ifBlank {
-                                "JVM dihentikan karena sinyal fatal ${crashInfo.exitCode}."
+                            text = info.summary.ifBlank {
+                                "JVM dihentikan karena sinyal fatal ${info.exitCode}."
                             },
                             color = Color(0xFFE2E8F0),
                             fontSize = (9.5.sp).resp(),
@@ -207,7 +246,7 @@ fun NuxCrashDialog(
                                     onUploadLog()
                                 } else {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("Crash Log", crashInfo.rawLog))
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("Crash Log", info.rawLog))
                                     Toast.makeText(context, "Crash log copied to clipboard", Toast.LENGTH_SHORT).show()
                                 }
                             },
@@ -267,7 +306,7 @@ fun NuxCrashDialog(
                                 .border(1.dp, NuxColors.CardBorder, btnShape)
                                 .clickable {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("Crash Log", crashInfo.rawLog))
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("Crash Log", info.rawLog))
                                     Toast.makeText(context, "Log copied", Toast.LENGTH_SHORT).show()
                                 },
                             contentAlignment = Alignment.Center
@@ -393,7 +432,7 @@ fun NuxCrashDialog(
                             )
                             .clickable {
                                 isAnalyzing = true
-                                aiAnalysisText = "Checking log for exit code ${crashInfo.exitCode}..."
+                                aiAnalysisText = "Checking log for exit code ${info.exitCode}..."
                                 onAnalyzeWithAi?.invoke()
                                 isAnalyzing = false
                             }
