@@ -28,12 +28,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.israadev.nuxlauncher.core.crash.CrashInfo
 import com.israadev.nuxlauncher.ui.components.NuxDialog
 import com.israadev.nuxlauncher.ui.theme.NuxColors
 import com.israadev.nuxlauncher.ui.theme.resp
+
+data class CrashInfo(
+    val exitCode: Int = -1,
+    val instanceName: String = "Default",
+    val mcVersion: String = "",
+    val summary: String = "",
+    val rawLog: String = ""
+)
 
 /**
  * Bell Launcher Crash Diagnostic Dialog (Slate Navy & Cobalt Blue)
@@ -182,7 +190,7 @@ fun NuxCrashDialog(
 
                     Spacer(modifier = Modifier.height((8.dp).resp()))
 
-                    // Primary Upload Button (Cobalt Blue)
+                    // Primary Upload Button
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -285,7 +293,7 @@ fun NuxCrashDialog(
                     }
                 }
 
-                // RIGHT PANEL: BELL AI CRASH ANALYST (Cobalt Aksen)
+                // RIGHT PANEL: BELL AI CRASH ANALYST
                 Column(
                     modifier = Modifier
                         .weight(1.15f)
@@ -326,7 +334,7 @@ fun NuxCrashDialog(
                         }
                     }
 
-                    // Center Diagnosis Content (Cobalt Bolt Icon + White/Sky Text)
+                    // Center Diagnosis Content
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -369,11 +377,11 @@ fun NuxCrashDialog(
                             color = NuxColors.GrayNeutral,
                             fontSize = (8.5.sp).resp(),
                             lineHeight = (12.sp).resp(),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
 
-                    // Cobalt ANALYZE WITH AI Button (No Green!)
+                    // ANALYZE WITH AI Button
                     Box(
                         modifier = Modifier
                             .clip(btnShape)
