@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,19 +42,24 @@ import com.israadev.nuxlauncher.core.controls.ControlLayoutManager
 import com.israadev.nuxlauncher.core.controls.KeycodeCatalog
 import com.israadev.nuxlauncher.core.controls.models.CustomControlButton
 import com.israadev.nuxlauncher.core.lang.NuxLanguageManager
-import com.israadev.nuxlauncher.ui.components.NuxButton
-import com.israadev.nuxlauncher.ui.components.NuxCard
-import com.israadev.nuxlauncher.ui.theme.NuxColors
 import com.movtery.inputmap.keycodes.LwjglGlfwKeycode
 import java.util.UUID
 import kotlin.math.roundToInt
 
-private val EditorBgBase = Color(0xFF0A0A0C)
-private val EditorSurface = Color(0xFF141418)
-private val EditorSurfaceAlt = Color(0xFF1C1C22)
-private val EditorBorder = Color(0xFF2C2C34)
-private val EditorAccent = Color(0xFFE4E4E7)
-private val EditorMuted = Color(0xFFA1A1AA)
+// Token Desain Bell Launcher (Monochrome Obsidian Glass + Crisp White)
+private val BellBgCanvas = Color(0xFF07070A)
+private val BellGlassSidebar = Color(0xD90D0D11)
+private val BellGlassCard = Color(0xCC131318)
+private val BellGlassElevated = Color(0xEB1A1A22)
+private val BellGlassInput = Color(0xD90A0A0E)
+private val BellBorder = Color(0x26FFFFFF)
+private val BellBorderActive = Color(0x66FFFFFF)
+private val BellPillWhite = Color(0xFFFFFFFF)
+private val BellInkDark = Color(0xFF09090B)
+private val BellTextPrimary = Color(0xFFFFFFFF)
+private val BellTextSecondary = Color(0xFFB4B6BE)
+private val BellTextMuted = Color(0xFF787B85)
+private val BellDanger = Color(0xFFF87171)
 
 @Composable
 fun CustomGuiEditorScreen(
@@ -96,7 +103,7 @@ fun CustomGuiEditorScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(if (isIngame) Color.Black.copy(alpha = 0.35f) else EditorBgBase)
+            .background(if (isIngame) Color.Black.copy(alpha = 0.35f) else BellBgCanvas)
     ) {
         val screenWidthPx = constraints.maxWidth.toFloat()
         val screenHeightPx = constraints.maxHeight.toFloat()
@@ -105,13 +112,13 @@ fun CustomGuiEditorScreen(
         // 1. Blueprint Dot Grid Canvas
         Canvas(modifier = Modifier.fillMaxSize()) {
             val step = 32.dp.toPx()
-            val dotColor = if (isIngame) Color.White.copy(alpha = 0.14f) else EditorBorder
-            val guideLineColor = if (isIngame) Color.White.copy(alpha = 0.10f) else EditorBorder.copy(alpha = 0.7f)
+            val dotColor = if (isIngame) Color.White.copy(alpha = 0.14f) else Color(0x26FFFFFF)
+            val guideLineColor = if (isIngame) Color.White.copy(alpha = 0.10f) else Color(0x1AFFFFFF)
             var x = step
             while (x < size.width) {
                 var y = step
                 while (y < size.height) {
-                    drawCircle(dotColor, radius = 1.5.dp.toPx(), center = Offset(x, y))
+                    drawCircle(dotColor, radius = 1.4.dp.toPx(), center = Offset(x, y))
                     y += step
                 }
                 x += step
@@ -153,35 +160,35 @@ fun CustomGuiEditorScreen(
 
             val btnBg = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> Color.White
+                isSelected -> BellPillWhite
                 btn.isSystem -> when (btn.systemAction) {
-                    "CLOSE" -> Color(0x80EF4444)
+                    "CLOSE" -> BellDanger.copy(alpha = 0.28f)
                     "RECORD" -> Color(0x4DD97706)
-                    else -> EditorSurface.copy(alpha = 0.85f)
+                    else -> BellGlassCard
                 }
-                else -> EditorSurface.copy(alpha = 0.85f)
+                else -> BellGlassCard
             }
 
             val btnBorderColor = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> Color.White
+                isSelected -> BellPillWhite
                 btn.isSystem -> when (btn.systemAction) {
-                    "CLOSE" -> Color(0x80EF4444)
-                    else -> EditorBorder
+                    "CLOSE" -> BellDanger.copy(alpha = 0.6f)
+                    else -> BellBorderActive
                 }
-                else -> EditorBorder
+                else -> BellBorderActive
             }
 
             val textColor = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> EditorBgBase
-                else -> Color.White
+                isSelected -> BellInkDark
+                else -> BellTextPrimary
             }
 
             val accentTextColor = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> EditorBgBase
-                else -> EditorAccent
+                isSelected -> BellInkDark
+                else -> BellTextSecondary
             }
 
             Box(
@@ -189,9 +196,10 @@ fun CustomGuiEditorScreen(
                     .offset(x = leftDp, y = topDp)
                     .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
                     .alpha(if (isStealthHidden) 0f else btn.opacity)
-                    .background(btnBg, RoundedCornerShape(btn.cornerRadiusDp.dp))
+                    .clip(RoundedCornerShape(btn.cornerRadiusDp.dp))
+                    .background(btnBg)
                     .border(
-                        if (isSelected) 2.2.dp else 1.4.dp,
+                        if (isSelected) 2.dp else 1.dp,
                         btnBorderColor,
                         RoundedCornerShape(btn.cornerRadiusDp.dp)
                     )
@@ -238,19 +246,19 @@ fun CustomGuiEditorScreen(
                             val c = Offset(size.width / 2f, size.height / 2f)
 
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else if (isSelected) Color.White else EditorBorder,
+                                color = if (isStealthHidden) Color.Transparent else if (isSelected) BellPillWhite else BellBorderActive,
                                 radius = r - 2.dp.toPx(),
                                 center = c,
                                 style = Stroke(width = 2.dp.toPx())
                             )
                             drawLine(
-                                color = if (isStealthHidden) Color.Transparent else EditorBorder,
+                                color = if (isStealthHidden) Color.Transparent else BellBorder,
                                 start = Offset(c.x, c.y - r * 0.7f),
                                 end = Offset(c.x, c.y + r * 0.7f),
                                 strokeWidth = 1.dp.toPx()
                             )
                             drawLine(
-                                color = if (isStealthHidden) Color.Transparent else EditorBorder,
+                                color = if (isStealthHidden) Color.Transparent else BellBorder,
                                 start = Offset(c.x - r * 0.7f, c.y),
                                 end = Offset(c.x + r * 0.7f, c.y),
                                 strokeWidth = 1.dp.toPx()
@@ -258,18 +266,18 @@ fun CustomGuiEditorScreen(
 
                             val knobRadius = r * 0.38f
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else if (isSelected) EditorBgBase else EditorSurfaceAlt,
+                                color = if (isStealthHidden) Color.Transparent else if (isSelected) BellInkDark else BellGlassInput,
                                 radius = knobRadius,
                                 center = c
                             )
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else Color.White,
+                                color = if (isStealthHidden) Color.Transparent else BellPillWhite,
                                 radius = knobRadius,
                                 center = c,
                                 style = Stroke(width = 1.5.dp.toPx())
                             )
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else Color.White,
+                                color = if (isStealthHidden) Color.Transparent else BellPillWhite,
                                 radius = 3.5.dp.toPx(),
                                 center = c
                             )
@@ -287,25 +295,9 @@ fun CustomGuiEditorScreen(
                             .fillMaxHeight()
                             .padding(vertical = 4.dp)
                     ) {
-                        Text(
-                            text = "▲",
-                            color = accentTextColor,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = btn.name,
-                            color = textColor,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 9.sp,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "▼",
-                            color = accentTextColor,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                        Text("▲", color = accentTextColor, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                        Text(btn.name, color = textColor, fontWeight = FontWeight.Black, fontSize = 9.sp, maxLines = 1)
+                        Text("▼", color = accentTextColor, fontSize = 8.sp, fontWeight = FontWeight.Black)
                     }
                 } else if (btn.isSystem) {
                     when (btn.systemAction) {
@@ -317,49 +309,31 @@ fun CustomGuiEditorScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(7.dp)
-                                        .background(if (isStealthHidden) Color.Transparent else Color.White, CircleShape)
+                                        .size(6.dp)
+                                        .background(if (isStealthHidden) Color.Transparent else BellPillWhite, CircleShape)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text("FPS: --", color = textColor, fontWeight = FontWeight.Black, fontSize = 10.sp, maxLines = 1)
                             }
                         }
                         "KEYBOARD" -> {
-                            Text(
-                                text = "KEYBOARD",
-                                color = textColor,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 10.sp,
-                                maxLines = 1
-                            )
+                            Text("KEYBOARD", color = textColor, fontWeight = FontWeight.Black, fontSize = 10.sp, maxLines = 1)
                         }
                         "HIDE_GUI" -> {
                             if (!hideVisualHud) {
-                                Text(
-                                    text = "HIDE GUI",
-                                    color = accentTextColor,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
-                                    maxLines = 1
-                                )
+                                Text("HIDE GUI", color = accentTextColor, fontWeight = FontWeight.Black, fontSize = 10.sp, maxLines = 1)
                             }
                         }
                         "CLOSE" -> {
                             Text(
                                 text = "✕",
-                                color = if (isStealthHidden) Color.Transparent else Color(0xFFFCA5A5),
+                                color = if (isStealthHidden) Color.Transparent else BellDanger,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 13.sp
                             )
                         }
                         else -> {
-                            Text(
-                                text = btn.name,
-                                color = textColor,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 11.sp,
-                                maxLines = 1
-                            )
+                            Text(btn.name, color = textColor, fontWeight = FontWeight.Black, fontSize = 11.sp, maxLines = 1)
                         }
                     }
                 } else {
@@ -372,12 +346,7 @@ fun CustomGuiEditorScreen(
                             maxLines = 1
                         )
                         if (btn.isToggle) {
-                            Text(
-                                text = "TOGGLE",
-                                color = accentTextColor,
-                                fontSize = 7.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text("TOGGLE", color = accentTextColor, fontSize = 7.sp, fontWeight = FontWeight.Bold)
                         }
                         if (btn.isMacro) {
                             Text(
@@ -387,7 +356,7 @@ fun CustomGuiEditorScreen(
                                     "TURBO" -> "⚡TRB"
                                     else -> "⚡MAC"
                                 },
-                                color = if (isStealthHidden) Color.Transparent else if (isSelected) EditorBgBase else EditorAccent,
+                                color = if (isStealthHidden) Color.Transparent else if (isSelected) BellInkDark else BellTextSecondary,
                                 fontSize = 7.sp,
                                 fontWeight = FontWeight.Black
                             )
@@ -397,13 +366,14 @@ fun CustomGuiEditorScreen(
             }
         }
 
-        // 3. TOP ACTION BAR
+        // 3. TOP ACTION BAR (BELL GLASS STYLE)
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
-                .background(if (isIngame) Color.White else EditorSurface, RoundedCornerShape(8.dp))
-                .border(1.2.dp, if (isIngame) Color.White else EditorBorder, RoundedCornerShape(8.dp))
+                .padding(14.dp)
+                .clip(RoundedCornerShape(9.dp))
+                .background(if (isIngame) BellPillWhite else BellGlassSidebar)
+                .border(1.dp, if (isIngame) BellPillWhite else BellBorder, RoundedCornerShape(9.dp))
                 .clickable {
                     if (isIngame) {
                         ControlLayoutManager.saveButtons(context, buttonsList)
@@ -413,7 +383,7 @@ fun CustomGuiEditorScreen(
                 }
                 .padding(horizontal = 12.dp, vertical = 7.dp)
         ) {
-            val topBtnContentColor = if (isIngame) EditorBgBase else Color.White
+            val topBtnContentColor = if (isIngame) BellInkDark else BellTextPrimary
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = if (isIngame) Icons.Outlined.Check else Icons.AutoMirrored.Outlined.ArrowBack,
@@ -426,7 +396,8 @@ fun CustomGuiEditorScreen(
                     text = if (isIngame) "DONE" else "BACK",
                     color = topBtnContentColor,
                     fontWeight = FontWeight.Black,
-                    fontSize = 11.sp
+                    fontSize = 10.sp,
+                    letterSpacing = 0.5.sp
                 )
             }
         }
@@ -435,17 +406,19 @@ fun CustomGuiEditorScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
-                .background(EditorSurface, RoundedCornerShape(10.dp))
-                .border(1.5.dp, EditorBorder, RoundedCornerShape(10.dp))
+                .padding(top = 14.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(BellGlassSidebar)
+                .border(1.dp, BellBorder, RoundedCornerShape(11.dp))
                 .padding(horizontal = 8.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .background(EditorSurfaceAlt, RoundedCornerShape(6.dp))
-                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(7.dp))
                     .clickable {
                         val newBtn = CustomControlButton(
                             id = "btn_" + UUID.randomUUID().toString().take(6),
@@ -461,16 +434,17 @@ fun CustomGuiEditorScreen(
                         manualFlipSide = null
                         Toast.makeText(context, "New button added to center screen!", Toast.LENGTH_SHORT).show()
                     }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(horizontal = 11.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("+ BUTTON", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Color.White)
+                Text("+ BUTTON", fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 0.4.sp, color = BellTextPrimary)
             }
 
             Box(
                 modifier = Modifier
-                    .background(EditorSurfaceAlt, RoundedCornerShape(6.dp))
-                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(7.dp))
                     .clickable {
                         val newJoy = CustomControlButton(
                             id = "joy_" + UUID.randomUUID().toString().take(6),
@@ -493,29 +467,32 @@ fun CustomGuiEditorScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_joystick),
+                        painter = painterResource(R.drawable.ic_joystick),
                         contentDescription = null,
-                        tint = EditorAccent,
+                        tint = BellTextSecondary,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("+ JOYSTICK", fontWeight = FontWeight.Black, fontSize = 11.sp, color = EditorAccent)
+                    Text("+ JOYSTICK", fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 0.4.sp, color = BellTextSecondary)
                 }
             }
 
             Box(
                 modifier = Modifier
-                    .background(Color(0xFF2A151A), RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(BellDanger.copy(alpha = 0.16f))
+                    .border(1.dp, BellDanger.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
                     .clickable { showResetConfirmDialog = true }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(horizontal = 11.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("RESET", color = Color(0xFFFCA5A5), fontWeight = FontWeight.Black, fontSize = 11.sp)
+                Text("RESET", color = BellDanger, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 0.4.sp)
             }
 
             Box(
                 modifier = Modifier
-                    .background(Color.White, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(BellPillWhite)
                     .clickable {
                         ControlLayoutManager.saveButtons(context, buttonsList)
                         Toast.makeText(context, "✓ GUI layout saved successfully!", Toast.LENGTH_SHORT).show()
@@ -523,15 +500,15 @@ fun CustomGuiEditorScreen(
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("SAVE", color = EditorBgBase, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                Text("SAVE", color = BellInkDark, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 0.5.sp)
             }
         }
 
-        // 4. SMART AUTO-DOCKING INSPECTOR PANEL
+        // 4. SMART AUTO-DOCKING GLASS INSPECTOR PANEL
         if (selectedButton != null) {
             val shouldDockLeft = manualFlipSide ?: (selectedButton.xPercent > 48f)
             val panelAlignment = if (shouldDockLeft) Alignment.CenterStart else Alignment.CenterEnd
-            val panelPadding = if (shouldDockLeft) PaddingValues(start = 16.dp) else PaddingValues(end = 16.dp)
+            val panelPadding = if (shouldDockLeft) PaddingValues(start = 14.dp) else PaddingValues(end = 14.dp)
             val isBtnHidden = hiddenButtonIds.contains(selectedButton.id)
 
             Box(
@@ -539,14 +516,13 @@ fun CustomGuiEditorScreen(
                     .align(panelAlignment)
                     .padding(panelPadding)
             ) {
-                NuxCard(
+                Box(
                     modifier = Modifier
                         .width(280.dp)
-                        .fillMaxHeight(0.85f),
-                    backgroundColor = EditorSurface,
-                    shadowOffset = 4.dp,
-                    cornerRadius = 14.dp,
-                    fillMaxHeight = true
+                        .fillMaxHeight(0.84f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(BellGlassElevated)
+                        .border(1.dp, BellBorder, RoundedCornerShape(14.dp))
                 ) {
                     Column(
                         modifier = Modifier
@@ -564,14 +540,15 @@ fun CustomGuiEditorScreen(
                                 Text(
                                     text = "BUTTON SETTINGS",
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp,
-                                    color = Color.White
+                                    fontSize = 12.sp,
+                                    letterSpacing = 0.6.sp,
+                                    color = BellTextPrimary
                                 )
                                 Text(
-                                    text = "Position: ${selectedButton.xPercent.roundToInt()}% x ${selectedButton.yPercent.roundToInt()}%",
+                                    text = "Position: ${selectedButton.xPercent.roundToInt()}% × ${selectedButton.yPercent.roundToInt()}%",
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = EditorMuted
+                                    color = BellTextMuted
                                 )
                             }
 
@@ -579,28 +556,30 @@ fun CustomGuiEditorScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(28.dp)
-                                        .background(EditorSurfaceAlt, CircleShape)
-                                        .border(1.dp, EditorBorder, CircleShape)
+                                        .clip(CircleShape)
+                                        .background(BellGlassInput)
+                                        .border(1.dp, BellBorder, CircleShape)
                                         .clickable { manualFlipSide = !shouldDockLeft },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("⇄", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("⇄", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                                 }
 
                                 Box(
                                     modifier = Modifier
                                         .size(28.dp)
-                                        .background(Color(0xFF2A151A), CircleShape)
-                                        .border(1.dp, Color(0xFF5C242C), CircleShape)
+                                        .clip(CircleShape)
+                                        .background(BellDanger.copy(alpha = 0.16f))
+                                        .border(1.dp, BellDanger.copy(alpha = 0.4f), CircleShape)
                                         .clickable { selectedButtonId = null },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("✕", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFFFCA5A5))
+                                    Text("✕", fontSize = 11.sp, fontWeight = FontWeight.Black, color = BellDanger)
                                 }
                             }
                         }
 
-                        HorizontalDivider(color = EditorBorder, thickness = 1.dp)
+                        HorizontalDivider(color = BellBorder, thickness = 1.dp)
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -608,8 +587,8 @@ fun CustomGuiEditorScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Invisible Touch:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                Text("Hide visual, keep tap area active", fontSize = 8.sp, color = EditorMuted)
+                                Text("Invisible Touch", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
+                                Text("Hide visual, keep tap area active", fontSize = 8.5.sp, color = BellTextMuted)
                             }
                             Switch(
                                 checked = isBtnHidden,
@@ -621,38 +600,39 @@ fun CustomGuiEditorScreen(
                                     }
                                 },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = EditorBgBase,
-                                    checkedTrackColor = Color.White,
-                                    uncheckedThumbColor = EditorMuted,
-                                    uncheckedTrackColor = EditorSurfaceAlt
+                                    checkedThumbColor = BellInkDark,
+                                    checkedTrackColor = BellPillWhite,
+                                    uncheckedThumbColor = BellTextSecondary,
+                                    uncheckedTrackColor = Color(0x26FFFFFF)
                                 )
                             )
                         }
 
-                        Text("Button Label Text:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                        Text("BUTTON LABEL TEXT", fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, color = BellTextMuted)
                         if (selectedButton.isSystem) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(EditorSurfaceAlt.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-                                    .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 12.dp, vertical = 9.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(selectedButton.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(selectedButton.name, color = BellTextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_lock),
+                                            painter = painterResource(R.drawable.ic_lock),
                                             contentDescription = null,
-                                            tint = EditorMuted,
+                                            tint = BellTextMuted,
                                             modifier = Modifier.size(12.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Fixed", color = EditorMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text("Fixed", color = BellTextMuted, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -660,20 +640,21 @@ fun CustomGuiEditorScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
-                                    .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 12.dp, vertical = 9.dp)
                             ) {
                                 if (selectedButton.name.isEmpty()) {
-                                    Text("Button label...", color = EditorMuted, fontSize = 13.sp)
+                                    Text("Button label...", color = BellTextMuted, fontSize = 12.sp)
                                 }
                                 BasicTextField(
                                     value = selectedButton.name,
                                     onValueChange = { newName ->
                                         buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(name = newName) else it }
                                     },
-                                    textStyle = TextStyle(color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                                    cursorBrush = SolidColor(Color.White),
+                                    textStyle = TextStyle(color = BellTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                                    cursorBrush = SolidColor(BellPillWhite),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -681,74 +662,64 @@ fun CustomGuiEditorScreen(
                         }
 
                         if (selectedButton.isJoystick) {
-                            Text("Control Type:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                            Text("CONTROL TYPE", fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, color = BellTextMuted)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
-                                    .border(1.dp, Color.White, RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorderActive, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_joystick),
+                                            painter = painterResource(R.drawable.ic_joystick),
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = BellTextPrimary,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
-                                        Text("Virtual Analog Joystick (WASD)", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                        Text("Virtual Analog Joystick (WASD)", color = BellTextPrimary, fontWeight = FontWeight.Black, fontSize = 10.5.sp)
                                     }
-                                    Text("Smooth 8-way analog movement replacing W, A, S, D keys.", color = EditorMuted, fontSize = 9.sp)
+                                    Text("Smooth 8-way analog movement replacing W, A, S, D keys.", color = BellTextMuted, fontSize = 8.5.sp)
                                 }
                             }
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Joystick Size (Diameter):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
-                                Text("${selectedButton.widthDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                            }
-                            Slider(
+                            BellEditorSlider(
+                                label = "Joystick Diameter",
+                                valueText = "${selectedButton.widthDp} dp",
                                 value = selectedButton.widthDp.toFloat(),
+                                range = 80f..220f,
                                 onValueChange = { newD ->
                                     val d = newD.roundToInt()
                                     buttonsList = buttonsList.map {
                                         if (it.id == selectedButton.id) it.copy(widthDp = d, heightDp = d, cornerRadiusDp = d / 2) else it
                                     }
-                                },
-                                valueRange = 80f..220f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = EditorBorder
-                                )
+                                }
                             )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Transparency (Opacity):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
-                                Text("${(selectedButton.opacity * 100).roundToInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                            }
-                            Slider(
+                            BellEditorSlider(
+                                label = "Opacity",
+                                valueText = "${(selectedButton.opacity * 100).roundToInt()}%",
                                 value = selectedButton.opacity,
+                                range = 0.15f..1.0f,
                                 onValueChange = { newOp ->
-                                    buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(opacity = (newOp * 100).roundToInt() / 100f) else it }
-                                },
-                                valueRange = 0.15f..1.0f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = EditorBorder
-                                )
+                                    buttonsList = buttonsList.map {
+                                        if (it.id == selectedButton.id) it.copy(opacity = (newOp * 100).roundToInt() / 100f) else it
+                                    }
+                                }
                             )
                         } else {
-                            Text("Key / Input Action:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                            Text("KEY / INPUT ACTION", fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, color = BellTextMuted)
                             if (selectedButton.isSystem) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(EditorSurfaceAlt.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-                                        .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BellGlassInput)
+                                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 9.dp)
                                 ) {
                                     val actionDesc = when (selectedButton.systemAction) {
                                         "FPS" -> "In-Game FPS Indicator"
@@ -758,7 +729,7 @@ fun CustomGuiEditorScreen(
                                         "RECORD" -> "Screen Recorder"
                                         else -> "System Action"
                                     }
-                                    Text(actionDesc, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text(actionDesc, color = BellTextPrimary, fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
                                 }
                             } else {
                                 val mappedKeyName = remember(selectedButton) {
@@ -780,93 +751,75 @@ fun CustomGuiEditorScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
-                                        .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BellGlassInput)
+                                        .border(1.dp, BellBorderActive, RoundedCornerShape(8.dp))
                                         .clickable {
                                             keyPickerTargetMode = "MAIN"
                                             keyPickerSearchQuery = ""
                                             showKeyPickerForButtonId = selectedButton.id
                                         }
-                                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                                        .padding(horizontal = 12.dp, vertical = 9.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(mappedKeyName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Change >", color = EditorMuted, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                                        Text(
+                                            text = mappedKeyName,
+                                            color = BellTextPrimary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 10.5.sp,
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("CHANGE ›", color = BellTextSecondary, fontWeight = FontWeight.Black, fontSize = 9.sp)
                                     }
                                 }
                             }
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Width:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
-                                Text("${selectedButton.widthDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                            }
-                            Slider(
+                            BellEditorSlider(
+                                label = "Width",
+                                valueText = "${selectedButton.widthDp} dp",
                                 value = selectedButton.widthDp.toFloat(),
+                                range = 24f..160f,
                                 onValueChange = { newW ->
                                     buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(widthDp = newW.roundToInt()) else it }
-                                },
-                                valueRange = 24f..160f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = EditorBorder
-                                )
+                                }
                             )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Height:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
-                                Text("${selectedButton.heightDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                            }
-                            Slider(
+                            BellEditorSlider(
+                                label = "Height",
+                                valueText = "${selectedButton.heightDp} dp",
                                 value = selectedButton.heightDp.toFloat(),
+                                range = 24f..160f,
                                 onValueChange = { newH ->
                                     buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(heightDp = newH.roundToInt()) else it }
-                                },
-                                valueRange = 24f..160f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = EditorBorder
-                                )
+                                }
                             )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Transparency (Opacity):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
-                                Text("${(selectedButton.opacity * 100).roundToInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                            }
-                            Slider(
+                            BellEditorSlider(
+                                label = "Opacity",
+                                valueText = "${(selectedButton.opacity * 100).roundToInt()}%",
                                 value = selectedButton.opacity,
+                                range = 0.15f..1.0f,
                                 onValueChange = { newOp ->
-                                    buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(opacity = (newOp * 100).roundToInt() / 100f) else it }
-                                },
-                                valueRange = 0.15f..1.0f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = EditorBorder
-                                )
+                                    buttonsList = buttonsList.map {
+                                        if (it.id == selectedButton.id) it.copy(opacity = (newOp * 100).roundToInt() / 100f) else it
+                                    }
+                                }
                             )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Corner Radius:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
-                                Text("${selectedButton.cornerRadiusDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                            }
-                            Slider(
+                            BellEditorSlider(
+                                label = "Corner Radius",
+                                valueText = "${selectedButton.cornerRadiusDp} dp",
                                 value = selectedButton.cornerRadiusDp.toFloat(),
+                                range = 0f..28f,
                                 onValueChange = { newR ->
                                     buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(cornerRadiusDp = newR.roundToInt()) else it }
-                                },
-                                valueRange = 0f..28f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = EditorBorder
-                                )
+                                }
                             )
                         }
 
@@ -877,8 +830,8 @@ fun CustomGuiEditorScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Toggle Mode:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                    Text("Tap once to toggle/lock", fontSize = 8.sp, color = EditorMuted)
+                                    Text("Toggle Mode", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
+                                    Text("Tap once to toggle/lock", fontSize = 8.5.sp, color = BellTextMuted)
                                 }
                                 Switch(
                                     checked = selectedButton.isToggle,
@@ -886,22 +839,22 @@ fun CustomGuiEditorScreen(
                                         buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(isToggle = isToggled) else it }
                                     },
                                     colors = SwitchDefaults.colors(
-                                        checkedThumbColor = EditorBgBase,
-                                        checkedTrackColor = Color.White,
-                                        uncheckedThumbColor = EditorMuted,
-                                        uncheckedTrackColor = EditorSurfaceAlt
+                                        checkedThumbColor = BellInkDark,
+                                        checkedTrackColor = BellPillWhite,
+                                        uncheckedThumbColor = BellTextSecondary,
+                                        uncheckedTrackColor = Color(0x26FFFFFF)
                                     )
                                 )
                             }
                         }
 
                         if (!selectedButton.isSystem && !selectedButton.isScroll && !selectedButton.isJoystick) {
-                            Spacer(modifier = Modifier.height(2.dp))
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(EditorSurfaceAlt, RoundedCornerShape(10.dp))
-                                    .border(1.dp, if (selectedButton.isMacro) Color.White else EditorBorder, RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, if (selectedButton.isMacro) BellPillWhite else BellBorder, RoundedCornerShape(10.dp))
                                     .padding(10.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
@@ -915,23 +868,24 @@ fun CustomGuiEditorScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Bolt,
                                                 contentDescription = null,
-                                                tint = Color.White,
+                                                tint = BellTextPrimary,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("MACRO FEATURES", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                            Text("MACRO FEATURES", fontSize = 10.sp, fontWeight = FontWeight.Black, color = BellTextPrimary)
                                             if (selectedButton.isMacro) {
-                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Spacer(modifier = Modifier.width(5.dp))
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(4.dp))
-                                                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(BellPillWhite)
+                                                        .padding(horizontal = 5.dp, vertical = 1.dp)
                                                 ) {
-                                                    Text("ACTIVE", fontSize = 8.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                                    Text("ACTIVE", fontSize = 7.5.sp, fontWeight = FontWeight.Black, color = BellInkDark)
                                                 }
                                             }
                                         }
-                                        Text("Enable macro automation for this button", fontSize = 8.sp, color = EditorMuted)
+                                        Text("Enable macro automation for this button", fontSize = 8.sp, color = BellTextMuted)
                                     }
                                     Switch(
                                         checked = selectedButton.isMacro,
@@ -941,41 +895,35 @@ fun CustomGuiEditorScreen(
                                             }
                                         },
                                         colors = SwitchDefaults.colors(
-                                            checkedThumbColor = EditorBgBase,
-                                            checkedTrackColor = Color.White,
-                                            uncheckedThumbColor = EditorMuted,
-                                            uncheckedTrackColor = EditorSurface
+                                            checkedThumbColor = BellInkDark,
+                                            checkedTrackColor = BellPillWhite,
+                                            uncheckedThumbColor = BellTextSecondary,
+                                            uncheckedTrackColor = Color(0x26FFFFFF)
                                         )
                                     )
                                 }
 
                                 if (selectedButton.isMacro) {
-                                    HorizontalDivider(color = EditorBorder, thickness = 1.dp)
+                                    HorizontalDivider(color = BellBorder, thickness = 1.dp)
 
-                                    Text("Select Macro Mode:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                                    Text("SELECT MACRO MODE", fontSize = 8.5.sp, fontWeight = FontWeight.Black, color = BellTextMuted)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         val types = listOf(
-                                            Triple("COMMAND", "⌨ Command/Chat", "Auto-type"),
-                                            Triple("COMBO", "🔗 Combo", "Multi-Key"),
-                                            Triple("TURBO", "Turbo Click", "Auto-clicker")
+                                            "COMMAND" to "CMD",
+                                            "COMBO" to "COMBO",
+                                            "TURBO" to "TURBO"
                                         )
-                                        types.forEach { (typeKey, typeLabel, _) ->
+                                        types.forEach { (typeKey, typeLabel) ->
                                             val isChosen = selectedButton.macroType == typeKey
                                             Box(
                                                 modifier = Modifier
                                                     .weight(1f)
-                                                    .background(
-                                                        if (isChosen) Color.White else EditorSurface,
-                                                        RoundedCornerShape(6.dp)
-                                                    )
-                                                    .border(
-                                                        1.dp,
-                                                        if (isChosen) Color.White else EditorBorder,
-                                                        RoundedCornerShape(6.dp)
-                                                    )
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(if (isChosen) BellPillWhite else BellGlassCard)
+                                                    .border(1.dp, if (isChosen) BellPillWhite else BellBorder, RoundedCornerShape(6.dp))
                                                     .clickable {
                                                         buttonsList = buttonsList.map {
                                                             if (it.id == selectedButton.id) it.copy(macroType = typeKey) else it
@@ -986,9 +934,9 @@ fun CustomGuiEditorScreen(
                                             ) {
                                                 Text(
                                                     text = typeLabel,
-                                                    fontSize = 8.sp,
-                                                    fontWeight = if (isChosen) FontWeight.Black else FontWeight.Bold,
-                                                    color = if (isChosen) EditorBgBase else Color.White,
+                                                    fontSize = 8.5.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = if (isChosen) BellInkDark else BellTextSecondary,
                                                     maxLines = 1
                                                 )
                                             }
@@ -997,7 +945,7 @@ fun CustomGuiEditorScreen(
 
                                     if (selectedButton.macroType == "COMMAND") {
                                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text("Auto-typed text / command:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            Text("Auto-typed text / command:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                                             BasicTextField(
                                                 value = selectedButton.macroCommand,
                                                 onValueChange = { newCmd ->
@@ -1005,26 +953,23 @@ fun CustomGuiEditorScreen(
                                                         if (it.id == selectedButton.id) it.copy(macroCommand = newCmd) else it
                                                     }
                                                 },
-                                                textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                                                cursorBrush = SolidColor(Color.White),
+                                                textStyle = TextStyle(color = BellTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                                                cursorBrush = SolidColor(BellPillWhite),
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .background(EditorBgBase, RoundedCornerShape(6.dp))
-                                                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(BellGlassCard)
+                                                    .border(1.dp, BellBorder, RoundedCornerShape(6.dp))
                                                     .padding(horizontal = 10.dp, vertical = 8.dp),
                                                 decorationBox = { innerTextField ->
                                                     if (selectedButton.macroCommand.isEmpty()) {
-                                                        Text(
-                                                            text = "e.g. /gamemode creative or /home",
-                                                            color = EditorMuted,
-                                                            fontSize = 10.sp
-                                                        )
+                                                        Text("e.g. /gamemode creative", color = BellTextMuted, fontSize = 10.sp)
                                                     }
                                                     innerTextField()
                                                 }
                                             )
 
-                                            Text("Quick Templates:", fontSize = 8.sp, color = EditorMuted)
+                                            Text("Quick Templates:", fontSize = 8.sp, color = BellTextMuted)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1032,8 +977,9 @@ fun CustomGuiEditorScreen(
                                                 listOf("/gamemode c", "/gamemode s", "/spawn", "/home").forEach { sample ->
                                                     Box(
                                                         modifier = Modifier
-                                                            .background(EditorSurface, RoundedCornerShape(4.dp))
-                                                            .border(0.5.dp, EditorBorder, RoundedCornerShape(4.dp))
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .background(BellGlassCard)
+                                                            .border(0.5.dp, BellBorder, RoundedCornerShape(4.dp))
                                                             .clickable {
                                                                 buttonsList = buttonsList.map {
                                                                     if (it.id == selectedButton.id) it.copy(macroCommand = sample) else it
@@ -1041,7 +987,7 @@ fun CustomGuiEditorScreen(
                                                             }
                                                             .padding(horizontal = 6.dp, vertical = 3.dp)
                                                     ) {
-                                                        Text(sample, fontSize = 8.sp, color = EditorAccent, fontWeight = FontWeight.Bold)
+                                                        Text(sample, fontSize = 8.sp, color = BellTextSecondary, fontWeight = FontWeight.Bold)
                                                     }
                                                 }
                                             }
@@ -1065,12 +1011,12 @@ fun CustomGuiEditorScreen(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text("Combo Key Sequence:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                Text("Combo Key Sequence:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                                                 if (comboKeysList.isNotEmpty()) {
                                                     Text(
                                                         text = "Clear All",
                                                         fontSize = 8.sp,
-                                                        color = Color(0xFFFCA5A5),
+                                                        color = BellDanger,
                                                         fontWeight = FontWeight.Bold,
                                                         modifier = Modifier.clickable {
                                                             buttonsList = buttonsList.map {
@@ -1085,16 +1031,13 @@ fun CustomGuiEditorScreen(
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .background(EditorBgBase, RoundedCornerShape(6.dp))
-                                                        .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(BellGlassCard)
+                                                        .border(1.dp, BellBorder, RoundedCornerShape(6.dp))
                                                         .padding(vertical = 10.dp, horizontal = 12.dp),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    Text(
-                                                        text = "No combo keys added yet. Add keys below.",
-                                                        color = EditorMuted,
-                                                        fontSize = 9.sp
-                                                    )
+                                                    Text("No combo keys added yet.", color = BellTextMuted, fontSize = 9.sp)
                                                 }
                                             } else {
                                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1102,8 +1045,9 @@ fun CustomGuiEditorScreen(
                                                         Row(
                                                             modifier = Modifier
                                                                 .fillMaxWidth()
-                                                                .background(EditorBgBase, RoundedCornerShape(6.dp))
-                                                                .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
+                                                                .clip(RoundedCornerShape(6.dp))
+                                                                .background(BellGlassCard)
+                                                                .border(1.dp, BellBorder, RoundedCornerShape(6.dp))
                                                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                                                             horizontalArrangement = Arrangement.SpaceBetween,
                                                             verticalAlignment = Alignment.CenterVertically
@@ -1111,15 +1055,16 @@ fun CustomGuiEditorScreen(
                                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                                                 Box(
                                                                     modifier = Modifier
-                                                                        .background(EditorSurfaceAlt, RoundedCornerShape(4.dp))
-                                                                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                                                                        .clip(RoundedCornerShape(4.dp))
+                                                                        .background(BellPillWhite)
+                                                                        .padding(horizontal = 5.dp, vertical = 1.dp)
                                                                 ) {
-                                                                    Text("#${index + 1}", fontSize = 8.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                                                    Text("#${index + 1}", fontSize = 8.sp, fontWeight = FontWeight.Black, color = BellInkDark)
                                                                 }
                                                                 Spacer(modifier = Modifier.width(6.dp))
                                                                 Text(
                                                                     text = KeycodeCatalog.getKeyName(keyCode),
-                                                                    color = Color.White,
+                                                                    color = BellTextPrimary,
                                                                     fontWeight = FontWeight.Bold,
                                                                     fontSize = 10.sp,
                                                                     maxLines = 1
@@ -1128,7 +1073,8 @@ fun CustomGuiEditorScreen(
                                                             Box(
                                                                 modifier = Modifier
                                                                     .size(20.dp)
-                                                                    .background(Color(0xFF2A151A), CircleShape)
+                                                                    .clip(CircleShape)
+                                                                    .background(BellDanger.copy(alpha = 0.16f))
                                                                     .clickable {
                                                                         val updated = comboKeysList.toMutableList().apply { removeAt(index) }
                                                                         buttonsList = buttonsList.map {
@@ -1139,7 +1085,7 @@ fun CustomGuiEditorScreen(
                                                                     },
                                                                 contentAlignment = Alignment.Center
                                                             ) {
-                                                                Text("✕", fontSize = 9.sp, color = Color(0xFFFCA5A5), fontWeight = FontWeight.Black)
+                                                                Text("✕", fontSize = 9.sp, color = BellDanger, fontWeight = FontWeight.Black)
                                                             }
                                                         }
                                                     }
@@ -1149,24 +1095,20 @@ fun CustomGuiEditorScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .background(EditorSurface, RoundedCornerShape(6.dp))
-                                                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(BellPillWhite)
                                                     .clickable {
                                                         keyPickerTargetMode = "COMBO"
                                                         keyPickerSearchQuery = ""
                                                         showKeyPickerForButtonId = selectedButton.id
                                                     }
-                                                    .padding(vertical = 8.dp),
+                                                    .padding(vertical = 7.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text("+", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Black)
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("Add Key to Combo", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                                                }
+                                                Text("+ ADD KEY TO COMBO", fontSize = 9.sp, color = BellInkDark, fontWeight = FontWeight.Black)
                                             }
 
-                                            Text("Quick Add:", fontSize = 8.sp, color = EditorMuted)
+                                            Text("Quick Add:", fontSize = 8.sp, color = BellTextMuted)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1181,8 +1123,9 @@ fun CustomGuiEditorScreen(
                                                 ).forEach { (label, code) ->
                                                     Box(
                                                         modifier = Modifier
-                                                            .background(EditorSurface, RoundedCornerShape(4.dp))
-                                                            .border(0.5.dp, EditorBorder, RoundedCornerShape(4.dp))
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .background(BellGlassCard)
+                                                            .border(0.5.dp, BellBorder, RoundedCornerShape(4.dp))
                                                             .clickable {
                                                                 val updated = comboKeysList + code
                                                                 buttonsList = buttonsList.map {
@@ -1193,77 +1136,67 @@ fun CustomGuiEditorScreen(
                                                             }
                                                             .padding(horizontal = 6.dp, vertical = 3.dp)
                                                     ) {
-                                                        Text("+ $label", fontSize = 8.sp, color = EditorAccent, fontWeight = FontWeight.Bold)
+                                                        Text("+ $label", fontSize = 8.sp, color = BellTextSecondary, fontWeight = FontWeight.Bold)
                                                     }
                                                 }
                                             }
-                                            Text("Executed sequentially from top (#1) to bottom on press.", fontSize = 8.sp, color = EditorMuted)
                                         }
                                     }
 
                                     if (selectedButton.macroType == "TURBO") {
                                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text("Auto-Click Interval:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                                val cps = (1000f / selectedButton.macroTurboIntervalMs.coerceAtLeast(1L)).roundToInt()
-                                                Text("${selectedButton.macroTurboIntervalMs} ms (~$cps CPS)", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.White)
-                                            }
-                                            Slider(
+                                            val cps = (1000f / selectedButton.macroTurboIntervalMs.coerceAtLeast(1L)).roundToInt()
+                                            BellEditorSlider(
+                                                label = "Auto-Click Interval",
+                                                valueText = "${selectedButton.macroTurboIntervalMs} ms (~$cps CPS)",
                                                 value = selectedButton.macroTurboIntervalMs.toFloat(),
+                                                range = 40f..500f,
                                                 onValueChange = { newInterval ->
                                                     buttonsList = buttonsList.map {
                                                         if (it.id == selectedButton.id) it.copy(macroTurboIntervalMs = newInterval.toLong()) else it
                                                     }
-                                                },
-                                                valueRange = 40f..500f,
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = Color.White,
-                                                    activeTrackColor = Color.White,
-                                                    inactiveTrackColor = EditorBorder
-                                                )
+                                                }
                                             )
-                                            Text("Button automatically triggers repeated rapid presses while held.", fontSize = 8.sp, color = EditorMuted)
+                                            Text("Triggers repeated rapid presses while held.", fontSize = 8.sp, color = BellTextMuted)
                                         }
                                     }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(2.dp))
-
                         if (!selectedButton.isSystem) {
-                            NuxButton(
-                                onClick = {
-                                    hiddenButtonIds.remove(selectedButton.id)
-                                    buttonsList = buttonsList.filter { it.id != selectedButton.id }
-                                    selectedButtonId = null
-                                    Toast.makeText(context, "Button removed", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.fillMaxWidth().height(38.dp),
-                                backgroundColor = Color(0xFF2A151A),
-                                contentColor = Color(0xFFFCA5A5),
-                                shadowOffset = 2.dp,
-                                cornerRadius = 8.dp
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellDanger.copy(alpha = 0.16f))
+                                    .border(1.dp, BellDanger.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        hiddenButtonIds.remove(selectedButton.id)
+                                        buttonsList = buttonsList.filter { it.id != selectedButton.id }
+                                        selectedButtonId = null
+                                        Toast.makeText(context, "Button removed", Toast.LENGTH_SHORT).show()
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("DELETE BUTTON", color = Color(0xFFFCA5A5), fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                Text("DELETE BUTTON", color = BellDanger, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 0.5.sp)
                             }
                         } else {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
-                                    .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
-                                    .padding(vertical = 10.dp, horizontal = 12.dp),
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                    .padding(vertical = 9.dp, horizontal = 12.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "System buttons cannot be deleted",
-                                    color = EditorMuted,
+                                    color = BellTextMuted,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
+                                    fontSize = 9.5.sp
                                 )
                             }
                         }
@@ -1278,21 +1211,22 @@ fun CustomGuiEditorScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 12.dp)
-                    .background(EditorSurface.copy(alpha = 0.92f), RoundedCornerShape(20.dp))
-                    .border(1.dp, EditorBorder, RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(BellGlassSidebar)
+                    .border(1.dp, BellBorder, RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
-                            .background(Color.White, CircleShape)
+                            .size(6.dp)
+                            .background(BellPillWhite, CircleShape)
                     )
                     Spacer(modifier = Modifier.width(7.dp))
                     Text(
                         text = "IN-GAME MODE · Position buttons over game HUD then tap DONE",
-                        color = EditorAccent,
-                        fontSize = 10.sp,
+                        color = BellTextSecondary,
+                        fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -1300,7 +1234,7 @@ fun CustomGuiEditorScreen(
         }
     }
 
-    // Keycode Picker Dialog
+    // Keycode Picker Dialog (Bell Monochrome Glass)
     if (showKeyPickerForButtonId != null) {
         val targetId = showKeyPickerForButtonId!!
         val isComboMode = keyPickerTargetMode == "COMBO"
@@ -1309,13 +1243,13 @@ fun CustomGuiEditorScreen(
             showKeyPickerForButtonId = null
             keyPickerSearchQuery = ""
         }) {
-            NuxCard(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .fillMaxHeight(0.88f),
-                backgroundColor = EditorSurface,
-                shadowOffset = 6.dp,
-                cornerRadius = 16.dp
+                    .fillMaxWidth(0.90f)
+                    .fillMaxHeight(0.86f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(BellGlassElevated)
+                    .border(1.dp, BellBorder, RoundedCornerShape(16.dp))
             ) {
                 Column(
                     modifier = Modifier
@@ -1329,29 +1263,31 @@ fun CustomGuiEditorScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (isComboMode) "Select Combo Key" else "Select Key Input",
+                                text = if (isComboMode) "SELECT COMBO KEY" else "SELECT KEY INPUT",
                                 fontWeight = FontWeight.Black,
-                                fontSize = 14.sp,
-                                color = Color.White
+                                fontSize = 13.sp,
+                                letterSpacing = 0.6.sp,
+                                color = BellTextPrimary
                             )
                             Text(
-                                text = if (isComboMode) "This key executes sequentially with the primary key" else "Full keyboard: A-Z, F1-F12, numbers, modifiers & symbols",
-                                fontSize = 9.sp,
-                                color = EditorMuted
+                                text = if (isComboMode) "Executes sequentially with the primary key" else "Full keyboard: A-Z, F1-F12, numbers, modifiers & symbols",
+                                fontSize = 9.5.sp,
+                                color = BellTextSecondary
                             )
                         }
                         Box(
                             modifier = Modifier
                                 .size(28.dp)
-                                .background(Color(0xFF2A151A), CircleShape)
-                                .border(1.dp, Color(0xFF5C242C), CircleShape)
+                                .clip(CircleShape)
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, CircleShape)
                                 .clickable {
                                     showKeyPickerForButtonId = null
                                     keyPickerSearchQuery = ""
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("✕", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFFFCA5A5))
+                            Text("✕", fontSize = 11.sp, fontWeight = FontWeight.Black, color = BellTextPrimary)
                         }
                     }
 
@@ -1360,24 +1296,30 @@ fun CustomGuiEditorScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(38.dp)
-                            .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
-                            .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(BellGlassInput)
+                            .border(1.dp, BellBorderActive, RoundedCornerShape(9.dp))
                             .padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("🔍", fontSize = 11.sp)
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.Search,
+                            contentDescription = null,
+                            tint = BellTextSecondary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(7.dp))
                         BasicTextField(
                             value = keyPickerSearchQuery,
                             onValueChange = { keyPickerSearchQuery = it },
                             singleLine = true,
-                            textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                            cursorBrush = SolidColor(Color.White),
+                            textStyle = TextStyle(color = BellTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                            cursorBrush = SolidColor(BellPillWhite),
                             modifier = Modifier.weight(1f),
                             decorationBox = { innerTextField ->
                                 if (keyPickerSearchQuery.isEmpty()) {
-                                    Text("Search key (W, Alt, F3, Tab, Shift...)", color = EditorMuted, fontSize = 10.sp, maxLines = 1)
+                                    Text("Search key (W, Alt, F3, Tab, Shift...)", color = BellTextMuted, fontSize = 10.sp, maxLines = 1)
                                 }
                                 innerTextField()
                             }
@@ -1386,11 +1328,12 @@ fun CustomGuiEditorScreen(
                             Box(
                                 modifier = Modifier
                                     .size(18.dp)
-                                    .background(EditorSurface, CircleShape)
+                                    .clip(CircleShape)
+                                    .background(BellGlassCard)
                                     .clickable { keyPickerSearchQuery = "" },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("✕", fontSize = 9.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                Text("✕", fontSize = 9.sp, color = BellTextPrimary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1425,7 +1368,7 @@ fun CustomGuiEditorScreen(
                         ) {
                             Text(
                                 "No keys match \"$keyPickerSearchQuery\"",
-                                color = EditorAccent,
+                                color = BellTextSecondary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -1441,8 +1384,9 @@ fun CustomGuiEditorScreen(
                                     Text(
                                         text = category.uppercase(),
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 11.sp,
-                                        color = EditorMuted,
+                                        fontSize = 9.5.sp,
+                                        letterSpacing = 0.7.sp,
+                                        color = BellTextMuted,
                                         modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
                                     )
                                 }
@@ -1450,8 +1394,9 @@ fun CustomGuiEditorScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
-                                            .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(BellGlassInput)
+                                            .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                                             .clickable {
                                                 buttonsList = buttonsList.map {
                                                     if (it.id == targetId) {
@@ -1478,7 +1423,7 @@ fun CustomGuiEditorScreen(
                                                 showKeyPickerForButtonId = null
                                                 keyPickerSearchQuery = ""
                                             }
-                                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                                            .padding(horizontal = 12.dp, vertical = 9.dp)
                                     ) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
@@ -1488,14 +1433,14 @@ fun CustomGuiEditorScreen(
                                             Text(
                                                 text = keyOpt.displayName,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = Color.White
+                                                fontSize = 11.5.sp,
+                                                color = BellTextPrimary
                                             )
                                             Text(
                                                 text = keyOpt.category,
                                                 fontWeight = FontWeight.Normal,
                                                 fontSize = 9.sp,
-                                                color = EditorMuted
+                                                color = BellTextMuted
                                             )
                                         }
                                     }
@@ -1508,53 +1453,106 @@ fun CustomGuiEditorScreen(
         }
     }
 
-    // Reset Confirmation Dialog
+    // Reset Confirmation Dialog (Bell Monochrome Glass)
     if (showResetConfirmDialog) {
         Dialog(onDismissRequest = { showResetConfirmDialog = false }) {
-            NuxCard(
-                modifier = Modifier.width(320.dp),
-                backgroundColor = EditorSurface,
-                shadowOffset = 6.dp,
-                cornerRadius = 16.dp
+            Box(
+                modifier = Modifier
+                    .width(320.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(BellGlassElevated)
+                    .border(1.dp, BellBorder, RoundedCornerShape(16.dp))
+                    .padding(18.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Reset GUI Layout?", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                    Text("All button positions and custom mappings will be restored to default layout.", fontSize = 12.sp, color = EditorMuted)
+                    Text(
+                        text = "RESET GUI LAYOUT?",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp,
+                        letterSpacing = 0.6.sp,
+                        color = BellTextPrimary
+                    )
+                    Text(
+                        text = "All button positions and custom mappings will be restored to default layout.",
+                        fontSize = 11.sp,
+                        color = BellTextSecondary
+                    )
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        NuxButton(
-                            onClick = { showResetConfirmDialog = false },
-                            modifier = Modifier.weight(1f).height(44.dp),
-                            backgroundColor = EditorSurfaceAlt,
-                            contentColor = Color.White,
-                            shadowOffset = 2.dp
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                .clickable { showResetConfirmDialog = false },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("CANCEL", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Color.White)
+                            Text("CANCEL", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = BellTextPrimary)
                         }
 
-                        NuxButton(
-                            onClick = {
-                                hideVisualHud = false
-                                hiddenButtonIds.clear()
-                                buttonsList = ControlLayoutManager.getDefaultButtons()
-                                selectedButtonId = null
-                                showResetConfirmDialog = false
-                                Toast.makeText(context, "Layout reset to default", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.weight(1f).height(44.dp),
-                            backgroundColor = Color(0xFFC62828),
-                            contentColor = Color.White,
-                            shadowOffset = 2.dp
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(BellDanger)
+                                .clickable {
+                                    hideVisualHud = false
+                                    hiddenButtonIds.clear()
+                                    buttonsList = ControlLayoutManager.getDefaultButtons()
+                                    selectedButtonId = null
+                                    showResetConfirmDialog = false
+                                    Toast.makeText(context, "Layout reset to default", Toast.LENGTH_SHORT).show()
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("RESET", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Color.White)
+                            Text("RESET", fontWeight = FontWeight.Black, fontSize = 10.sp, color = BellInkDark)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BellEditorSlider(
+    label: String,
+    valueText: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextMuted)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0x26FFFFFF))
+                    .padding(horizontal = 6.dp, vertical = 1.dp)
+            ) {
+                Text(valueText, fontSize = 9.5.sp, fontWeight = FontWeight.Black, color = BellTextPrimary)
+            }
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = range,
+            colors = SliderDefaults.colors(
+                thumbColor = BellPillWhite,
+                activeTrackColor = BellPillWhite,
+                inactiveTrackColor = Color(0x26FFFFFF)
+            )
+        )
     }
 }
