@@ -35,16 +35,16 @@ import com.israadev.nuxlauncher.ui.theme.LocalNuxScale
 import com.israadev.nuxlauncher.ui.theme.resp
 
 /**
- * Dark Obsidian Cyber-Glass Card with subtle hairline border and double-bezel depth
+ * Dark Obsidian Card with subtle hairline border
  */
 @Composable
 fun NuxCard(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = NuxColors.SurfaceWhite,
-    borderColor: Color = NuxColors.CardBorder,
+    backgroundColor: Color = Color(0xFF141418),
+    borderColor: Color = Color(0xFF282830),
     shadowColor: Color = Color.Transparent,
     shadowOffset: Dp = 0.dp,
-    cornerRadius: Dp = (20.dp).resp(),
+    cornerRadius: Dp = (14.dp).resp(),
     borderWidth: Dp = NuxSizes.BorderWidth,
     fillMaxHeight: Boolean = false,
     content: @Composable BoxScope.() -> Unit
@@ -63,18 +63,18 @@ fun NuxCard(
 }
 
 /**
- * Dark Obsidian Cyber-Glass Interactive Button with spring micro-scale tactile feedback
+ * Interactive Button matching neutral dark/white surface styling with tactile scale feedback
  */
 @Composable
 fun NuxButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = NuxColors.ForestGreen,
-    contentColor: Color = Color.White,
-    borderColor: Color = NuxColors.CardBorder,
+    backgroundColor: Color = Color(0xFFF4F4F5),
+    contentColor: Color = Color(0xFF0A0A0C),
+    borderColor: Color = Color(0xFF2C2C34),
     enabled: Boolean = true,
     shadowOffset: Dp = 0.dp,
-    cornerRadius: Dp = (12.dp).resp(),
+    cornerRadius: Dp = (8.dp).resp(),
     contentPadding: PaddingValues = PaddingValues(horizontal = (12.dp).resp(), vertical = (4.dp).resp()),
     content: @Composable RowScope.() -> Unit
 ) {
@@ -91,6 +91,9 @@ fun NuxButton(
     )
 
     val shape = RoundedCornerShape(cornerRadius)
+    val effectiveBg = if (enabled) backgroundColor else Color(0xFF18181D)
+    val effectiveBorder = if (enabled) borderColor else Color(0xFF24242B)
+    val effectiveContentColor = if (enabled) contentColor else Color(0xFF71717A)
 
     Box(
         modifier = modifier
@@ -99,13 +102,10 @@ fun NuxButton(
                 scaleY = scale
             }
             .clip(shape)
-            .background(
-                if (enabled) backgroundColor else NuxColors.SurfaceElevated.copy(alpha = 0.6f),
-                shape
-            )
+            .background(effectiveBg, shape)
             .border(
                 width = NuxSizes.BorderWidth,
-                color = if (enabled) borderColor else Color(0x1AFFFFFF),
+                color = effectiveBorder,
                 shape = shape
             )
             .clickable(
@@ -114,12 +114,12 @@ fun NuxButton(
                 indication = null,
                 onClick = onClick
             )
-            .defaultMinSize(minHeight = (32.dp).resp())
+            .defaultMinSize(minHeight = (30.dp).resp())
             .padding(contentPadding),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.runtime.CompositionLocalProvider(
-            androidx.compose.material3.LocalContentColor provides contentColor
+            androidx.compose.material3.LocalContentColor provides effectiveContentColor
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -132,18 +132,18 @@ fun NuxButton(
 }
 
 /**
- * Cyber Emerald Badge / Pill Indicator
+ * Neutral Badge / Pill Indicator
  */
 @Composable
 fun NuxBadge(
     text: String,
-    backgroundColor: Color = NuxColors.SoftLime,
-    textColor: Color = NuxColors.ForestGreen,
+    backgroundColor: Color = Color(0xFF1C1C22),
+    textColor: Color = Color(0xFFE4E4E7),
     borderColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape((7.dp).resp())
-    val effectiveBorderColor = borderColor ?: textColor.copy(alpha = 0.35f)
+    val shape = RoundedCornerShape((6.dp).resp())
+    val effectiveBorderColor = borderColor ?: Color(0xFF2E2E37)
 
     Box(
         modifier = modifier
@@ -155,8 +155,8 @@ fun NuxBadge(
             text = text,
             color = textColor,
             fontSize = (10.sp).resp(),
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (0.5.sp).resp(),
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = (0.4.sp).resp(),
             maxLines = 1,
             softWrap = false
         )
@@ -164,7 +164,7 @@ fun NuxBadge(
 }
 
 /**
- * Dark Obsidian Text Input Field
+ * Dark Text Input Field
  */
 @Composable
 fun NuxTextField(
@@ -176,18 +176,18 @@ fun NuxTextField(
     visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
-    val shape = RoundedCornerShape((10.dp).resp())
+    val shape = RoundedCornerShape((8.dp).resp())
     val resolvedTextStyle = textStyle ?: TextStyle(
-        color = NuxColors.DarkGray,
+        color = Color.White,
         fontSize = (13.sp).resp(),
-        fontWeight = FontWeight.SemiBold
+        fontWeight = FontWeight.Medium
     )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(NuxColors.SurfaceInput, shape)
-            .border(1.dp, NuxColors.CardBorder, shape)
+            .background(Color(0xFF121216), shape)
+            .border(1.dp, Color(0xFF282830), shape)
             .padding(horizontal = (12.dp).resp(), vertical = (8.dp).resp()),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -195,7 +195,7 @@ fun NuxTextField(
             if (value.isEmpty()) {
                 Text(
                     text = placeholder,
-                    color = NuxColors.GrayNeutral.copy(alpha = 0.6f),
+                    color = Color(0xFF71717A),
                     fontSize = (13.sp).resp(),
                     fontWeight = FontWeight.Normal
                 )
@@ -204,7 +204,7 @@ fun NuxTextField(
                 value = value,
                 onValueChange = onValueChange,
                 textStyle = resolvedTextStyle,
-                cursorBrush = SolidColor(NuxColors.ForestGreen),
+                cursorBrush = SolidColor(Color.White),
                 singleLine = true,
                 visualTransformation = visualTransformation,
                 modifier = Modifier.fillMaxWidth()
@@ -218,7 +218,7 @@ fun NuxTextField(
 }
 
 /**
- * Dark Obsidian Glass Styled Dialog Container
+ * Dark Styled Dialog Container
  */
 @Composable
 fun NuxDialog(
@@ -229,7 +229,7 @@ fun NuxDialog(
 ) {
     val isTablet = LocalNuxScale.current.isTablet
     val defaultWidthFraction = if (isTablet) 0.82f else 0.96f
-    val dialogShape = RoundedCornerShape((24.dp).resp())
+    val dialogShape = RoundedCornerShape((16.dp).resp())
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -241,7 +241,7 @@ fun NuxDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.72f))
+                .background(Color.Black.copy(alpha = 0.75f))
                 .padding(horizontal = (12.dp).resp(), vertical = (8.dp).resp()),
             contentAlignment = Alignment.Center
         ) {
@@ -256,20 +256,15 @@ fun NuxDialog(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color(0xF2151924),
-                                Color(0xFA0D0F17)
+                                Color(0xFF16161B),
+                                Color(0xFF0E0E12)
                             )
                         ),
                         dialogShape
                     )
                     .border(
-                        1.2.dp,
-                        Brush.verticalGradient(
-                            listOf(
-                                Color(0x4DFFFFFF),
-                                Color(0x1AFFFFFF)
-                            )
-                        ),
+                        1.dp,
+                        Color(0xFF2C2C34),
                         dialogShape
                     )
             ) {
