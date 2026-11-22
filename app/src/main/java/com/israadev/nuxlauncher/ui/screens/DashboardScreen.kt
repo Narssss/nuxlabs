@@ -43,6 +43,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.israadev.nuxlauncher.R
 import com.israadev.nuxlauncher.core.account.AccountManager
 import com.israadev.nuxlauncher.core.crash.CrashManager
@@ -59,16 +62,18 @@ import com.israadev.nuxlauncher.core.settings.SettingsManager
 import com.israadev.nuxlauncher.ui.components.NuxNetworkImage
 import com.israadev.nuxlauncher.ui.dialogs.*
 import com.israadev.nuxlauncher.ui.theme.resp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val PREF_BG_MEDIA = "custom_dashboard_bg_prefs"
 private const val KEY_BG_URI = "bg_media_uri"
 private const val KEY_BG_TYPE = "bg_media_type" // "image" | "video" | ""
 
 private val BellBgBase = Color(0xFF09090B)
-private val BellRailSurface = Color(0xE60E0E12)
-private val BellGlassCard = Color(0xCC121217)
-private val BellGlassAlt = Color(0xE61A1A22)
+private val BellRailSurface = Color(0xFF0E0E12) // Solid opaque agar tidak overdraw GPU di low-end
+private val BellGlassCard = Color(0xD9121217)
+private val BellGlassAlt = Color(0xF21A1A22)
 private val BellBorder = Color(0x26FFFFFF)
 private val BellBorderActive = Color(0x66FFFFFF)
 private val BellAccent = Color(0xFFE4E4E7)
@@ -93,13 +98,35 @@ private val SIDE_NAV_ITEMS = listOf(
 @Composable
 private fun LocalDashboardBackground(
     mediaUriString: String?,
-    mediaType: String
+    mediaType: String,
+    isActive: Boolean
 ) {
     val parsedUri = remember(mediaUriString) {
         mediaUriString?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
     }
 
     if (parsedUri != null && mediaType == "video") {
+        val lifecycleOwner = LocalLifecycleOwner.current
+        var videoViewRef by remember { mutableStateOf<VideoView?>(null) }
+
+        // Pause otomatis saat launcher di-minimize atau game sedang berjalan (hemat CPU/GPU & baterai)
+        DisposableEffect(lifecycleOwner, isActive) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> videoViewRef?.pause()
+                    Lifecycle.Event.ON_RESUME -> if (isActive) videoViewRef?.start()
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            if (!isActive) videoViewRef?.pause() else videoViewRef?.start()
+
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+                videoViewRef?.stopPlayback()
+            }
+        }
+
         AndroidView(
             factory = { ctx ->
                 VideoView(ctx).apply {
@@ -111,19 +138,21 @@ private fun LocalDashboardBackground(
                     setOnPreparedListener { mp ->
                         mp.isLooping = true
                         mp.setVolume(0f, 0f)
-                        start()
+                        if (isActive) start()
                     }
                     setOnErrorListener { _, _, _ -> true }
+                    videoViewRef = this
                 }
             },
             update = { videoView ->
+                videoViewRef = videoView
                 if (videoView.tag != parsedUri.toString()) {
                     videoView.tag = parsedUri.toString()
                     videoView.setVideoURI(parsedUri)
                     videoView.setOnPreparedListener { mp ->
                         mp.isLooping = true
                         mp.setVolume(0f, 0f)
-                        mp.start()
+                        if (isActive) mp.start()
                     }
                 }
             },
@@ -145,7 +174,6 @@ private fun LocalDashboardBackground(
         )
     }
 
-    // Vignette lembut dari bawah dan atas agar stage tengah tetap lega
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -217,12 +245,14 @@ fun DashboardScreen() {
     var premiumInitialPrompt by remember { mutableStateOf<String?>(null) }
     val pendingImport by NuxAddonImportManager.pendingImport.collectAsState()
 
-    val handleRequestCreateInstance = {
-        if (instances.size >= 3 && launcherUser?.isActivated != true) {
-            premiumInitialPrompt = "Free accounts are limited to a maximum of 3 instances. Upgrade to unlock unlimited instances."
-            showPremiumDialog = true
-        } else {
-            showAddDialog = true
+    val handleRequestCreateInstance = remember(instances.size, launcherUser?.isActivated) {
+        {
+            if (instances.size >= 3 && launcherUser?.isActivated != true) {
+                premiumInitialPrompt = "Free accounts are limited to a maximum of 3 instances. Upgrade to unlock unlimited instances."
+                showPremiumDialog = true
+            } else {
+                showAddDialog = true
+            }
         }
     }
 
@@ -236,20 +266,31 @@ fun DashboardScreen() {
     var isVersionDropdownExpanded by remember { mutableStateOf(false) }
     var isAccountDropdownExpanded by remember { mutableStateOf(false) }
 
+    // Pengecekan file instance dipindah ke IO thread agar UI thread tidak pernah nge-lag
+    val isFullyDownloaded by produceState(initialValue = false, selectedInstance, selectedInstance?.isDownloaded) {
+        val inst = selectedInstance
+        value = if (inst != null && inst.isDownloaded) {
+            withContext(Dispatchers.IO) {
+                InstanceManager.isInstanceDownloaded(context, inst)
+            }
+        } else {
+            false
+        }
+    }
+
     if (currentTab == "gui_editor") {
         CustomGuiEditorScreen(
             onNavigateBack = { currentTab = "settings" },
             modifier = Modifier.fillMaxSize()
         )
     } else {
-        // ARSITEKTUR BARU: VERTICAL LEFT NAVIGATION RAIL + FULL STAGE
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BellBgBase)
         ) {
             // =================================================================
-            // 1. VERTICAL LEFT RAIL
+            // 1. VERTICAL LEFT RAIL (Solid Surface -> Zero GPU Overdraw)
             // =================================================================
             Column(
                 modifier = Modifier
@@ -260,7 +301,6 @@ fun DashboardScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Brand Emblem / About Trigger
                 Box(
                     modifier = Modifier
                         .size((38.dp).resp())
@@ -279,7 +319,6 @@ fun DashboardScreen() {
                     )
                 }
 
-                // Vertical Navigation Stack
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy((5.dp).resp())
@@ -315,14 +354,15 @@ fun DashboardScreen() {
                     }
                 }
 
-                // Account Avatar & Quick Switcher di Sudut Kiri Bawah
+                // Account Avatar & Quick Switcher
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy((6.dp).resp())
                 ) {
-                    val accounts by AccountManager.accounts.collectAsState()
                     val activeUsername = currentAccount?.username ?: launcherUser?.username ?: "Guest"
-                    val initialLetter = activeUsername.firstOrNull()?.uppercase() ?: "G"
+                    val initialLetter = remember(activeUsername) {
+                        activeUsername.firstOrNull()?.uppercase() ?: "G"
+                    }
 
                     Box {
                         Box(
@@ -353,98 +393,100 @@ fun DashboardScreen() {
                             }
                         }
 
-                        DropdownMenu(
-                            expanded = isAccountDropdownExpanded,
-                            onDismissRequest = { isAccountDropdownExpanded = false },
-                            shape = RoundedCornerShape((12.dp).resp()),
-                            containerColor = BellGlassAlt,
-                            border = BorderStroke(1.dp, BellBorder),
-                            modifier = Modifier.widthIn(min = (210.dp).resp())
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(
-                                            text = "ACTIVE PROFILE",
-                                            color = BellMuted,
-                                            fontSize = (8.5.sp).resp(),
-                                            fontWeight = FontWeight.Bold,
-                                            letterSpacing = (0.6.sp).resp()
-                                        )
-                                        Text(
-                                            text = activeUsername,
-                                            color = Color.White,
-                                            fontSize = (12.sp).resp(),
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                },
-                                onClick = { }
-                            )
-
-                            HorizontalDivider(color = BellBorder, thickness = 1.dp)
-
-                            if (accounts.isEmpty()) {
+                        if (isAccountDropdownExpanded) {
+                            val accounts by AccountManager.accounts.collectAsState()
+                            DropdownMenu(
+                                expanded = true,
+                                onDismissRequest = { isAccountDropdownExpanded = false },
+                                shape = RoundedCornerShape((12.dp).resp()),
+                                containerColor = BellGlassAlt,
+                                border = BorderStroke(1.dp, BellBorder),
+                                modifier = Modifier.widthIn(min = (210.dp).resp())
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(tr("dashboard.no_accounts"), color = BellMuted, fontSize = (11.sp).resp()) },
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "ACTIVE PROFILE",
+                                                color = BellMuted,
+                                                fontSize = (8.5.sp).resp(),
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = (0.6.sp).resp()
+                                            )
+                                            Text(
+                                                text = activeUsername,
+                                                color = Color.White,
+                                                fontSize = (12.sp).resp(),
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    },
                                     onClick = { }
                                 )
-                            } else {
-                                accounts.forEach { acc ->
-                                    val isSelected = acc.id == currentAccount?.id
+
+                                HorizontalDivider(color = BellBorder, thickness = 1.dp)
+
+                                if (accounts.isEmpty()) {
                                     DropdownMenuItem(
-                                        text = {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = acc.username,
-                                                    color = if (isSelected) Color.White else BellAccent,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                    fontSize = (11.5.sp).resp()
-                                                )
-                                                if (isSelected) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = "Selected",
-                                                        tint = BellSuccess,
-                                                        modifier = Modifier.size((15.dp).resp())
+                                        text = { Text(tr("dashboard.no_accounts"), color = BellMuted, fontSize = (11.sp).resp()) },
+                                        onClick = { }
+                                    )
+                                } else {
+                                    accounts.forEach { acc ->
+                                        val isSelected = acc.id == currentAccount?.id
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = acc.username,
+                                                        color = if (isSelected) Color.White else BellAccent,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                        fontSize = (11.5.sp).resp()
                                                     )
+                                                    if (isSelected) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Check,
+                                                            contentDescription = "Selected",
+                                                            tint = BellSuccess,
+                                                            modifier = Modifier.size((15.dp).resp())
+                                                        )
+                                                    }
                                                 }
+                                            },
+                                            onClick = {
+                                                AccountManager.selectAccount(acc)
+                                                isAccountDropdownExpanded = false
                                             }
-                                        },
-                                        onClick = {
-                                            AccountManager.selectAccount(acc)
-                                            isAccountDropdownExpanded = false
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
+
+                                HorizontalDivider(color = BellBorder, thickness = 1.dp)
+
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = tr("dashboard.manage_accounts"),
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = (11.5.sp).resp()
+                                        )
+                                    },
+                                    onClick = {
+                                        isAccountDropdownExpanded = false
+                                        currentTab = "accounts"
+                                    }
+                                )
                             }
-
-                            HorizontalDivider(color = BellBorder, thickness = 1.dp)
-
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = tr("dashboard.manage_accounts"),
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = (11.5.sp).resp()
-                                    )
-                                },
-                                onClick = {
-                                    isAccountDropdownExpanded = false
-                                    currentTab = "accounts"
-                                }
-                            )
                         }
                     }
                 }
             }
 
-            // Garis pemisah vertikal tipis antara Rail dan Stage
             Box(
                 modifier = Modifier
                     .width(1.dp)
@@ -486,12 +528,11 @@ fun DashboardScreen() {
                         Box(modifier = Modifier.fillMaxSize()) {
                             LocalDashboardBackground(
                                 mediaUriString = bgUriString,
-                                mediaType = bgMediaType
+                                mediaType = bgMediaType,
+                                isActive = currentTab == "home"
                             )
 
-                            // -------------------------------------------------
-                            // TOP BAR FLOATING CHIPS (BRANDING KIRI + BG MEDIA KANAN)
-                            // -------------------------------------------------
+                            // TOP BAR FLOATING CHIPS
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -500,7 +541,6 @@ fun DashboardScreen() {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Pill Status Kiri Atas
                                 Row(
                                     modifier = Modifier
                                         .clip(CircleShape)
@@ -532,7 +572,6 @@ fun DashboardScreen() {
                                     )
                                 }
 
-                                // Kontrol BG Media & Info di Kanan Atas
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy((8.dp).resp()),
                                     verticalAlignment = Alignment.CenterVertically
@@ -609,9 +648,7 @@ fun DashboardScreen() {
                                 }
                             }
 
-                            // -------------------------------------------------
-                            // KIRI BAWAH: QUICK ACTION SHORTCUTS (NEW INSTANCE / MODS)
-                            // -------------------------------------------------
+                            // KIRI BAWAH: QUICK ACTION SHORTCUTS
                             Row(
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
@@ -680,11 +717,8 @@ fun DashboardScreen() {
                                 }
                             }
 
-                            // -------------------------------------------------
                             // KANAN BAWAH: FLOATING LAUNCH DECK CARD
-                            // -------------------------------------------------
                             val inst = selectedInstance
-                            val isFullyDownloaded = inst != null && inst.isDownloaded && InstanceManager.isInstanceDownloaded(context, inst)
 
                             Box(
                                 modifier = Modifier
@@ -699,7 +733,6 @@ fun DashboardScreen() {
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy((10.dp).resp())
                                 ) {
-                                    // Header pemilih Instance di dalam kartu
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -739,117 +772,119 @@ fun DashboardScreen() {
                                                 )
                                             }
 
-                                            DropdownMenu(
-                                                expanded = isVersionDropdownExpanded,
-                                                onDismissRequest = { isVersionDropdownExpanded = false },
-                                                shape = RoundedCornerShape((12.dp).resp()),
-                                                containerColor = BellGlassAlt,
-                                                border = BorderStroke(1.dp, BellBorder),
-                                                modifier = Modifier.widthIn(min = (250.dp).resp(), max = (320.dp).resp())
-                                            ) {
-                                                if (instances.isEmpty()) {
-                                                    DropdownMenuItem(
-                                                        text = {
-                                                            Text(
-                                                                text = tr("dashboard.no_instances"),
-                                                                color = BellMuted,
-                                                                fontSize = (11.sp).resp()
-                                                            )
-                                                        },
-                                                        onClick = { }
-                                                    )
-                                                } else {
-                                                    instances.forEach { itemInst ->
-                                                        val isSelected = itemInst.id == selectedInstance?.id
+                                            if (isVersionDropdownExpanded) {
+                                                DropdownMenu(
+                                                    expanded = true,
+                                                    onDismissRequest = { isVersionDropdownExpanded = false },
+                                                    shape = RoundedCornerShape((12.dp).resp()),
+                                                    containerColor = BellGlassAlt,
+                                                    border = BorderStroke(1.dp, BellBorder),
+                                                    modifier = Modifier.widthIn(min = (250.dp).resp(), max = (320.dp).resp())
+                                                ) {
+                                                    if (instances.isEmpty()) {
                                                         DropdownMenuItem(
                                                             text = {
-                                                                Row(
-                                                                    modifier = Modifier.fillMaxWidth(),
-                                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                                    verticalAlignment = Alignment.CenterVertically
-                                                                ) {
-                                                                    Column(modifier = Modifier.weight(1f)) {
-                                                                        Text(
-                                                                            text = itemInst.name,
-                                                                            color = if (isSelected) Color.White else BellAccent,
-                                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                                            fontSize = (12.sp).resp(),
-                                                                            maxLines = 1
-                                                                        )
-                                                                        Text(
-                                                                            text = "${itemInst.loader.uppercase()} • ${itemInst.mcVersion}",
-                                                                            color = BellMuted,
-                                                                            fontSize = (9.5.sp).resp()
-                                                                        )
-                                                                    }
-                                                                    Row(
-                                                                        verticalAlignment = Alignment.CenterVertically,
-                                                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
-                                                                    ) {
-                                                                        if (isSelected) {
-                                                                            Icon(
-                                                                                imageVector = Icons.Default.Check,
-                                                                                contentDescription = tr("common.selected"),
-                                                                                tint = BellSuccess,
-                                                                                modifier = Modifier.size((15.dp).resp())
-                                                                            )
-                                                                        }
-                                                                        Box(
-                                                                            modifier = Modifier
-                                                                                .size((26.dp).resp())
-                                                                                .clip(RoundedCornerShape((6.dp).resp()))
-                                                                                .background(BellRailSurface)
-                                                                                .clickable {
-                                                                                    isVersionDropdownExpanded = false
-                                                                                    instanceToEdit = itemInst
-                                                                                },
-                                                                            contentAlignment = Alignment.Center
-                                                                        ) {
-                                                                            Icon(
-                                                                                imageVector = Icons.Outlined.Settings,
-                                                                                contentDescription = tr("dashboard.instance_settings"),
-                                                                                tint = Color.White,
-                                                                                modifier = Modifier.size((14.dp).resp())
-                                                                            )
-                                                                        }
-                                                                    }
-                                                                }
+                                                                Text(
+                                                                    text = tr("dashboard.no_instances"),
+                                                                    color = BellMuted,
+                                                                    fontSize = (11.sp).resp()
+                                                                )
                                                             },
-                                                            onClick = {
-                                                                InstanceManager.selectInstance(itemInst)
-                                                                isVersionDropdownExpanded = false
-                                                            }
+                                                            onClick = { }
                                                         )
-                                                    }
-                                                }
-
-                                                HorizontalDivider(color = BellBorder, thickness = 1.dp)
-
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy((8.dp).resp())
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Add,
-                                                                contentDescription = tr("common.add"),
-                                                                tint = Color.White,
-                                                                modifier = Modifier.size((17.dp).resp())
-                                                            )
-                                                            Text(
-                                                                text = tr("dashboard.add_new_instance"),
-                                                                color = Color.White,
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = (12.sp).resp()
+                                                    } else {
+                                                        instances.forEach { itemInst ->
+                                                            val isSelected = itemInst.id == selectedInstance?.id
+                                                            DropdownMenuItem(
+                                                                text = {
+                                                                    Row(
+                                                                        modifier = Modifier.fillMaxWidth(),
+                                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                                        verticalAlignment = Alignment.CenterVertically
+                                                                    ) {
+                                                                        Column(modifier = Modifier.weight(1f)) {
+                                                                            Text(
+                                                                                text = itemInst.name,
+                                                                                color = if (isSelected) Color.White else BellAccent,
+                                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                                                fontSize = (12.sp).resp(),
+                                                                                maxLines = 1
+                                                                            )
+                                                                            Text(
+                                                                                text = "${itemInst.loader.uppercase()} • ${itemInst.mcVersion}",
+                                                                                color = BellMuted,
+                                                                                fontSize = (9.5.sp).resp()
+                                                                            )
+                                                                        }
+                                                                        Row(
+                                                                            verticalAlignment = Alignment.CenterVertically,
+                                                                            horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
+                                                                        ) {
+                                                                            if (isSelected) {
+                                                                                Icon(
+                                                                                    imageVector = Icons.Default.Check,
+                                                                                    contentDescription = tr("common.selected"),
+                                                                                    tint = BellSuccess,
+                                                                                    modifier = Modifier.size((15.dp).resp())
+                                                                                )
+                                                                            }
+                                                                            Box(
+                                                                                modifier = Modifier
+                                                                                    .size((26.dp).resp())
+                                                                                    .clip(RoundedCornerShape((6.dp).resp()))
+                                                                                    .background(BellRailSurface)
+                                                                                    .clickable {
+                                                                                        isVersionDropdownExpanded = false
+                                                                                        instanceToEdit = itemInst
+                                                                                    },
+                                                                                contentAlignment = Alignment.Center
+                                                                            ) {
+                                                                                Icon(
+                                                                                    imageVector = Icons.Outlined.Settings,
+                                                                                    contentDescription = tr("dashboard.instance_settings"),
+                                                                                    tint = Color.White,
+                                                                                    modifier = Modifier.size((14.dp).resp())
+                                                                                )
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                onClick = {
+                                                                    InstanceManager.selectInstance(itemInst)
+                                                                    isVersionDropdownExpanded = false
+                                                                }
                                                             )
                                                         }
-                                                    },
-                                                    onClick = {
-                                                        isVersionDropdownExpanded = false
-                                                        handleRequestCreateInstance()
                                                     }
-                                                )
+
+                                                    HorizontalDivider(color = BellBorder, thickness = 1.dp)
+
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy((8.dp).resp())
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Add,
+                                                                    contentDescription = tr("common.add"),
+                                                                    tint = Color.White,
+                                                                    modifier = Modifier.size((17.dp).resp())
+                                                                )
+                                                                Text(
+                                                                    text = tr("dashboard.add_new_instance"),
+                                                                    color = Color.White,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = (12.sp).resp()
+                                                                )
+                                                            }
+                                                        },
+                                                        onClick = {
+                                                            isVersionDropdownExpanded = false
+                                                            handleRequestCreateInstance()
+                                                        }
+                                                    )
+                                                }
                                             }
                                         }
 
@@ -873,7 +908,7 @@ fun DashboardScreen() {
                                         }
                                     }
 
-                                    // Chips Spesifikasi (Loader, Version, Java Runtime)
+                                    // Chips Spesifikasi
                                     if (inst != null) {
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy((6.dp).resp()),
@@ -907,8 +942,10 @@ fun DashboardScreen() {
                                                 )
                                             }
 
-                                            val activeRuntime = if (inst.javaRuntime != "auto") inst.javaRuntime
-                                            else JavaRuntimeManager.getRecommendedRuntime(inst.mcVersion)
+                                            val activeRuntime = remember(inst.javaRuntime, inst.mcVersion) {
+                                                if (inst.javaRuntime != "auto") inst.javaRuntime
+                                                else JavaRuntimeManager.getRecommendedRuntime(inst.mcVersion)
+                                            }
                                             Box(
                                                 modifier = Modifier
                                                     .background(Color(0x14FFFFFF), RoundedCornerShape((5.dp).resp()))
@@ -925,7 +962,7 @@ fun DashboardScreen() {
                                         }
                                     }
 
-                                    // Tombol Utama Full-Width di dalam Launch Deck
+                                    // Tombol Utama PLAY / DOWNLOAD
                                     val playBtnShape = RoundedCornerShape((11.dp).resp())
                                     Row(
                                         modifier = Modifier
@@ -984,6 +1021,7 @@ fun DashboardScreen() {
                                                             }
                                                             isDownloading = false
                                                             if (extRes.isSuccess) {
+                                                                trimLauncherMemoryBeforeGame()
                                                                 Toast.makeText(context, trStr("dashboard.toast_launching", inst.name), Toast.LENGTH_SHORT).show()
                                                                 GameLauncher.launch(context, inst, account)
                                                             } else {
@@ -999,6 +1037,7 @@ fun DashboardScreen() {
                                                         unsupportedRendererInfo = currentRendererInfo
                                                         pendingLaunchInstance = inst
                                                     } else {
+                                                        trimLauncherMemoryBeforeGame()
                                                         Toast.makeText(context, trStr("dashboard.toast_launching", inst.name), Toast.LENGTH_SHORT).show()
                                                         GameLauncher.launch(context, inst, account)
                                                     }
@@ -1095,6 +1134,7 @@ fun DashboardScreen() {
                     unsupportedRendererInfo = null
                     pendingLaunchInstance = null
                     if (toLaunch != null && account != null) {
+                        trimLauncherMemoryBeforeGame()
                         Toast.makeText(context, trStr("dashboard.toast_launching", toLaunch.name), Toast.LENGTH_SHORT).show()
                         GameLauncher.launch(context, toLaunch, account)
                     }
@@ -1133,5 +1173,17 @@ fun DashboardScreen() {
                 }
             )
         }
+    }
+}
+
+/**
+ * Mengosongkan sisa memori UI launcher tepat sebelum proses JVM Minecraft dimulai
+ * agar HP dengan RAM 3GB–4GB memiliki ruang maksimum dan tidak terkena LMK (Low Memory Killer).
+ */
+private fun trimLauncherMemoryBeforeGame() {
+    try {
+        System.gc()
+        System.runFinalization()
+    } catch (_: Throwable) {
     }
 }
