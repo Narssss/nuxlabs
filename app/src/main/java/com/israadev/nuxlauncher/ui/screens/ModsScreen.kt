@@ -11,8 +11,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,10 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.israadev.nuxlauncher.core.instance.InstanceManager
+import com.israadev.nuxlauncher.core.lang.NuxLanguageManager
 import com.israadev.nuxlauncher.core.lang.tr
 import com.israadev.nuxlauncher.core.lang.trStr
-import com.israadev.nuxlauncher.core.lang.NuxLanguageManager
-import com.israadev.nuxlauncher.core.instance.InstanceManager
 import com.israadev.nuxlauncher.core.models.*
 import com.israadev.nuxlauncher.core.mods.NuxModManager
 import com.israadev.nuxlauncher.core.mods.WorldInfo
@@ -48,17 +51,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 
-// Token desain mengikuti Dashboard (translucent dark glass + crisp white pills)
-private val DashGlassPanel = Color(0xB80E1015)
-private val DashGlassElevated = Color(0xD9161820)
-private val DashGlassInput = Color(0xCC0B0C10)
-private val DashBorder = Color(0x29FFFFFF)
-private val DashBorderStrong = Color(0x52FFFFFF)
-private val DashPillWhite = Color(0xFFFFFFFF)
-private val DashInkDark = Color(0xFF0A0A0C)
-private val DashTextPrimary = Color(0xFFFFFFFF)
-private val DashTextSecondary = Color(0xFFB4B6BE)
-private val DashTextMuted = Color(0xFF787B85)
+// Token desain Bell Launcher (Deep obsidian glass + crisp white pills)
+private val BellGlassSidebar = Color(0xCC0D0D11)
+private val BellGlassCard = Color(0xBF131318)
+private val BellGlassElevated = Color(0xE61A1A22)
+private val BellGlassInput = Color(0xCC0A0A0E)
+private val BellBorder = Color(0x26FFFFFF)
+private val BellBorderActive = Color(0x66FFFFFF)
+private val BellPillWhite = Color(0xFFFFFFFF)
+private val BellInkDark = Color(0xFF09090B)
+private val BellTextPrimary = Color(0xFFFFFFFF)
+private val BellTextSecondary = Color(0xFFB4B6BE)
+private val BellTextMuted = Color(0xFF787B85)
 
 private fun getMimeTypesForType(type: String): Array<String> {
     return when (type) {
@@ -437,1099 +441,976 @@ fun ModsScreen(
         }
     }
 
-    Column(
+    if (selectedInstance == null) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(340.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(BellGlassElevated)
+                    .border(1.dp, BellBorder, RoundedCornerShape(16.dp))
+                    .padding(22.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Outlined.ExtensionOff,
+                        contentDescription = null,
+                        tint = BellTextSecondary,
+                        modifier = Modifier.size(34.dp)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "NO INSTANCES FOUND",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 13.sp,
+                        letterSpacing = 0.8.sp,
+                        color = BellTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Select or create an instance on Dashboard to start installing mods.",
+                        color = BellTextSecondary,
+                        fontSize = 11.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    BellPrimaryButton(
+                        text = tr("mods.btn_back_dashboard").uppercase(),
+                        icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                        onClick = { onNavigateBack() }
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    val currentInst = selectedInstance!!
+
+    // =========================================================================
+    // ARSITEKTUR BARU: SIDEBAR FILTER KIRI + BENTO GRID 2 KOLOM KANAN
+    // =========================================================================
+    Row(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Transparent)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        if (selectedInstance == null) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(340.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(DashGlassElevated)
-                        .border(1.dp, DashBorder, RoundedCornerShape(14.dp))
-                        .padding(20.dp)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Outlined.ExtensionOff,
-                            contentDescription = null,
-                            tint = DashTextSecondary,
-                            modifier = Modifier.size(34.dp)
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "NO INSTANCES FOUND",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
-                            letterSpacing = 0.8.sp,
-                            color = DashTextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Select or create an instance on Dashboard to start installing mods.",
-                            color = DashTextSecondary,
-                            fontSize = 11.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        DashPrimaryButton(
-                            text = tr("mods.btn_back_dashboard").uppercase(),
-                            icon = Icons.AutoMirrored.Outlined.ArrowBack,
-                            onClick = { onNavigateBack() }
-                        )
-                    }
-                }
-            }
-            return
-        }
-
-        val currentInst = selectedInstance!!
-
-        // =========================================================================
-        // HEADER BAR: DASHBOARD STYLE (BACK + MODE PILLS + INSTANCE SELECTOR)
-        // =========================================================================
-        Row(
+        // =====================================================================
+        // KOLOM KIRI: FILTER & INSTANCE DOCK (170.dp)
+        // =====================================================================
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .width(172.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(14.dp))
+                .background(BellGlassSidebar)
+                .border(1.dp, BellBorder, RoundedCornerShape(14.dp))
+                .padding(10.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Tombol Kembali (Gaya BG MEDIA / Icon Square di Dashboard)
-                Box(
-                    modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DashGlassPanel)
-                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
-                        .clickable { onNavigateBack() }
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = tr("common.back"),
-                            tint = DashTextPrimary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "DASHBOARD",
-                            color = DashTextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                            letterSpacing = 0.8.sp
-                        )
-                    }
-                }
-
-                // Mode Switcher (Gaya Pill Putih Solid seperti VANILLA / HOME di Dashboard)
-                val isInstalled = mainMode == "installed"
-                Box(
-                    modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isInstalled) DashPillWhite else DashGlassPanel)
-                        .border(
-                            1.dp,
-                            if (isInstalled) DashPillWhite else DashBorder,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { mainMode = "installed" }
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = tr("mods.installed_count", installedItems.size).uppercase(),
-                        color = if (isInstalled) DashInkDark else DashTextSecondary,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.7.sp
-                    )
-                }
-
-                val isBrowse = mainMode == "browse"
-                Box(
-                    modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isBrowse) DashPillWhite else DashGlassPanel)
-                        .border(
-                            1.dp,
-                            if (isBrowse) DashPillWhite else DashBorder,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { mainMode = "browse" }
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = tr("mods.browse_modrinth").uppercase(),
-                        color = if (isBrowse) DashInkDark else DashTextSecondary,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.7.sp
-                    )
-                }
-            }
-
-            // Instance Selector (Gaya Dropdown Version "26.3 Vanilla v" di Dashboard)
-            Box {
-                Row(
-                    modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DashGlassPanel)
-                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
-                        .clickable { if (instances.size > 1) showInstanceMenu = true }
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = currentInst.name,
-                        color = DashTextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.5.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
+                // Pemilih Instance Aktif
+                Box {
+                    Column(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(DashPillWhite)
-                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0x14FFFFFF))
+                            .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                            .clickable { if (instances.size > 1) showInstanceMenu = true }
+                            .padding(9.dp)
                     ) {
-                        Text(
-                            text = currentInst.loader.uppercase(),
-                            color = DashInkDark,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 8.5.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0x1FFFFFFF))
-                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            text = currentInst.mcVersion,
-                            color = DashTextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp
-                        )
-                    }
-                    if (instances.size > 1) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Outlined.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = DashTextSecondary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-                }
-
-                DropdownMenu(
-                    expanded = showInstanceMenu,
-                    onDismissRequest = { showInstanceMenu = false }
-                ) {
-                    instances.forEach { inst ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "${inst.name} (${inst.mcVersion} · ${inst.loader.uppercase()})",
-                                    fontWeight = if (inst.id == selectedInstance?.id) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 11.5.sp
-                                )
-                            },
-                            onClick = {
-                                InstanceManager.selectInstance(inst)
-                                showInstanceMenu = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        // =========================================================================
-        // TOOLBAR: ADDON TYPE PILLS + SEARCH & VERSION FILTER
-        // =========================================================================
-        val addonTypes = listOf(
-            "mods" to "MODS",
-            "modpacks" to "MODPACKS",
-            "resourcepacks" to "RESOURCE PACKS",
-            "shaderpacks" to "SHADERS",
-            "datapacks" to "DATAPACKS"
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            LazyRow(
-                modifier = Modifier.weight(1f, fill = false),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items(addonTypes) { (typeId, typeLabel) ->
-                    val isSelected = activeType == typeId
-                    Box(
-                        modifier = Modifier
-                            .height(30.dp)
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(if (isSelected) DashPillWhite else DashGlassPanel)
-                            .border(
-                                width = 1.dp,
-                                color = if (isSelected) DashPillWhite else DashBorder,
-                                shape = RoundedCornerShape(7.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "TARGET PROFILE",
+                                color = BellTextMuted,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 7.5.sp,
+                                letterSpacing = 0.7.sp
                             )
-                            .clickable {
-                                activeType = typeId
-                                selectedCategory = "All"
-                            }
-                            .padding(horizontal = 11.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = typeLabel,
-                            color = if (isSelected) DashInkDark else DashTextSecondary,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 9.5.sp,
-                            letterSpacing = 0.6.sp
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                if (mainMode == "browse") {
-                    DashSearchBar(
-                        value = browseQuery,
-                        onValueChange = { onQueryChanged(it) },
-                        placeholder = tr("mods.search_placeholder"),
-                        modifier = Modifier.width(180.dp)
-                    )
-
-                    if (activeType == "datapacks") {
-                        Box {
-                            Row(
-                                modifier = Modifier
-                                    .height(30.dp)
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .background(DashGlassPanel)
-                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
-                                    .clickable { if (worlds.isNotEmpty()) showWorldMenu = true }
-                                    .padding(horizontal = 9.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            if (instances.size > 1) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Public,
+                                    imageVector = Icons.Outlined.UnfoldMore,
                                     contentDescription = null,
-                                    tint = DashTextPrimary,
+                                    tint = BellTextSecondary,
                                     modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = currentInst.name,
+                            color = BellTextPrimary,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 11.5.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(BellPillWhite)
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
                                 Text(
-                                    text = if (worlds.isNotEmpty()) selectedWorld.uppercase() else "NO WORLDS",
-                                    color = DashTextPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 9.5.sp,
-                                    letterSpacing = 0.5.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    text = currentInst.loader.uppercase(),
+                                    color = BellInkDark,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 7.5.sp
                                 )
                             }
-
-                            DropdownMenu(
-                                expanded = showWorldMenu,
-                                onDismissRequest = { showWorldMenu = false }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0x1FFFFFFF))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
-                                worlds.forEach { w ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = w.displayName,
-                                                fontWeight = if (w.folderName == selectedWorld) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 11.sp
-                                            )
-                                        },
-                                        onClick = {
-                                            selectedWorld = w.folderName
-                                            showWorldMenu = false
-                                            reloadInstalled()
-                                        }
-                                    )
-                                }
+                                Text(
+                                    text = currentInst.mcVersion,
+                                    color = BellTextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 7.5.sp
+                                )
                             }
                         }
                     }
 
-                    // Version Filter Toggle
+                    DropdownMenu(
+                        expanded = showInstanceMenu,
+                        onDismissRequest = { showInstanceMenu = false }
+                    ) {
+                        instances.forEach { inst ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "${inst.name} (${inst.mcVersion} · ${inst.loader.uppercase()})",
+                                        fontWeight = if (inst.id == selectedInstance?.id) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 11.sp
+                                    )
+                                },
+                                onClick = {
+                                    InstanceManager.selectInstance(inst)
+                                    showInstanceMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Pilihan Tipe Konten (Vertikal)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "CONTENT TYPE",
+                        color = BellTextMuted,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 7.5.sp,
+                        letterSpacing = 0.7.sp,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    val addonTypes = listOf(
+                        Triple("mods", "MODS", Icons.Outlined.Extension),
+                        Triple("modpacks", "MODPACKS", Icons.Outlined.Inventory2),
+                        Triple("resourcepacks", "TEXTURES", Icons.Outlined.Palette),
+                        Triple("shaderpacks", "SHADERS", Icons.Outlined.AutoAwesome),
+                        Triple("datapacks", "DATAPACKS", Icons.Outlined.DataObject)
+                    )
+
+                    addonTypes.forEach { (typeId, typeLabel, typeIcon) ->
+                        val isSelected = activeType == typeId
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) BellPillWhite else Color.Transparent)
+                                .clickable {
+                                    activeType = typeId
+                                    selectedCategory = "All"
+                                }
+                                .padding(horizontal = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            Icon(
+                                imageVector = typeIcon,
+                                contentDescription = null,
+                                tint = if (isSelected) BellInkDark else BellTextSecondary,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = typeLabel,
+                                color = if (isSelected) BellInkDark else BellTextSecondary,
+                                fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
+                                fontSize = 9.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+                }
+
+                // Kategori (Hanya saat Browse)
+                if (mainMode == "browse") {
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            text = "CATEGORY",
+                            color = BellTextMuted,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 7.5.sp,
+                            letterSpacing = 0.7.sp,
+                            modifier = Modifier.padding(start = 2.dp)
+                        )
+                        val categories = CATEGORIES_MAP[activeType] ?: listOf(ModCategoryItem("All", "ALL"))
+                        categories.forEach { cat ->
+                            val isSelected = selectedCategory == cat.id
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(25.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) Color(0x26FFFFFF) else Color.Transparent)
+                                    .clickable {
+                                        selectedCategory = cat.id
+                                        currentPage = 1
+                                        performSearch(1)
+                                    }
+                                    .padding(horizontal = 9.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    text = cat.label,
+                                    color = if (isSelected) BellTextPrimary else BellTextMuted,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 8.5.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Footer Sidebar: Filter Versi / Tombol Import
+            Column(
+                modifier = Modifier.padding(top = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (activeType == "datapacks") {
+                    Box {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0x14FFFFFF))
+                                .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                .clickable { if (worlds.isNotEmpty()) showWorldMenu = true }
+                                .padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Public,
+                                    contentDescription = null,
+                                    tint = BellTextPrimary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = if (worlds.isNotEmpty()) selectedWorld else "No Worlds",
+                                    color = BellTextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showWorldMenu,
+                            onDismissRequest = { showWorldMenu = false }
+                        ) {
+                            worlds.forEach { w ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = w.displayName,
+                                            fontWeight = if (w.folderName == selectedWorld) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 11.sp
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedWorld = w.folderName
+                                        showWorldMenu = false
+                                        reloadInstalled()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (mainMode == "browse") {
                     Box(
                         modifier = Modifier
-                            .height(30.dp)
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(if (filterByGameVersion) DashPillWhite else DashGlassPanel)
+                            .fillMaxWidth()
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (filterByGameVersion) Color(0x26FFFFFF) else Color(0x12FFFFFF))
                             .border(
                                 1.dp,
-                                if (filterByGameVersion) DashPillWhite else DashBorder,
-                                RoundedCornerShape(7.dp)
+                                if (filterByGameVersion) BellBorderActive else BellBorder,
+                                RoundedCornerShape(8.dp)
                             )
                             .clickable {
                                 filterByGameVersion = !filterByGameVersion
                                 currentPage = 1
                                 performSearch(1)
                             }
-                            .padding(horizontal = 10.dp),
+                            .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = if (filterByGameVersion) Icons.Outlined.Check else Icons.Outlined.FilterAltOff,
+                                imageVector = if (filterByGameVersion) Icons.Outlined.FilterAlt else Icons.Outlined.FilterAltOff,
                                 contentDescription = null,
-                                tint = if (filterByGameVersion) DashInkDark else DashTextSecondary,
+                                tint = BellTextPrimary,
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                text = if (filterByGameVersion) currentInst.mcVersion else "ALL",
-                                color = if (filterByGameVersion) DashInkDark else DashTextSecondary,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 9.5.sp,
+                                text = if (filterByGameVersion) "MC ${currentInst.mcVersion}" else "ALL VERSIONS",
+                                color = BellTextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 8.5.sp,
                                 letterSpacing = 0.5.sp
                             )
                         }
                     }
                 } else {
-                    DashSearchBar(
-                        value = installedSearch,
-                        onValueChange = { installedSearch = it },
-                        placeholder = tr("mods.search_installed_placeholder", installedItems.size),
-                        modifier = Modifier.width(180.dp)
+                    BellPrimaryButton(
+                        text = tr("mods.import_btn").uppercase(),
+                        icon = Icons.Outlined.FileUpload,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            val mimeTypes = getMimeTypesForType(activeType)
+                            filePicker.launch(mimeTypes)
+                        }
                     )
-
-                    if (activeType == "datapacks") {
-                        Box {
-                            Row(
-                                modifier = Modifier
-                                    .height(30.dp)
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .background(DashGlassPanel)
-                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
-                                    .clickable { if (worlds.isNotEmpty()) showWorldMenu = true }
-                                    .padding(horizontal = 9.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Public,
-                                    contentDescription = null,
-                                    tint = DashTextPrimary,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = if (worlds.isNotEmpty()) selectedWorld.uppercase() else "NO WORLDS",
-                                    color = DashTextPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 9.5.sp,
-                                    letterSpacing = 0.5.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            DropdownMenu(
-                                expanded = showWorldMenu,
-                                onDismissRequest = { showWorldMenu = false }
-                            ) {
-                                worlds.forEach { w ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = w.displayName,
-                                                fontWeight = if (w.folderName == selectedWorld) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 11.sp
-                                            )
-                                        },
-                                        onClick = {
-                                            selectedWorld = w.folderName
-                                            showWorldMenu = false
-                                            reloadInstalled()
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Import Button (Gaya tombol putih solid seperti UNDUH di Dashboard)
-                    Box(
-                        modifier = Modifier
-                            .height(30.dp)
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(DashPillWhite)
-                            .clickable {
-                                if (selectedInstance == null) {
-                                    Toast.makeText(context, trStr("dashboard.select_instance"), Toast.LENGTH_SHORT).show()
-                                    return@clickable
-                                }
-                                val mimeTypes = getMimeTypesForType(activeType)
-                                filePicker.launch(mimeTypes)
-                            }
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.FileUpload,
-                                contentDescription = "Import",
-                                tint = DashInkDark,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(
-                                text = tr("mods.import_btn").uppercase(),
-                                color = DashInkDark,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 9.5.sp,
-                                letterSpacing = 0.6.sp
-                            )
-                        }
-                    }
                 }
             }
         }
 
-        // =========================================================================
-        // SUB-FILTERS (MINIMALIST TAGS)
-        // =========================================================================
-        if (mainMode == "browse") {
-            val categories = CATEGORIES_MAP[activeType] ?: listOf(ModCategoryItem("All", "ALL"))
-            LazyRow(
+        // =====================================================================
+        // KOLOM KANAN: TOP SEARCH + BENTO GRID 2 KOLOM
+        // =====================================================================
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        ) {
+            // Top Header Strip (Mode Switcher + Search Input)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                items(categories) { cat ->
-                    val isSelected = selectedCategory == cat.id
+                // Mode Segmented Pill
+                Row(
+                    modifier = Modifier
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(BellGlassSidebar)
+                        .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    val isBrowse = mainMode == "browse"
                     Box(
                         modifier = Modifier
-                            .height(24.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(if (isSelected) Color(0x33FFFFFF) else DashGlassPanel)
-                            .border(
-                                1.dp,
-                                if (isSelected) DashBorderStrong else DashBorder,
-                                RoundedCornerShape(5.dp)
-                            )
-                            .clickable {
-                                selectedCategory = cat.id
-                                currentPage = 1
-                                performSearch(1)
-                            }
-                            .padding(horizontal = 9.dp),
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(if (isBrowse) BellPillWhite else Color.Transparent)
+                            .clickable { mainMode = "browse" }
+                            .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = cat.label,
-                            color = if (isSelected) DashTextPrimary else DashTextMuted,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp,
-                            letterSpacing = 0.6.sp
-                        )
-                    }
-                }
-            }
-        }
-
-        // =========================================================================
-        // CONTENT LIST (TRANSLUCENT GLASS CARDS)
-        // =========================================================================
-        if (mainMode == "installed") {
-            val filteredInstalled = remember(installedItems, installedSearch) {
-                if (installedSearch.isBlank()) installedItems
-                else installedItems.filter {
-                    it.name.contains(installedSearch, ignoreCase = true) ||
-                            it.filename.contains(installedSearch, ignoreCase = true)
-                }
-            }
-
-            if (isInstalledLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(26.dp))
-                }
-            } else if (filteredInstalled.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Outlined.FolderOpen,
-                            contentDescription = null,
-                            tint = DashTextMuted,
-                            modifier = Modifier.size(34.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (activeType == "datapacks" && worlds.isEmpty())
-                                "No worlds found in this instance. Launch the game to create a world first."
-                            else if (installedSearch.isBlank())
-                                "No ${activeType} installed in this instance"
-                            else "No matching items found",
-                            color = DashTextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        DashPrimaryButton(
-                            text = tr("mods.browse_modrinth").uppercase(),
-                            icon = Icons.Outlined.Explore,
-                            onClick = { mainMode = "browse" }
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(7.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    itemsIndexed(filteredInstalled, key = { index, item -> "${item.id}_${item.filename}_$index" }) { _, item ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (item.isEnabled) DashGlassPanel else Color(0x800E1015))
-                                .border(1.dp, DashBorder, RoundedCornerShape(10.dp))
-                                .padding(horizontal = 12.dp, vertical = 9.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0x1AFFFFFF))
-                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = item.name.take(2).uppercase(),
-                                            fontWeight = FontWeight.Black,
-                                            color = if (item.isEnabled) DashTextPrimary else DashTextMuted,
-                                            fontSize = 11.5.sp
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = item.name,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.5.sp,
-                                                color = if (item.isEnabled) DashTextPrimary else DashTextMuted,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            if (!item.isEnabled) {
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(4.dp))
-                                                        .background(Color(0x1FFFFFFF))
-                                                        .padding(horizontal = 6.dp, vertical = 1.dp)
-                                                ) {
-                                                    Text(
-                                                        text = tr("common.disabled").uppercase(),
-                                                        fontSize = 8.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 0.5.sp,
-                                                        color = DashTextSecondary
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = "${item.filename} · ${formatBytes(item.sizeBytes)}",
-                                            fontSize = 10.sp,
-                                            color = DashTextSecondary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Switch(
-                                        checked = item.isEnabled,
-                                        onCheckedChange = {
-                                            scope.launch {
-                                                val targetWorld = if (activeType == "datapacks") selectedWorld else null
-                                                NuxModManager.toggleItemEnabled(context, currentInst, activeType, item, targetWorld)
-                                                reloadInstalled()
-                                            }
-                                        },
-                                        modifier = Modifier.scale(0.8f),
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = DashInkDark,
-                                            checkedTrackColor = DashPillWhite,
-                                            uncheckedThumbColor = DashTextSecondary,
-                                            uncheckedTrackColor = Color(0x26FFFFFF)
-                                        )
-                                    )
-
-                                    // Icon Button Square seperti tombol Settings di samping UNDUH pada Dashboard
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(DashGlassElevated)
-                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
-                                            .clickable { itemToDelete = item },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Delete,
-                                            contentDescription = tr("common.delete"),
-                                            tint = Color(0xFFF87171),
-                                            modifier = Modifier.size(15.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // ==========================================
-            // BROWSE MODRINTH
-            // ==========================================
-            if (isSearching) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(26.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(tr("common.loading").uppercase(), color = DashTextSecondary, fontSize = 10.sp, letterSpacing = 0.8.sp)
-                    }
-                }
-            } else if (searchErrorMessage != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = 24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CloudOff,
-                            contentDescription = null,
-                            tint = Color(0xFFF87171),
-                            modifier = Modifier.size(34.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "FAILED TO LOAD FROM MODRINTH",
-                            color = DashTextPrimary,
+                            text = "DISCOVER",
+                            color = if (isBrowse) BellInkDark else BellTextSecondary,
                             fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
-                            letterSpacing = 0.6.sp
+                            fontSize = 9.sp,
+                            letterSpacing = 0.7.sp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    val isInstalled = mainMode == "installed"
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(if (isInstalled) BellPillWhite else Color.Transparent)
+                            .clickable { mainMode = "installed" }
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = searchErrorMessage ?: "Network error occurred",
-                            color = DashTextSecondary,
-                            fontSize = 10.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        DashPrimaryButton(
-                            text = tr("common.retry").uppercase(),
-                            icon = Icons.Outlined.Refresh,
-                            onClick = { performSearch(currentPage) }
+                            text = "LIBRARY (${installedItems.size})",
+                            color = if (isInstalled) BellInkDark else BellTextSecondary,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 9.sp,
+                            letterSpacing = 0.7.sp
                         )
                     }
                 }
-            } else if (searchHits.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Outlined.SearchOff,
-                            contentDescription = null,
-                            tint = DashTextMuted,
-                            modifier = Modifier.size(34.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (filterByGameVersion) {
-                                "No results found for Minecraft ${currentInst.mcVersion} (${currentInst.loader.uppercase()})"
-                            } else {
-                                "No results found for this search"
-                            },
-                            color = DashTextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Try modifying keywords or disable version filter",
-                            color = DashTextSecondary,
-                            fontSize = 10.sp
-                        )
-                        if (filterByGameVersion) {
+
+                // Search Bar Full-Flex
+                BellSearchBar(
+                    value = if (mainMode == "browse") browseQuery else installedSearch,
+                    onValueChange = {
+                        if (mainMode == "browse") onQueryChanged(it) else installedSearch = it
+                    },
+                    placeholder = if (mainMode == "browse") tr("mods.search_placeholder")
+                    else tr("mods.search_installed_placeholder", installedItems.size),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Content Area (2-Column Bento Grid)
+            if (mainMode == "installed") {
+                val filteredInstalled = remember(installedItems, installedSearch) {
+                    if (installedSearch.isBlank()) installedItems
+                    else installedItems.filter {
+                        it.name.contains(installedSearch, ignoreCase = true) ||
+                                it.filename.contains(installedSearch, ignoreCase = true)
+                    }
+                }
+
+                if (isInstalledLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = BellTextPrimary, modifier = Modifier.size(26.dp))
+                    }
+                } else if (filteredInstalled.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Outlined.FolderOpen,
+                                contentDescription = null,
+                                tint = BellTextMuted,
+                                modifier = Modifier.size(34.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (activeType == "datapacks" && worlds.isEmpty())
+                                    "No worlds found in this instance."
+                                else if (installedSearch.isBlank())
+                                    "Library is empty for $activeType"
+                                else "No matching items found",
+                                color = BellTextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
                             Spacer(modifier = Modifier.height(12.dp))
-                            DashPrimaryButton(
-                                text = tr("mods.btn_search_all_versions").uppercase(),
-                                icon = Icons.Outlined.FilterAltOff,
-                                onClick = {
-                                    filterByGameVersion = false
-                                    currentPage = 1
-                                    performSearch(1)
-                                }
+                            BellPrimaryButton(
+                                text = "DISCOVER CONTENT",
+                                icon = Icons.Outlined.Explore,
+                                onClick = { mainMode = "browse" }
                             )
                         }
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(7.dp),
-                    contentPadding = PaddingValues(bottom = 20.dp)
-                ) {
-                    itemsIndexed(searchHits, key = { index, hit -> "${hit.projectId}_$index" }) { _, hit ->
-                        val isInstalled = installedItems.any { isModInstalled(it, hit) }
-                        val isDownloading = downloadingProjectIds.containsKey(hit.projectId)
-                        val downloadStatus: String = downloadingProjectIds[hit.projectId].orEmpty()
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(DashGlassPanel)
-                                .border(1.dp, DashBorder, RoundedCornerShape(10.dp))
-                                .clickable {
-                                    detailModalHit = hit
-                                    detailProject = null
-                                    detailTab = "overview"
-                                    compatibleVersions = emptyList()
-                                    selectedVersion = null
-                                    isDetailLoading = true
-                                    scope.launch {
-                                        val pRes = NuxModManager.getProjectDetails(hit.projectId)
-                                        val vRes = NuxModManager.getCompatibleVersions(hit.projectId, currentInst, activeType)
-                                        detailProject = pRes.getOrNull()
-                                        val vers = vRes.getOrNull() ?: emptyList()
-                                        compatibleVersions = vers
-                                        selectedVersion = vers.firstOrNull()
-                                        isDetailLoading = false
-                                    }
-                                }
-                                .padding(horizontal = 12.dp, vertical = 9.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 14.dp)
+                    ) {
+                        itemsIndexed(
+                            filteredInstalled,
+                            key = { index, item -> "${item.id}_${item.filename}_$index" }
+                        ) { _, item ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (item.isEnabled) BellGlassCard else Color(0x73131318))
+                                    .border(1.dp, BellBorder, RoundedCornerShape(12.dp))
+                                    .padding(10.dp)
                             ) {
-                                NuxNetworkImage(
-                                    model = hit.iconUrl,
-                                    contentDescription = hit.title,
-                                    modifier = Modifier
-                                        .size(42.dp)
-                                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp)),
-                                    fallbackInitials = hit.title.take(2).uppercase(),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = hit.title,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = DashTextPrimary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        if (!hit.author.isNullOrBlank()) {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "by ${hit.author}",
-                                                fontSize = 10.sp,
-                                                color = DashTextSecondary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        if (hit.projectType == "modpack") {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(DashPillWhite)
-                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
-                                            ) {
-                                                Text(
-                                                    text = tr("mods.pack_badge").uppercase(),
-                                                    fontSize = 8.sp,
-                                                    fontWeight = FontWeight.Black,
-                                                    color = DashInkDark
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(2.dp))
-
-                                    Text(
-                                        text = hit.description ?: "No description available",
-                                        fontSize = 10.5.sp,
-                                        color = DashTextSecondary,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-
-                                    Spacer(modifier = Modifier.height(5.dp))
-
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(4.dp))
+                                                .size(34.dp)
+                                                .clip(RoundedCornerShape(8.dp))
                                                 .background(Color(0x1AFFFFFF))
-                                                .border(1.dp, DashBorder, RoundedCornerShape(4.dp))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                .border(1.dp, BellBorder, RoundedCornerShape(8.dp)),
+                                            contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = formatCompactNumber(hit.downloads),
-                                                fontSize = 8.5.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = DashTextPrimary
+                                                text = item.name.take(2).uppercase(),
+                                                fontWeight = FontWeight.Black,
+                                                color = if (item.isEnabled) BellTextPrimary else BellTextMuted,
+                                                fontSize = 11.sp
                                             )
                                         }
 
-                                        hit.categories?.take(2)?.forEach { cat ->
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Switch(
+                                                checked = item.isEnabled,
+                                                onCheckedChange = {
+                                                    scope.launch {
+                                                        val targetWorld = if (activeType == "datapacks") selectedWorld else null
+                                                        NuxModManager.toggleItemEnabled(context, currentInst, activeType, item, targetWorld)
+                                                        reloadInstalled()
+                                                    }
+                                                },
+                                                modifier = Modifier.scale(0.72f),
+                                                colors = SwitchDefaults.colors(
+                                                    checkedThumbColor = BellInkDark,
+                                                    checkedTrackColor = BellPillWhite,
+                                                    uncheckedThumbColor = BellTextSecondary,
+                                                    uncheckedTrackColor = Color(0x26FFFFFF)
+                                                )
+                                            )
                                             Box(
                                                 modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(Color(0x0FFFFFFF))
-                                                    .border(1.dp, DashBorder, RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    .size(28.dp)
+                                                    .clip(RoundedCornerShape(7.dp))
+                                                    .background(Color(0x1AFFFFFF))
+                                                    .clickable { itemToDelete = item },
+                                                contentAlignment = Alignment.Center
                                             ) {
-                                                Text(
-                                                    text = cat.uppercase(),
-                                                    fontSize = 8.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    letterSpacing = 0.4.sp,
-                                                    color = DashTextSecondary
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Delete,
+                                                    contentDescription = tr("common.delete"),
+                                                    tint = Color(0xFFF87171),
+                                                    modifier = Modifier.size(14.dp)
                                                 )
                                             }
                                         }
                                     }
-                                }
 
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                // Action Button (Gaya tombol UNDUH di Dashboard)
-                                if (isDownloading) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        CircularProgressIndicator(
-                                            color = DashTextPrimary,
-                                            modifier = Modifier.size(16.dp),
-                                            strokeWidth = 2.dp
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
+                                    Column {
                                         Text(
-                                            text = downloadStatus.ifBlank { "DOWNLOADING" }.uppercase(),
-                                            fontSize = 8.sp,
+                                            text = item.name,
                                             fontWeight = FontWeight.Bold,
-                                            letterSpacing = 0.5.sp,
-                                            color = DashTextSecondary
+                                            fontSize = 12.sp,
+                                            color = if (item.isEnabled) BellTextPrimary else BellTextMuted,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${formatBytes(item.sizeBytes)} · ${item.filename}",
+                                            fontSize = 9.sp,
+                                            color = BellTextSecondary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                } else if (isInstalled) {
-                                    Box(
-                                        modifier = Modifier
-                                            .height(34.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0x1AFFFFFF))
-                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 12.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Check,
-                                                contentDescription = null,
-                                                tint = DashTextPrimary,
-                                                modifier = Modifier.size(13.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(5.dp))
-                                            Text(
-                                                text = tr("mods.installed_badge").uppercase(),
-                                                color = DashTextPrimary,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 9.5.sp,
-                                                letterSpacing = 0.6.sp
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    val buttonLabel = if (hit.projectType == "modpack") "UNDUH PACK" else "UNDUH"
-                                    DashPrimaryButton(
-                                        text = buttonLabel,
-                                        icon = Icons.Outlined.Download,
-                                        onClick = {
-                                            scope.launch {
-                                                downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Finding version...")
-                                                val vRes = NuxModManager.getCompatibleVersions(hit.projectId, currentInst, activeType)
-                                                val compList = vRes.getOrNull()
-                                                if (compList.isNullOrEmpty()) {
-                                                    Toast.makeText(context, "No compatible version for ${currentInst.mcVersion}!", Toast.LENGTH_SHORT).show()
-                                                    downloadingProjectIds = downloadingProjectIds - hit.projectId
-                                                    return@launch
-                                                }
-
-                                                val targetVer = compList.first()
-                                                downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Downloading...")
-
-                                                val targetWorld = if (activeType == "datapacks") selectedWorld else null
-                                                val downRes = NuxModManager.downloadVersionAndDependencies(
-                                                    context = context,
-                                                    instance = currentInst,
-                                                    version = targetVer,
-                                                    itemType = activeType,
-                                                    worldName = targetWorld,
-                                                    onProgress = { status ->
-                                                        downloadingProjectIds = downloadingProjectIds + (hit.projectId to status)
-                                                    }
-                                                )
-
-                                                downloadingProjectIds = downloadingProjectIds - hit.projectId
-
-                                                if (downRes.isSuccess) {
-                                                    val downloaded = downRes.getOrNull() ?: emptyList()
-                                                    val depCount = (downloaded.size - 1).coerceAtLeast(0)
-                                                    val msg = if (activeType == "modpacks") {
-                                                        "Modpack ${hit.title} installed successfully!"
-                                                    } else if (depCount > 0) {
-                                                        "Installed ${hit.title} and $depCount dependencies!"
-                                                    } else {
-                                                        "Successfully installed ${hit.title}!"
-                                                    }
-                                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                                    reloadInstalled()
-                                                } else {
-                                                    Toast.makeText(context, "Download failed: ${downRes.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
-                                                }
-                                            }
-                                        }
-                                    )
                                 }
                             }
                         }
                     }
-
-                    // Pagination
-                    item {
-                        val totalPages = ((totalHits + 17) / 18).coerceAtLeast(1)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                }
+            } else {
+                // BROWSE GRID 2 KOLOM
+                if (isSearching) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = BellTextPrimary, modifier = Modifier.size(26.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(tr("common.loading").uppercase(), color = BellTextSecondary, fontSize = 9.5.sp, letterSpacing = 0.8.sp)
+                        }
+                    }
+                } else if (searchErrorMessage != null) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(horizontal = 24.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .height(30.dp)
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .background(DashGlassPanel)
-                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
-                                    .clickable(enabled = currentPage > 1) { performSearch(currentPage - 1) }
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = tr("common.previous").uppercase(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 9.5.sp,
-                                    letterSpacing = 0.6.sp,
-                                    color = if (currentPage > 1) DashTextPrimary else DashTextMuted
+                            Icon(
+                                imageVector = Icons.Outlined.CloudOff,
+                                contentDescription = null,
+                                tint = Color(0xFFF87171),
+                                modifier = Modifier.size(34.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "FAILED TO LOAD FROM MODRINTH",
+                                color = BellTextPrimary,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 12.sp,
+                                letterSpacing = 0.6.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = searchErrorMessage ?: "Network error occurred",
+                                color = BellTextSecondary,
+                                fontSize = 10.sp,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            BellPrimaryButton(
+                                text = tr("common.retry").uppercase(),
+                                icon = Icons.Outlined.Refresh,
+                                onClick = { performSearch(currentPage) }
+                            )
+                        }
+                    }
+                } else if (searchHits.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Outlined.SearchOff,
+                                contentDescription = null,
+                                tint = BellTextMuted,
+                                modifier = Modifier.size(34.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (filterByGameVersion) {
+                                    "No results for MC ${currentInst.mcVersion} (${currentInst.loader.uppercase()})"
+                                } else {
+                                    "No results found"
+                                },
+                                color = BellTextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            if (filterByGameVersion) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                BellPrimaryButton(
+                                    text = tr("mods.btn_search_all_versions").uppercase(),
+                                    icon = Icons.Outlined.FilterAltOff,
+                                    onClick = {
+                                        filterByGameVersion = false
+                                        currentPage = 1
+                                        performSearch(1)
+                                    }
                                 )
                             }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = "$currentPage / $totalPages",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                color = DashTextSecondary
-                            )
-
-                            Spacer(modifier = Modifier.width(12.dp))
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        itemsIndexed(searchHits, key = { index, hit -> "${hit.projectId}_$index" }) { _, hit ->
+                            val isInstalled = installedItems.any { isModInstalled(it, hit) }
+                            val isDownloading = downloadingProjectIds.containsKey(hit.projectId)
+                            val downloadStatus: String = downloadingProjectIds[hit.projectId].orEmpty()
 
                             Box(
                                 modifier = Modifier
-                                    .height(30.dp)
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .background(DashGlassPanel)
-                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
-                                    .clickable(enabled = currentPage < totalPages) { performSearch(currentPage + 1) }
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(13.dp))
+                                    .background(BellGlassCard)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(13.dp))
+                                    .clickable {
+                                        detailModalHit = hit
+                                        detailProject = null
+                                        detailTab = "overview"
+                                        compatibleVersions = emptyList()
+                                        selectedVersion = null
+                                        isDetailLoading = true
+                                        scope.launch {
+                                            val pRes = NuxModManager.getProjectDetails(hit.projectId)
+                                            val vRes = NuxModManager.getCompatibleVersions(hit.projectId, currentInst, activeType)
+                                            detailProject = pRes.getOrNull()
+                                            val vers = vRes.getOrNull() ?: emptyList()
+                                            compatibleVersions = vers
+                                            selectedVersion = vers.firstOrNull()
+                                            isDetailLoading = false
+                                        }
+                                    }
+                                    .padding(10.dp)
                             ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    // Baris Atas Kartu: Ikon + Badge Downloads
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        NuxNetworkImage(
+                                            model = hit.iconUrl,
+                                            contentDescription = hit.title,
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .border(1.dp, BellBorder, RoundedCornerShape(9.dp)),
+                                            fallbackInitials = hit.title.take(2).uppercase(),
+                                            shape = RoundedCornerShape(9.dp)
+                                        )
+
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(CircleShape)
+                                                    .background(Color(0x1AFFFFFF))
+                                                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = formatCompactNumber(hit.downloads),
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = BellTextPrimary
+                                                )
+                                            }
+                                            hit.categories?.firstOrNull()?.let { firstCat ->
+                                                Spacer(modifier = Modifier.height(3.dp))
+                                                Text(
+                                                    text = firstCat.uppercase(),
+                                                    fontSize = 7.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = BellTextMuted,
+                                                    letterSpacing = 0.4.sp
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Judul & Deskripsi Singkat
+                                    Column {
+                                        Text(
+                                            text = hit.title,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = BellTextPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = hit.description ?: "No description available",
+                                            fontSize = 9.5.sp,
+                                            color = BellTextSecondary,
+                                            maxLines = 2,
+                                            lineHeight = 13.sp,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.height(26.dp)
+                                        )
+                                    }
+
+                                    // Tombol Aksi Full-Width di Bagian Bawah Kartu
+                                    if (isDownloading) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(30.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0x1AFFFFFF)),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            CircularProgressIndicator(
+                                                color = BellTextPrimary,
+                                                modifier = Modifier.size(12.dp),
+                                                strokeWidth = 1.8.dp
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = downloadStatus.ifBlank { "DOWNLOADING" }.uppercase(),
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = BellTextSecondary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    } else if (isInstalled) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(30.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0x1AFFFFFF))
+                                                .border(1.dp, BellBorder, RoundedCornerShape(8.dp)),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Check,
+                                                contentDescription = null,
+                                                tint = BellTextPrimary,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "INSTALLED",
+                                                color = BellTextPrimary,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 8.5.sp,
+                                                letterSpacing = 0.6.sp
+                                            )
+                                        }
+                                    } else {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(30.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(BellPillWhite)
+                                                .clickable {
+                                                    scope.launch {
+                                                        downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Finding version...")
+                                                        val vRes = NuxModManager.getCompatibleVersions(hit.projectId, currentInst, activeType)
+                                                        val compList = vRes.getOrNull()
+                                                        if (compList.isNullOrEmpty()) {
+                                                            Toast.makeText(context, "No compatible version for ${currentInst.mcVersion}!", Toast.LENGTH_SHORT).show()
+                                                            downloadingProjectIds = downloadingProjectIds - hit.projectId
+                                                            return@launch
+                                                        }
+
+                                                        val targetVer = compList.first()
+                                                        downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Downloading...")
+
+                                                        val targetWorld = if (activeType == "datapacks") selectedWorld else null
+                                                        val downRes = NuxModManager.downloadVersionAndDependencies(
+                                                            context = context,
+                                                            instance = currentInst,
+                                                            version = targetVer,
+                                                            itemType = activeType,
+                                                            worldName = targetWorld,
+                                                            onProgress = { status ->
+                                                                downloadingProjectIds = downloadingProjectIds + (hit.projectId to status)
+                                                            }
+                                                        )
+
+                                                        downloadingProjectIds = downloadingProjectIds - hit.projectId
+
+                                                        if (downRes.isSuccess) {
+                                                            val downloaded = downRes.getOrNull() ?: emptyList()
+                                                            val depCount = (downloaded.size - 1).coerceAtLeast(0)
+                                                            val msg = if (activeType == "modpacks") {
+                                                                "Modpack ${hit.title} installed successfully!"
+                                                            } else if (depCount > 0) {
+                                                                "Installed ${hit.title} and $depCount dependencies!"
+                                                            } else {
+                                                                "Successfully installed ${hit.title}!"
+                                                            }
+                                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                                            reloadInstalled()
+                                                        } else {
+                                                            Toast.makeText(context, "Download failed: ${downRes.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                                        }
+                                                    }
+                                                },
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Download,
+                                                contentDescription = null,
+                                                tint = BellInkDark,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = if (hit.projectType == "modpack") "GET PACK" else "INSTALL",
+                                                color = BellInkDark,
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 8.5.sp,
+                                                letterSpacing = 0.7.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Pagination Bar (Spanning 2 Columns)
+                        item(span = { GridItemSpan(2) }) {
+                            val totalPages = ((totalHits + 17) / 18).coerceAtLeast(1)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .height(30.dp)
+                                        .clip(CircleShape)
+                                        .background(BellGlassCard)
+                                        .border(1.dp, BellBorder, CircleShape)
+                                        .clickable(enabled = currentPage > 1) { performSearch(currentPage - 1) }
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = tr("common.previous").uppercase(),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 0.6.sp,
+                                        color = if (currentPage > 1) BellTextPrimary else BellTextMuted
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
                                 Text(
-                                    text = tr("common.next").uppercase(),
+                                    text = "$currentPage / $totalPages",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 9.5.sp,
-                                    letterSpacing = 0.6.sp,
-                                    color = if (currentPage < totalPages) DashTextPrimary else DashTextMuted
+                                    fontSize = 10.5.sp,
+                                    color = BellTextSecondary
                                 )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .height(30.dp)
+                                        .clip(CircleShape)
+                                        .background(BellGlassCard)
+                                        .border(1.dp, BellBorder, CircleShape)
+                                        .clickable(enabled = currentPage < totalPages) { performSearch(currentPage + 1) }
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = tr("common.next").uppercase(),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 0.6.sp,
+                                        color = if (currentPage < totalPages) BellTextPrimary else BellTextMuted
+                                    )
+                                }
                             }
                         }
                     }
@@ -1559,7 +1440,7 @@ fun ModsScreen(
                     fontWeight = FontWeight.Black,
                     fontSize = 13.sp,
                     letterSpacing = 0.6.sp,
-                    color = DashTextPrimary
+                    color = BellTextPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -1569,7 +1450,7 @@ fun ModsScreen(
                         "Are you sure you want to delete \"${item.name}\" from this instance?"
                     },
                     fontSize = 11.sp,
-                    color = DashTextSecondary,
+                    color = BellTextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1581,9 +1462,9 @@ fun ModsScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(DashGlassElevated)
-                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(BellGlassElevated)
+                            .border(1.dp, BellBorder, RoundedCornerShape(9.dp))
                             .clickable { itemToDelete = null },
                         contentAlignment = Alignment.Center
                     ) {
@@ -1592,14 +1473,14 @@ fun ModsScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
                             letterSpacing = 0.6.sp,
-                            color = DashTextPrimary
+                            color = BellTextPrimary
                         )
                     }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(9.dp))
                             .background(Color(0xFFDC2626))
                             .clickable {
                                 if (selectedInstance != null) {
@@ -1624,7 +1505,7 @@ fun ModsScreen(
                             fontWeight = FontWeight.Black,
                             fontSize = 10.sp,
                             letterSpacing = 0.6.sp,
-                            color = DashTextPrimary
+                            color = BellTextPrimary
                         )
                     }
                 }
@@ -1645,13 +1526,13 @@ fun ModsScreen(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(DashGlassElevated)
-                        .border(1.dp, DashBorder, CircleShape),
+                        .background(BellGlassElevated)
+                        .border(1.dp, BellBorder, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = DashTextPrimary,
+                        color = BellTextPrimary,
                         strokeWidth = 2.5.dp
                     )
                 }
@@ -1663,7 +1544,7 @@ fun ModsScreen(
                     fontWeight = FontWeight.Black,
                     fontSize = 13.sp,
                     letterSpacing = 0.7.sp,
-                    color = DashTextPrimary
+                    color = BellTextPrimary
                 )
 
                 if (modpackImportName.isNotBlank()) {
@@ -1671,7 +1552,7 @@ fun ModsScreen(
                     Text(
                         text = modpackImportName,
                         fontSize = 11.sp,
-                        color = DashTextSecondary,
+                        color = BellTextSecondary,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -1683,7 +1564,7 @@ fun ModsScreen(
                 Text(
                     text = if (modpackImportStatus.isNotBlank()) modpackImportStatus else "Parsing mod list and downloading files...",
                     fontSize = 11.sp,
-                    color = DashTextSecondary,
+                    color = BellTextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -1700,14 +1581,14 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = DashPillWhite,
+                        color = BellPillWhite,
                         trackColor = Color(0x26FFFFFF)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "$modpackImportCurrent / $modpackImportTotal mod files",
                         fontSize = 10.sp,
-                        color = DashTextSecondary
+                        color = BellTextSecondary
                     )
                 } else {
                     LinearProgressIndicator(
@@ -1715,19 +1596,10 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = DashPillWhite,
+                        color = BellPillWhite,
                         trackColor = Color(0x26FFFFFF)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Launcher is reading mod list and downloading modpack files. Please wait.",
-                    fontSize = 9.5.sp,
-                    color = DashTextMuted,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
             }
         }
     }
@@ -1751,8 +1623,8 @@ fun ModsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(modalOuterShape)
-                    .background(DashGlassElevated)
-                    .border(1.dp, DashBorder, modalOuterShape)
+                    .background(BellGlassElevated)
+                    .border(1.dp, BellBorder, modalOuterShape)
                     .padding(14.dp)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -1767,10 +1639,10 @@ fun ModsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(48.dp)
+                                    .size(46.dp)
                                     .clip(subCardShape)
                                     .background(Color(0x1AFFFFFF))
-                                    .border(1.dp, DashBorder, subCardShape),
+                                    .border(1.dp, BellBorder, subCardShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 NuxNetworkImage(
@@ -1788,7 +1660,7 @@ fun ModsScreen(
                                         text = hit.title,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
-                                        color = DashTextPrimary,
+                                        color = BellTextPrimary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -1796,14 +1668,14 @@ fun ModsScreen(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(4.dp))
-                                            .background(DashPillWhite)
+                                            .background(BellPillWhite)
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = hit.projectType.uppercase(),
                                             fontSize = 8.sp,
                                             fontWeight = FontWeight.Black,
-                                            color = DashInkDark
+                                            color = BellInkDark
                                         )
                                     }
                                 }
@@ -1812,16 +1684,16 @@ fun ModsScreen(
                                     Text(
                                         text = "by ${hit.author ?: "Community"}",
                                         fontSize = 10.sp,
-                                        color = DashTextSecondary,
+                                        color = BellTextSecondary,
                                         fontWeight = FontWeight.Medium
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = "·", color = DashTextMuted, fontSize = 10.sp)
+                                    Text(text = "·", color = BellTextMuted, fontSize = 10.sp)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = formatCompactNumber(hit.downloads),
                                         fontSize = 10.sp,
-                                        color = DashTextSecondary,
+                                        color = BellTextSecondary,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
@@ -1831,16 +1703,16 @@ fun ModsScreen(
                         Box(
                             modifier = Modifier
                                 .size(30.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(DashGlassPanel)
-                                .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
+                                .clip(CircleShape)
+                                .background(BellGlassCard)
+                                .border(1.dp, BellBorder, CircleShape)
                                 .clickable(enabled = !isDetailInstalling) { detailModalHit = null },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Close,
                                 contentDescription = "Close",
-                                tint = DashTextPrimary,
+                                tint = BellTextPrimary,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -1848,7 +1720,6 @@ fun ModsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Tab Switcher
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1859,21 +1730,21 @@ fun ModsScreen(
                                 .weight(1f)
                                 .height(32.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isTabOverview) DashPillWhite else DashGlassPanel)
+                                .background(if (isTabOverview) BellPillWhite else BellGlassCard)
                                 .border(
                                     1.dp,
-                                    if (isTabOverview) DashPillWhite else DashBorder,
+                                    if (isTabOverview) BellPillWhite else BellBorder,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable { detailTab = "overview" },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "RINGKASAN & GALERI",
+                                text = "OVERVIEW & GALLERY",
                                 fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 0.6.sp,
-                                color = if (isTabOverview) DashInkDark else DashTextSecondary
+                                color = if (isTabOverview) BellInkDark else BellTextSecondary
                             )
                         }
 
@@ -1883,21 +1754,21 @@ fun ModsScreen(
                                 .weight(1f)
                                 .height(32.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isTabVersions) DashPillWhite else DashGlassPanel)
+                                .background(if (isTabVersions) BellPillWhite else BellGlassCard)
                                 .border(
                                     1.dp,
-                                    if (isTabVersions) DashPillWhite else DashBorder,
+                                    if (isTabVersions) BellPillWhite else BellBorder,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable { detailTab = "versions" },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "VERSI KOMPATIBEL (${compatibleVersions.size})",
+                                text = "COMPATIBLE VERSIONS (${compatibleVersions.size})",
                                 fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 0.6.sp,
-                                color = if (isTabVersions) DashInkDark else DashTextSecondary
+                                color = if (isTabVersions) BellInkDark else BellTextSecondary
                             )
                         }
                     }
@@ -1909,8 +1780,8 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .weight(1f)
                             .clip(modalInnerShape)
-                            .background(DashGlassInput)
-                            .border(1.dp, DashBorder, modalInnerShape)
+                            .background(BellGlassInput)
+                            .border(1.dp, BellBorder, modalInnerShape)
                             .padding(10.dp)
                     ) {
                         Column(
@@ -1925,7 +1796,7 @@ fun ModsScreen(
                                         .height(140.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(26.dp))
+                                    CircularProgressIndicator(color = BellTextPrimary, modifier = Modifier.size(26.dp))
                                 }
                             } else if (detailTab == "overview") {
                                 val galleryList = detailProject?.gallery ?: emptyList()
@@ -1934,7 +1805,7 @@ fun ModsScreen(
                                         text = "SCREENSHOTS",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 9.sp,
-                                        color = DashTextMuted,
+                                        color = BellTextMuted,
                                         letterSpacing = 0.8.sp
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -1948,8 +1819,8 @@ fun ModsScreen(
                                                     .width(170.dp)
                                                     .height(96.dp)
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(DashGlassPanel)
-                                                    .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
+                                                    .background(BellGlassCard)
+                                                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                                                     .clickable { previewGalleryUrl = gal.url }
                                             ) {
                                                 NuxNetworkImage(
@@ -1965,73 +1836,26 @@ fun ModsScreen(
                                 }
 
                                 Text(
-                                    text = "DESKRIPSI LENGKAP",
+                                    text = "DESCRIPTION",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 9.sp,
-                                    color = DashTextMuted,
+                                    color = BellTextMuted,
                                     letterSpacing = 0.8.sp
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = detailProject?.description ?: hit.description ?: "No description summary available.",
                                     fontSize = 11.5.sp,
-                                    color = DashTextPrimary,
+                                    color = BellTextPrimary,
                                     lineHeight = 17.sp
                                 )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                val allLoaders = (detailProject?.loaders ?: hit.categories ?: emptyList()).distinct()
-                                if (allLoaders.isNotEmpty()) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        allLoaders.take(5).forEach { tag ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(5.dp))
-                                                    .background(Color(0x1AFFFFFF))
-                                                    .border(1.dp, DashBorder, RoundedCornerShape(5.dp))
-                                                    .padding(horizontal = 7.dp, vertical = 3.dp)
-                                            ) {
-                                                Text(
-                                                    text = tag.uppercase(),
-                                                    fontSize = 8.5.sp,
-                                                    color = DashTextSecondary,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
                             } else {
                                 if (compatibleVersions.isEmpty()) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(DashGlassPanel)
-                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
-                                            .padding(12.dp)
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = "NO SUPPORTED VERSION",
-                                                color = Color(0xFFF87171),
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 10.5.sp,
-                                                letterSpacing = 0.6.sp
-                                            )
-                                            Spacer(modifier = Modifier.height(3.dp))
-                                            Text(
-                                                text = "This mod has no release matching Minecraft ${selectedInstance?.mcVersion ?: ""} (${(selectedInstance?.loader ?: "Vanilla").uppercase()}).",
-                                                color = DashTextSecondary,
-                                                fontSize = 10.sp,
-                                                lineHeight = 14.sp
-                                            )
-                                        }
-                                    }
+                                    Text(
+                                        text = "No release matching Minecraft ${selectedInstance?.mcVersion ?: ""} (${(selectedInstance?.loader ?: "Vanilla").uppercase()}).",
+                                        color = BellTextSecondary,
+                                        fontSize = 10.sp
+                                    )
                                 } else {
                                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         compatibleVersions.forEach { ver ->
@@ -2040,10 +1864,10 @@ fun ModsScreen(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(if (isPicked) Color(0x26FFFFFF) else DashGlassPanel)
+                                                    .background(if (isPicked) Color(0x26FFFFFF) else BellGlassCard)
                                                     .border(
                                                         width = 1.dp,
-                                                        color = if (isPicked) DashPillWhite else DashBorder,
+                                                        color = if (isPicked) BellPillWhite else BellBorder,
                                                         shape = RoundedCornerShape(8.dp)
                                                     )
                                                     .clickable { selectedVersion = ver }
@@ -2054,81 +1878,38 @@ fun ModsScreen(
                                                     horizontalArrangement = Arrangement.SpaceBetween,
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        modifier = Modifier.weight(1f)
-                                                    ) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(14.dp)
-                                                                .clip(CircleShape)
-                                                                .background(if (isPicked) DashPillWhite else Color.Transparent)
-                                                                .border(1.5.dp, if (isPicked) DashPillWhite else DashTextMuted, CircleShape)
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = ver.name.ifBlank { ver.versionNumber },
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 11.5.sp,
+                                                            color = BellTextPrimary,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
-                                                        Spacer(modifier = Modifier.width(9.dp))
-                                                        Column {
-                                                            Text(
-                                                                text = ver.name.ifBlank { ver.versionNumber },
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 11.5.sp,
-                                                                color = DashTextPrimary,
-                                                                maxLines = 1,
-                                                                overflow = TextOverflow.Ellipsis
-                                                            )
-                                                            Text(
-                                                                text = "Versi: ${ver.versionNumber} · MC: ${ver.gameVersions.joinToString(", ")}",
-                                                                fontSize = 9.sp,
-                                                                color = DashTextSecondary
-                                                            )
-                                                        }
+                                                        Text(
+                                                            text = "Version: ${ver.versionNumber} · MC: ${ver.gameVersions.joinToString(", ")}",
+                                                            fontSize = 9.sp,
+                                                            color = BellTextSecondary
+                                                        )
                                                     }
-
                                                     Box(
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(4.dp))
                                                             .background(Color(0x1AFFFFFF))
-                                                            .border(1.dp, DashBorder, RoundedCornerShape(4.dp))
                                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                                     ) {
                                                         Text(
                                                             text = ver.versionType.uppercase(),
                                                             fontSize = 8.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = DashTextPrimary
+                                                            color = BellTextPrimary
                                                         )
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(DashGlassPanel)
-                                    .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
-                                    .padding(8.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.AutoFixHigh,
-                                        contentDescription = null,
-                                        tint = DashTextSecondary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (hit.projectType == "modpack")
-                                            "Modpack will be extracted directly into the instance (overrides, configuration, and modpack manifest)."
-                                        else
-                                            "Auto-Download Dependencies active: required dependencies will be installed automatically.",
-                                        fontSize = 9.sp,
-                                        color = DashTextSecondary
-                                    )
                                 }
                             }
                         }
@@ -2142,13 +1923,13 @@ fun ModsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = BellTextPrimary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = installingLabel,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.5.sp,
-                                color = DashTextPrimary
+                                color = BellTextPrimary
                             )
                         }
                     } else {
@@ -2161,8 +1942,8 @@ fun ModsScreen(
                                     .weight(1f)
                                     .height(38.dp)
                                     .clip(RoundedCornerShape(9.dp))
-                                    .background(DashGlassPanel)
-                                    .border(1.dp, DashBorder, RoundedCornerShape(9.dp))
+                                    .background(BellGlassCard)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(9.dp))
                                     .clickable { detailModalHit = null },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2171,7 +1952,7 @@ fun ModsScreen(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
                                     letterSpacing = 0.7.sp,
-                                    color = DashTextSecondary
+                                    color = BellTextSecondary
                                 )
                             }
 
@@ -2182,25 +1963,16 @@ fun ModsScreen(
                                         .height(38.dp)
                                         .clip(RoundedCornerShape(9.dp))
                                         .background(Color(0x1AFFFFFF))
-                                        .border(1.dp, DashBorder, RoundedCornerShape(9.dp)),
+                                        .border(1.dp, BellBorder, RoundedCornerShape(9.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Check,
-                                            contentDescription = null,
-                                            tint = DashTextPrimary,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = tr("mods.already_installed").uppercase(),
-                                            color = DashTextPrimary,
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 10.5.sp,
-                                            letterSpacing = 0.7.sp
-                                        )
-                                    }
+                                    Text(
+                                        text = tr("mods.already_installed").uppercase(),
+                                        color = BellTextPrimary,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 10.5.sp,
+                                        letterSpacing = 0.7.sp
+                                    )
                                 }
                             } else {
                                 val canInstall = compatibleVersions.isNotEmpty()
@@ -2209,7 +1981,7 @@ fun ModsScreen(
                                         .weight(2f)
                                         .height(38.dp)
                                         .clip(RoundedCornerShape(9.dp))
-                                        .background(if (canInstall) DashPillWhite else Color(0x1AFFFFFF))
+                                        .background(if (canInstall) BellPillWhite else Color(0x1AFFFFFF))
                                         .clickable(enabled = canInstall) {
                                             val ver = selectedVersion ?: compatibleVersions.firstOrNull()
                                             val inst = selectedInstance
@@ -2256,13 +2028,13 @@ fun ModsScreen(
                                         Icon(
                                             imageVector = Icons.Outlined.Download,
                                             contentDescription = null,
-                                            tint = if (canInstall) DashInkDark else DashTextMuted,
+                                            tint = if (canInstall) BellInkDark else BellTextMuted,
                                             modifier = Modifier.size(15.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = (if (hit.projectType == "modpack") tr("mods.install_modpack") else tr("mods.install_to_instance")).uppercase(),
-                                            color = if (canInstall) DashInkDark else DashTextMuted,
+                                            color = if (canInstall) BellInkDark else BellTextMuted,
                                             fontWeight = FontWeight.Black,
                                             fontSize = 10.5.sp,
                                             letterSpacing = 0.7.sp
@@ -2296,18 +2068,18 @@ fun ModsScreen(
                         fontWeight = FontWeight.Black,
                         fontSize = 11.sp,
                         letterSpacing = 0.7.sp,
-                        color = DashTextPrimary
+                        color = BellTextPrimary
                     )
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(DashGlassPanel)
-                            .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
+                            .clip(CircleShape)
+                            .background(BellGlassCard)
+                            .border(1.dp, BellBorder, CircleShape)
                             .clickable { previewGalleryUrl = null },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Close", tint = DashTextPrimary, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Outlined.Close, contentDescription = "Close", tint = BellTextPrimary, modifier = Modifier.size(14.dp))
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2318,7 +2090,7 @@ fun ModsScreen(
                         .fillMaxWidth()
                         .height(240.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp)),
+                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp)),
                     shape = RoundedCornerShape(8.dp)
                 )
             }
@@ -2326,11 +2098,8 @@ fun ModsScreen(
     }
 }
 
-/**
- * Tombol utama bergaya tombol UNDUH di Dashboard (putih solid, sudut membulat 9.dp, tipografi kapital)
- */
 @Composable
-private fun DashPrimaryButton(
+private fun BellPrimaryButton(
     text: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
@@ -2340,7 +2109,7 @@ private fun DashPrimaryButton(
         modifier = modifier
             .height(34.dp)
             .clip(RoundedCornerShape(9.dp))
-            .background(DashPillWhite)
+            .background(BellPillWhite)
             .clickable { onClick() }
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
@@ -2349,15 +2118,15 @@ private fun DashPrimaryButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = DashInkDark,
+                tint = BellInkDark,
                 modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
-                color = DashInkDark,
+                color = BellInkDark,
                 fontWeight = FontWeight.Black,
-                fontSize = 10.sp,
+                fontSize = 9.5.sp,
                 letterSpacing = 0.7.sp
             )
         }
@@ -2365,7 +2134,7 @@ private fun DashPrimaryButton(
 }
 
 @Composable
-private fun DashSearchBar(
+private fun BellSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -2373,26 +2142,26 @@ private fun DashSearchBar(
 ) {
     Row(
         modifier = modifier
-            .height(30.dp)
-            .clip(RoundedCornerShape(7.dp))
-            .background(DashGlassPanel)
-            .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
-            .padding(horizontal = 9.dp),
+            .height(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(BellGlassSidebar)
+            .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+            .padding(horizontal = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Outlined.Search,
             contentDescription = null,
-            tint = DashTextMuted,
-            modifier = Modifier.size(13.dp)
+            tint = BellTextMuted,
+            modifier = Modifier.size(14.dp)
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(7.dp))
         Box(modifier = Modifier.weight(1f)) {
             if (value.isEmpty()) {
                 Text(
                     text = placeholder,
-                    color = DashTextMuted,
-                    fontSize = 10.sp,
+                    color = BellTextMuted,
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2402,11 +2171,11 @@ private fun DashSearchBar(
                 value = value,
                 onValueChange = onValueChange,
                 textStyle = TextStyle(
-                    color = DashTextPrimary,
-                    fontSize = 10.sp,
+                    color = BellTextPrimary,
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                cursorBrush = SolidColor(DashTextPrimary),
+                cursorBrush = SolidColor(BellTextPrimary),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -2415,9 +2184,9 @@ private fun DashSearchBar(
             Icon(
                 imageVector = Icons.Outlined.Close,
                 contentDescription = tr("common.delete"),
-                tint = DashTextSecondary,
+                tint = BellTextSecondary,
                 modifier = Modifier
-                    .size(12.dp)
+                    .size(13.dp)
                     .clickable { onValueChange("") }
             )
         }
