@@ -1,5 +1,6 @@
 package com.israadev.nuxlauncher.core.launch
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import com.google.gson.Gson
@@ -8,15 +9,38 @@ import com.israadev.nuxlauncher.core.instance.InstanceManager
 import com.israadev.nuxlauncher.core.models.Instance
 import com.israadev.nuxlauncher.core.models.UserAccount
 import com.israadev.nuxlauncher.core.models.VersionDetail
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 object GameLauncher {
     private val gson = Gson()
+    private val launchScope = CoroutineScope(Dispatchers.Main)
 
     fun launch(context: Context, instance: Instance, account: UserAccount) {
+        launchScope.launch {
+            val preparedIntent = withContext(Dispatchers.IO) {
+                prepareLaunchIntent(context, instance, account)
+            } ?: return@launch
+
+            com.israadev.nuxlauncher.core.social.NuxSocialManager.setInGame(true)
+            context.startActivity(preparedIntent)
+        }
+    }
+
+    private suspend fun prepareLaunchIntent(
+        context: Context,
+        instance: Instance,
+        account: UserAccount
+    ): Intent? {
         val gameDir = InstanceManager.getInstanceGameDir(context, instance)
         val versionDir = File(InstanceManager.getVersionsDir(context), instance.mcVersion)
         val versionJson = File(versionDir, "${instance.mcVersion}.json")
+
+        // Terapkan preset options.txt ramah HP low-end jika file belum ada
+        ensurePotatoOptionsIfMissing(context, gameDir)
 
         var mainClass = "net.minecraft.client.main.Main"
         var assetIndexId = instance.mcVersion
@@ -55,12 +79,14 @@ object GameLauncher {
             }
 
             if (fabricProfile == null) {
-                android.widget.Toast.makeText(
-                    context,
-                    "Fabric profile (${instance.loaderVersion}) is not installed yet. Please press DOWNLOAD on the instance!",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
-                return
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        context,
+                        "Fabric profile (${instance.loaderVersion}) is not installed yet. Please press DOWNLOAD on the instance!",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                return null
             }
 
             fabricProfile.mainClass?.let { mainClass = it } ?: run {
@@ -80,9 +106,9 @@ object GameLauncher {
         val lwjglJars = LwjglManager.getLwjglJars(context, lwjglVersion)
         LwjglManager.prepareLauncherComponents(context)
 
-        // Build classpath: Android LWJGL jars first, Fabric libraries, Mojang non-LWJGL libraries, then client.jar
+        // Build classpath
         val libDir = InstanceManager.getLibrariesDir(context)
-        val classpathEntries = mutableListOf<String>()
+        val classpathEntries = LinkedHashSet<String>()
 
         // 1. Android LWJGL Jars
         lwjglJars.forEach { jar ->
@@ -115,7 +141,7 @@ object GameLauncher {
             }
         }
 
-        // 3. Mojang libraries (excluding desktop org.lwjgl and libraries already provided/overridden by mod loader)
+        // 3. Mojang libraries
         versionDetail?.libraries?.forEach { lib ->
             val name = lib.name ?: ""
             if (name.contains("org.lwjgl")) return@forEach
@@ -126,7 +152,6 @@ object GameLauncher {
                 if (loaderArtifactKeys.contains(groupArtifact)) return@forEach
             }
 
-            // Exclude vanilla ASM when running under Fabric (Fabric strictly provides & requires its own ASM)
             if (isFabric && (name.startsWith("org.ow2.asm:") || lib.downloads?.artifact?.path?.contains("org/ow2/asm") == true)) {
                 return@forEach
             }
@@ -146,7 +171,7 @@ object GameLauncher {
             classpathEntries.add(clientJar.absolutePath)
         }
 
-        val classpath = classpathEntries.distinct().joinToString(File.pathSeparator)
+        val classpath = classpathEntries.joinToString(File.pathSeparator)
         val assetsDir = InstanceManager.getAssetsDir(context)
 
         val userType = if (account.safeAccountType == "microsoft") "msa" else "mojang"
@@ -163,7 +188,6 @@ object GameLauncher {
             authlibJar = LwjglManager.prepareAuthLibInjector(context)
             authlibUrl = account.authServerUrl ?: "https://authserver.ely.by/api/authlib-injector"
 
-            // Pastikan UUID adalah 32-karakter valid yang dikenali server Ely.by
             if (playerUuid.length != 32 || playerUuid.toLongOrNull() != null) {
                 val realUuid = com.israadev.nuxlauncher.core.account.elyby.ElyByAuthService.fetchRealPlayerUuid(account.username)
                 if (realUuid.isNotBlank()) {
@@ -179,8 +203,6 @@ object GameLauncher {
 
             if (hasCustomSkinOrCape) {
                 authlibJar = LwjglManager.prepareAuthLibInjector(context)
-                // Catatan: Server Yggdrasil lokal untuk skin & cape akan dijalankan langsung di GameActivity
-                // (:game process) agar tidak dibekukan (frozen) oleh Android runtime saat main process ke background.
             }
         }
 
@@ -188,7 +210,7 @@ object GameLauncher {
         val skinFile = if (isOffline) account.getSkinFile() else null
         val capeFile = if (isOffline) account.getCapeFile() else null
 
-        val intent = Intent(context, GameActivity::class.java).apply {
+        return Intent(context, GameActivity::class.java).apply {
             putExtra(GameActivity.EXTRA_INSTANCE_NAME, instance.name)
             putExtra(GameActivity.EXTRA_MC_VERSION, instance.mcVersion)
             putExtra(GameActivity.EXTRA_LOADER, instance.loader)
@@ -223,8 +245,49 @@ object GameLauncher {
             putExtra(GameActivity.EXTRA_LAUNCHER_UID, com.israadev.nuxlauncher.core.account.AccountManager.launcherUser.value?.uid ?: "")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
+    }
 
-        com.israadev.nuxlauncher.core.social.NuxSocialManager.setInGame(true)
-        context.startActivity(intent)
+    /**
+     * Membuat file options.txt bawaan yang ringan untuk instance baru
+     * menyesuaikan kapasitas RAM fisik perangkat (khususnya HP RAM <= 4GB).
+     */
+    private fun ensurePotatoOptionsIfMissing(context: Context, gameDir: File) {
+        try {
+            if (!gameDir.exists()) gameDir.mkdirs()
+            val optionsFile = File(gameDir, "options.txt")
+            if (optionsFile.exists()) return
+
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            val memInfo = ActivityManager.MemoryInfo()
+            am?.getMemoryInfo(memInfo)
+            val totalRamMb = (memInfo.totalMem / (1024L * 1024L)).toInt()
+
+            val isLowEnd = totalRamMb in 1..4600
+            val renderDist = if (isLowEnd) 5 else 8
+            val simDist = if (isLowEnd) 5 else 6
+            val entityDist = if (isLowEnd) "0.5" else "0.75"
+
+            val defaultOptions = """
+                version:3465
+                autoJump:false
+                enableVsync:false
+                maxFps:60
+                renderDistance:$renderDist
+                simulationDistance:$simDist
+                entityDistanceScaling:$entityDist
+                graphicsMode:0
+                ao:false
+                biomeBlendRadius:1
+                renderClouds:"false"
+                particles:2
+                entityShadows:false
+                mipmapLevels:1
+                guiScale:0
+                pauseOnLostFocus:false
+            """.trimIndent()
+
+            optionsFile.writeText(defaultOptions)
+        } catch (_: Exception) {
+        }
     }
 }
