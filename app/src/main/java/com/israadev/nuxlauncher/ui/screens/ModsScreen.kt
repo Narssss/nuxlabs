@@ -43,14 +43,12 @@ import com.israadev.nuxlauncher.core.models.*
 import com.israadev.nuxlauncher.core.mods.NuxModManager
 import com.israadev.nuxlauncher.core.mods.WorldInfo
 import com.israadev.nuxlauncher.ui.components.*
-import com.israadev.nuxlauncher.ui.theme.NuxColors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 
 // Palet netral monokrom yang diselaraskan dengan tampilan Dashboard
-private val UiBgDark = Color(0xFF0A0A0C)
 private val UiSurfaceCard = Color(0xFF141418)
 private val UiSurfaceElevated = Color(0xFF1A1A20)
 private val UiSurfaceInput = Color(0xFF111115)
@@ -225,7 +223,7 @@ fun ModsScreen(
     var filterByGameVersion by remember { mutableStateOf(true) }
     var currentPage by remember { mutableStateOf(1) }
     var totalHits by remember { mutableStateOf(0) }
-    var downloadingProjectIds by remember { mutableStateOf>(emptyMap()) }
+    var downloadingProjectIds by remember { mutableStateOf(emptyMap<String, String>()) }
 
     // Detail Modal state
     var detailModalHit by remember { mutableStateOf<ModrinthSearchHit?>(null) }
@@ -1249,7 +1247,7 @@ fun ModsScreen(
                     itemsIndexed(searchHits, key = { index, hit -> "${hit.projectId}_$index" }) { _, hit ->
                         val isInstalled = installedItems.any { isModInstalled(it, hit) }
                         val isDownloading = downloadingProjectIds.containsKey(hit.projectId)
-                        val downloadStatus = downloadingProjectIds[hit.projectId] ?: ""
+                        val downloadStatus: String = downloadingProjectIds[hit.projectId].orEmpty()
 
                         NuxCard(
                             modifier = Modifier
@@ -2134,6 +2132,7 @@ fun ModsScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     if (isDetailInstalling) {
+                        val installingLabel: String = detailProgressText.ifBlank { "Downloading and installing..." }
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -2141,7 +2140,7 @@ fun ModsScreen(
                             CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = detailProgressText.ifBlank { "Downloading and installing..." },
+                                text = installingLabel,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.5.sp,
                                 color = UiTextPrimary
