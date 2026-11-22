@@ -44,11 +44,23 @@ import com.israadev.nuxlauncher.core.mods.NuxModManager
 import com.israadev.nuxlauncher.core.mods.WorldInfo
 import com.israadev.nuxlauncher.ui.components.*
 import com.israadev.nuxlauncher.ui.theme.NuxColors
-import com.israadev.nuxlauncher.ui.theme.NuxSizes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
+
+// Palet netral monokrom yang diselaraskan dengan tampilan Dashboard
+private val UiBgDark = Color(0xFF0A0A0C)
+private val UiSurfaceCard = Color(0xFF141418)
+private val UiSurfaceElevated = Color(0xFF1A1A20)
+private val UiSurfaceInput = Color(0xFF111115)
+private val UiBorderSubtle = Color(0xFF282830)
+private val UiBorderActive = Color(0xFF52525B)
+private val UiPrimaryBtnBg = Color(0xFFF4F4F5)
+private val UiPrimaryBtnFg = Color(0xFF0A0A0C)
+private val UiTextPrimary = Color(0xFFFFFFFF)
+private val UiTextSecondary = Color(0xFFA1A1AA)
+private val UiTextMuted = Color(0xFF71717A)
 
 private fun getMimeTypesForType(type: String): Array<String> {
     return when (type) {
@@ -111,15 +123,12 @@ private fun getFileNameFromUri(context: android.content.Context, uri: Uri): Stri
 }
 
 private fun isModInstalled(inst: InstalledModItem, hit: ModrinthSearchHit): Boolean {
-    // 1. Exact Modrinth Project ID (dari metadata manifest atau id)
     if (inst.id.isNotBlank() && inst.id.equals(hit.projectId, ignoreCase = true)) {
         return true
     }
-    // 2. Exact Title Match
     if (inst.name.equals(hit.title, ignoreCase = true)) {
         return true
     }
-    // 3. Exact slug match pada nama file mod (bukan substring ceroboh yang mencocokkan dependensi seperti sodium vs sodium-extra)
     val slug = hit.slug?.trim()?.lowercase() ?: ""
     if (slug.isNotBlank()) {
         val clean = inst.filename.removeSuffix(".disabled").removeSuffix(".jar").lowercase()
@@ -140,41 +149,41 @@ data class ModCategoryItem(val id: String, val label: String)
 private val CATEGORIES_MAP = mapOf(
     "mods" to listOf(
         ModCategoryItem("All", "All"),
-        ModCategoryItem("optimization", "⚡ Optimization"),
-        ModCategoryItem("technology", "⚙️ Technology"),
-        ModCategoryItem("magic", "🪄 Magic"),
-        ModCategoryItem("adventure", "🗺️ Adventure"),
-        ModCategoryItem("utility", "🛠️ Utility"),
-        ModCategoryItem("decoration", "🎨 Decoration")
+        ModCategoryItem("optimization", "Optimization"),
+        ModCategoryItem("technology", "Technology"),
+        ModCategoryItem("magic", "Magic"),
+        ModCategoryItem("adventure", "Adventure"),
+        ModCategoryItem("utility", "Utility"),
+        ModCategoryItem("decoration", "Decoration")
     ),
     "modpacks" to listOf(
         ModCategoryItem("All", "All"),
-        ModCategoryItem("adventure", "🗺️ Adventure"),
-        ModCategoryItem("optimization", "⚡ Optimization"),
-        ModCategoryItem("technology", "⚙️ Technology"),
-        ModCategoryItem("magic", "🪄 Magic"),
-        ModCategoryItem("quests", "📜 Quests")
+        ModCategoryItem("adventure", "Adventure"),
+        ModCategoryItem("optimization", "Optimization"),
+        ModCategoryItem("technology", "Technology"),
+        ModCategoryItem("magic", "Magic"),
+        ModCategoryItem("quests", "Quests")
     ),
     "resourcepacks" to listOf(
         ModCategoryItem("All", "All"),
         ModCategoryItem("16x", "16x"),
         ModCategoryItem("32x", "32x"),
-        ModCategoryItem("simplistic", "✨ Simplistic"),
-        ModCategoryItem("traditional", "🏛️ Traditional"),
-        ModCategoryItem("medieval", "🏰 Medieval")
+        ModCategoryItem("simplistic", "Simplistic"),
+        ModCategoryItem("traditional", "Traditional"),
+        ModCategoryItem("medieval", "Medieval")
     ),
     "shaderpacks" to listOf(
         ModCategoryItem("All", "All"),
-        ModCategoryItem("realistic", "🌅 Realistic"),
-        ModCategoryItem("stylized", "🎨 Stylized"),
-        ModCategoryItem("fantasy", "🔮 Fantasy")
+        ModCategoryItem("realistic", "Realistic"),
+        ModCategoryItem("stylized", "Stylized"),
+        ModCategoryItem("fantasy", "Fantasy")
     ),
     "datapacks" to listOf(
         ModCategoryItem("All", "All"),
-        ModCategoryItem("adventure", "🗺️ Adventure"),
-        ModCategoryItem("utility", "🛠️ Utility"),
-        ModCategoryItem("magic", "🪄 Magic"),
-        ModCategoryItem("worldgen", "🌍 Worldgen")
+        ModCategoryItem("adventure", "Adventure"),
+        ModCategoryItem("utility", "Utility"),
+        ModCategoryItem("magic", "Magic"),
+        ModCategoryItem("worldgen", "Worldgen")
     )
 )
 
@@ -216,7 +225,7 @@ fun ModsScreen(
     var filterByGameVersion by remember { mutableStateOf(true) }
     var currentPage by remember { mutableStateOf(1) }
     var totalHits by remember { mutableStateOf(0) }
-    var downloadingProjectIds by remember { mutableStateOf<Map<String, String>>(emptyMap()) } // projectId -> status
+    var downloadingProjectIds by remember { mutableStateOf>(emptyMap()) }
 
     // Detail Modal state
     var detailModalHit by remember { mutableStateOf<ModrinthSearchHit?>(null) }
@@ -226,13 +235,12 @@ fun ModsScreen(
     var isDetailLoading by remember { mutableStateOf(false) }
     var isDetailInstalling by remember { mutableStateOf(false) }
     var detailProgressText by remember { mutableStateOf("") }
-    var detailTab by remember { mutableStateOf("overview") } // "overview" | "versions"
+    var detailTab by remember { mutableStateOf("overview") }
     var previewGalleryUrl by remember { mutableStateOf<String?>(null) }
 
     // Instance switch dropdown
     var showInstanceMenu by remember { mutableStateOf(false) }
 
-    // Load available worlds for selected instance
     fun reloadWorlds() {
         val inst = selectedInstance ?: return
         val list = NuxModManager.getInstanceWorlds(context, inst)
@@ -246,7 +254,6 @@ fun ModsScreen(
         }
     }
 
-    // Reload installed items
     fun reloadInstalled() {
         val inst = selectedInstance ?: return
         isInstalledLoading = true
@@ -257,7 +264,6 @@ fun ModsScreen(
         }
     }
 
-    // Search Modrinth
     fun performSearch(page: Int = 1) {
         val inst = selectedInstance ?: return
         isSearching = true
@@ -288,7 +294,6 @@ fun ModsScreen(
         }
     }
 
-    // Trigger reload when tab, type, world or instance changes
     LaunchedEffect(selectedInstance, activeType, mainMode, selectedWorld, filterByGameVersion) {
         if (selectedInstance != null) {
             reloadWorlds()
@@ -299,7 +304,6 @@ fun ModsScreen(
         }
     }
 
-    // Debounce search query
     var searchJob by remember { mutableStateOf<Job?>(null) }
     fun onQueryChanged(newQuery: String) {
         browseQuery = newQuery
@@ -317,7 +321,6 @@ fun ModsScreen(
     var modpackImportTotal by remember { mutableStateOf(0) }
     var modpackImportName by remember { mutableStateOf("") }
 
-    // File Picker for local addon import with strict extension filtering and modpack extraction
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri>? ->
@@ -326,7 +329,6 @@ fun ModsScreen(
             scope.launch {
                 val targetWorld = if (activeType == "datapacks") selectedWorld else null
 
-                // 1. Filter file berdasarkan ekstensi yang di-support
                 val validUris = mutableListOf<Pair<Uri, String>>()
                 val rejectedNames = mutableListOf<String>()
 
@@ -351,7 +353,6 @@ fun ModsScreen(
 
                 if (validUris.isEmpty()) return@launch
 
-                // 2. Import file yang valid
                 if (activeType == "modpacks") {
                     isImportingModpack = true
                     var successCount = 0
@@ -451,8 +452,8 @@ fun ModsScreen(
             ) {
                 NuxCard(
                     modifier = Modifier.width(320.dp),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = NuxColors.CardBorder,
+                    backgroundColor = UiSurfaceCard,
+                    borderColor = UiBorderSubtle,
                     cornerRadius = 8.dp
                 ) {
                     Column(
@@ -462,7 +463,7 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.Outlined.ExtensionOff,
                             contentDescription = null,
-                            tint = NuxColors.ForestGreen,
+                            tint = UiTextSecondary,
                             modifier = Modifier.size(36.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -470,22 +471,23 @@ fun ModsScreen(
                             text = "No Instances Found",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = Color.White
+                            color = UiTextPrimary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Select or create an instance on Dashboard to start installing mods.",
-                            color = NuxColors.GrayNeutral,
+                            color = UiTextSecondary,
                             fontSize = 11.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         NuxButton(
                             onClick = { onNavigateBack() },
-                            backgroundColor = NuxColors.ForestGreen,
+                            backgroundColor = UiPrimaryBtnBg,
+                            contentColor = UiPrimaryBtnFg,
                             cornerRadius = 6.dp
                         ) {
-                            Text(tr("mods.btn_back_dashboard"), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.White)
+                            Text(tr("mods.btn_back_dashboard"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                         }
                     }
                 }
@@ -496,7 +498,7 @@ fun ModsScreen(
         val currentInst = selectedInstance!!
 
         // =========================================================================
-        // ROW 1: MINIMALIST CYBER-GLASS TOP NAVIGATION BAR
+        // ROW 1: TOP NAVIGATION BAR
         // =========================================================================
         Row(
             modifier = Modifier
@@ -505,18 +507,17 @@ fun ModsScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Group: Back Button + Segmented Switcher (Terpasang vs Jelajah)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Back Button (Matching Dashboard & Accounts)
+                // Back Button
                 Box(
                     modifier = Modifier
                         .height(26.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .background(UiSurfaceCard, RoundedCornerShape(6.dp))
+                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
                         .clickable { onNavigateBack() }
                         .padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center
@@ -525,13 +526,13 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = tr("common.back"),
-                            tint = NuxColors.ForestGreen,
+                            tint = UiTextPrimary,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "DASHBOARD",
-                            color = Color.White,
+                            color = UiTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 9.sp,
                             letterSpacing = 0.5.sp
@@ -544,8 +545,8 @@ fun ModsScreen(
                     modifier = Modifier
                         .height(26.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .background(UiSurfaceCard, RoundedCornerShape(6.dp))
+                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
                         .padding(2.dp),
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -555,20 +556,15 @@ fun ModsScreen(
                         modifier = Modifier
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(4.dp))
-                            .background(if (isInstalled) NuxColors.ForestGreen.copy(alpha = 0.2f) else Color.Transparent)
-                            .border(
-                                1.dp,
-                                if (isInstalled) NuxColors.ForestGreen.copy(alpha = 0.45f) else Color.Transparent,
-                                RoundedCornerShape(4.dp)
-                            )
+                            .background(if (isInstalled) UiPrimaryBtnBg else Color.Transparent)
                             .clickable { mainMode = "installed" }
                             .padding(horizontal = 9.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = tr("mods.installed_count", installedItems.size),
-                            color = if (isInstalled) NuxColors.MintGreen else NuxColors.GrayNeutral,
-                            fontWeight = if (isInstalled) FontWeight.Black else FontWeight.SemiBold,
+                            color = if (isInstalled) UiPrimaryBtnFg else UiTextSecondary,
+                            fontWeight = if (isInstalled) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 9.5.sp
                         )
                     }
@@ -578,34 +574,29 @@ fun ModsScreen(
                         modifier = Modifier
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(4.dp))
-                            .background(if (isBrowse) NuxColors.ForestGreen.copy(alpha = 0.2f) else Color.Transparent)
-                            .border(
-                                1.dp,
-                                if (isBrowse) NuxColors.ForestGreen.copy(alpha = 0.45f) else Color.Transparent,
-                                RoundedCornerShape(4.dp)
-                            )
+                            .background(if (isBrowse) UiPrimaryBtnBg else Color.Transparent)
                             .clickable { mainMode = "browse" }
                             .padding(horizontal = 9.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = tr("mods.browse_modrinth"),
-                            color = if (isBrowse) NuxColors.MintGreen else NuxColors.GrayNeutral,
-                            fontWeight = if (isBrowse) FontWeight.Black else FontWeight.SemiBold,
+                            color = if (isBrowse) UiPrimaryBtnFg else UiTextSecondary,
+                            fontWeight = if (isBrowse) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 9.5.sp
                         )
                     }
                 }
             }
 
-            // Right Group: Instance Selector Dropdown Pill
+            // Instance Selector Dropdown Pill
             Box {
                 Row(
                     modifier = Modifier
                         .height(26.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .background(UiSurfaceCard, RoundedCornerShape(6.dp))
+                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
                         .clickable { if (instances.size > 1) showInstanceMenu = true }
                         .padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -613,14 +604,14 @@ fun ModsScreen(
                     Icon(
                         imageVector = Icons.Outlined.Inventory2,
                         contentDescription = null,
-                        tint = NuxColors.ForestGreen,
+                        tint = UiTextSecondary,
                         modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
                         text = "${currentInst.name} (${currentInst.mcVersion} · ${currentInst.loader.uppercase()})",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
+                        color = UiTextPrimary,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 9.5.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -630,7 +621,7 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.Outlined.ArrowDropDown,
                             contentDescription = null,
-                            tint = NuxColors.GrayNeutral,
+                            tint = UiTextSecondary,
                             modifier = Modifier.size(13.dp)
                         )
                     }
@@ -645,7 +636,7 @@ fun ModsScreen(
                             text = {
                                 Text(
                                     text = "${inst.name} (${inst.mcVersion} · ${inst.loader.uppercase()})",
-                                    fontWeight = if (inst.id == selectedInstance?.id) FontWeight.Black else FontWeight.Normal,
+                                    fontWeight = if (inst.id == selectedInstance?.id) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = 11.5.sp
                                 )
                             },
@@ -663,11 +654,11 @@ fun ModsScreen(
         // ROW 2: ADDON TYPES + SEARCH & ACTIONS TOOLBAR
         // =========================================================================
         val addonTypes = listOf(
-            "mods" to "⚡ Mods",
-            "modpacks" to "📦 Modpacks",
-            "resourcepacks" to "🎨 Resource Packs",
-            "shaderpacks" to "✨ Shaders",
-            "datapacks" to "🗺️ Datapacks"
+            "mods" to "Mods",
+            "modpacks" to "Modpacks",
+            "resourcepacks" to "Resource Packs",
+            "shaderpacks" to "Shaders",
+            "datapacks" to "Datapacks"
         )
 
         Row(
@@ -677,7 +668,6 @@ fun ModsScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: Addon Type Pills
             LazyRow(
                 modifier = Modifier.weight(1f, fill = false),
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -690,24 +680,24 @@ fun ModsScreen(
                             .height(25.dp)
                             .clip(RoundedCornerShape(5.dp))
                             .background(
-                                if (isSelected) NuxColors.ForestGreen.copy(alpha = 0.18f) else NuxColors.SurfaceElevated.copy(alpha = 0.7f),
+                                if (isSelected) UiSurfaceElevated else UiSurfaceCard.copy(alpha = 0.65f),
                                 RoundedCornerShape(5.dp)
                             )
                             .border(
                                 width = 1.dp,
-                                color = if (isSelected) NuxColors.ForestGreen.copy(alpha = 0.5f) else NuxColors.CardBorder,
+                                color = if (isSelected) UiBorderActive else UiBorderSubtle,
                                 shape = RoundedCornerShape(5.dp)
                             )
                             .clickable {
                                 activeType = typeId
                                 selectedCategory = "All"
                             }
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 9.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = typeLabel,
-                            color = if (isSelected) NuxColors.MintGreen else NuxColors.GrayNeutral,
+                            color = if (isSelected) UiTextPrimary else UiTextSecondary,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 9.5.sp
                         )
@@ -717,13 +707,11 @@ fun ModsScreen(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Right: Search Input + Mode-specific controls
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 if (mainMode == "browse") {
-                    // Search Bar
                     CompactSearchBar(
                         value = browseQuery,
                         onValueChange = { onQueryChanged(it) },
@@ -731,15 +719,14 @@ fun ModsScreen(
                         modifier = Modifier.width(160.dp)
                     )
 
-                    // World Selector (Datapacks only)
                     if (activeType == "datapacks") {
                         Box {
                             Row(
                                 modifier = Modifier
                                     .height(25.dp)
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(NuxColors.SurfaceElevated, RoundedCornerShape(5.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(5.dp))
+                                    .background(UiSurfaceCard, RoundedCornerShape(5.dp))
+                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
                                     .clickable { if (worlds.isNotEmpty()) showWorldMenu = true }
                                     .padding(horizontal = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -747,13 +734,13 @@ fun ModsScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Public,
                                     contentDescription = null,
-                                    tint = NuxColors.ForestGreen,
+                                    tint = UiTextSecondary,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
                                     text = if (worlds.isNotEmpty()) "World: $selectedWorld" else "No Worlds",
-                                    color = Color.White,
+                                    color = UiTextPrimary,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 9.sp,
                                     maxLines = 1,
@@ -764,7 +751,7 @@ fun ModsScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.ArrowDropDown,
                                         contentDescription = null,
-                                        tint = NuxColors.GrayNeutral,
+                                        tint = UiTextSecondary,
                                         modifier = Modifier.size(12.dp)
                                     )
                                 }
@@ -779,7 +766,7 @@ fun ModsScreen(
                                         text = {
                                             Text(
                                                 text = w.displayName,
-                                                fontWeight = if (w.folderName == selectedWorld) FontWeight.Black else FontWeight.Normal,
+                                                fontWeight = if (w.folderName == selectedWorld) FontWeight.Bold else FontWeight.Normal,
                                                 fontSize = 11.sp
                                             )
                                         },
@@ -800,12 +787,12 @@ fun ModsScreen(
                             .height(25.dp)
                             .clip(RoundedCornerShape(5.dp))
                             .background(
-                                if (filterByGameVersion) NuxColors.ForestGreen.copy(alpha = 0.15f) else NuxColors.SurfaceElevated,
+                                if (filterByGameVersion) UiSurfaceElevated else UiSurfaceCard,
                                 RoundedCornerShape(5.dp)
                             )
                             .border(
                                 1.dp,
-                                if (filterByGameVersion) NuxColors.ForestGreen.copy(alpha = 0.4f) else NuxColors.CardBorder,
+                                if (filterByGameVersion) UiBorderActive else UiBorderSubtle,
                                 RoundedCornerShape(5.dp)
                             )
                             .clickable {
@@ -820,20 +807,19 @@ fun ModsScreen(
                             Icon(
                                 imageVector = if (filterByGameVersion) Icons.Outlined.Check else Icons.Outlined.Close,
                                 contentDescription = null,
-                                tint = if (filterByGameVersion) NuxColors.ForestGreen else NuxColors.GrayNeutral,
+                                tint = if (filterByGameVersion) UiTextPrimary else UiTextMuted,
                                 modifier = Modifier.size(10.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = if (filterByGameVersion) currentInst.mcVersion else tr("mods.all_versions"),
-                                color = if (filterByGameVersion) NuxColors.MintGreen else NuxColors.GrayNeutral,
+                                color = if (filterByGameVersion) UiTextPrimary else UiTextSecondary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.sp
                             )
                         }
                     }
                 } else {
-                    // Installed mode: Search + World Selector + Import
                     CompactSearchBar(
                         value = installedSearch,
                         onValueChange = { installedSearch = it },
@@ -847,8 +833,8 @@ fun ModsScreen(
                                 modifier = Modifier
                                     .height(25.dp)
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(NuxColors.SurfaceElevated, RoundedCornerShape(5.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(5.dp))
+                                    .background(UiSurfaceCard, RoundedCornerShape(5.dp))
+                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
                                     .clickable { if (worlds.isNotEmpty()) showWorldMenu = true }
                                     .padding(horizontal = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -856,13 +842,13 @@ fun ModsScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Public,
                                     contentDescription = null,
-                                    tint = NuxColors.ForestGreen,
+                                    tint = UiTextSecondary,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
                                     text = if (worlds.isNotEmpty()) "World: $selectedWorld" else "No Worlds",
-                                    color = Color.White,
+                                    color = UiTextPrimary,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 9.sp,
                                     maxLines = 1,
@@ -873,7 +859,7 @@ fun ModsScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.ArrowDropDown,
                                         contentDescription = null,
-                                        tint = NuxColors.GrayNeutral,
+                                        tint = UiTextSecondary,
                                         modifier = Modifier.size(12.dp)
                                     )
                                 }
@@ -888,7 +874,7 @@ fun ModsScreen(
                                         text = {
                                             Text(
                                                 text = w.displayName,
-                                                fontWeight = if (w.folderName == selectedWorld) FontWeight.Black else FontWeight.Normal,
+                                                fontWeight = if (w.folderName == selectedWorld) FontWeight.Bold else FontWeight.Normal,
                                                 fontSize = 11.sp
                                             )
                                         },
@@ -908,8 +894,8 @@ fun ModsScreen(
                         modifier = Modifier
                             .height(25.dp)
                             .clip(RoundedCornerShape(5.dp))
-                            .background(NuxColors.ForestGreen.copy(alpha = 0.12f), RoundedCornerShape(5.dp))
-                            .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.35f), RoundedCornerShape(5.dp))
+                            .background(UiPrimaryBtnBg, RoundedCornerShape(5.dp))
+                            .border(1.dp, UiPrimaryBtnBg, RoundedCornerShape(5.dp))
                             .clickable {
                                 if (selectedInstance == null) {
                                     Toast.makeText(context, trStr("dashboard.select_instance"), Toast.LENGTH_SHORT).show()
@@ -925,13 +911,13 @@ fun ModsScreen(
                             Icon(
                                 imageVector = Icons.Outlined.FileUpload,
                                 contentDescription = "Import",
-                                tint = NuxColors.ForestGreen,
+                                tint = UiPrimaryBtnFg,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = tr("mods.import_btn"),
-                                color = NuxColors.ForestGreen,
+                                color = UiPrimaryBtnFg,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.sp
                             )
@@ -942,7 +928,7 @@ fun ModsScreen(
         }
 
         // =========================================================================
-        // ROW 3: CATEGORY SUB-FILTERS (BROWSE MODE ONLY, COMPACT 22DP)
+        // ROW 3: CATEGORY SUB-FILTERS
         // =========================================================================
         if (mainMode == "browse") {
             val categories = CATEGORIES_MAP[activeType] ?: listOf(ModCategoryItem("All", "All"))
@@ -960,12 +946,12 @@ fun ModsScreen(
                             .height(22.dp)
                             .clip(RoundedCornerShape(4.dp))
                             .background(
-                                if (isSelected) NuxColors.ForestGreen.copy(alpha = 0.2f) else Color(0x08FFFFFF),
+                                if (isSelected) UiPrimaryBtnBg else UiSurfaceCard.copy(alpha = 0.6f),
                                 RoundedCornerShape(4.dp)
                             )
                             .border(
                                 1.dp,
-                                if (isSelected) NuxColors.ForestGreen.copy(alpha = 0.5f) else NuxColors.CardBorder.copy(alpha = 0.4f),
+                                if (isSelected) UiPrimaryBtnBg else UiBorderSubtle,
                                 RoundedCornerShape(4.dp)
                             )
                             .clickable {
@@ -973,12 +959,12 @@ fun ModsScreen(
                                 currentPage = 1
                                 performSearch(1)
                             }
-                            .padding(horizontal = 7.dp),
+                            .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = cat.label,
-                            color = if (isSelected) NuxColors.MintGreen else NuxColors.GrayNeutral,
+                            color = if (isSelected) UiPrimaryBtnFg else UiTextSecondary,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             fontSize = 8.5.sp
                         )
@@ -988,7 +974,7 @@ fun ModsScreen(
         }
 
         // =========================================================================
-        // MOD LIST / INSTALLED CARDS
+        // INSTALLED OR BROWSE LIST
         // =========================================================================
         if (mainMode == "installed") {
             val filteredInstalled = remember(installedItems, installedSearch) {
@@ -1001,7 +987,7 @@ fun ModsScreen(
 
             if (isInstalledLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = NuxColors.ForestGreen, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(24.dp))
                 }
             } else if (filteredInstalled.isEmpty()) {
                 Box(
@@ -1012,7 +998,7 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.Outlined.FolderOpen,
                             contentDescription = null,
-                            tint = NuxColors.GrayNeutral,
+                            tint = UiTextMuted,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -1022,7 +1008,7 @@ fun ModsScreen(
                             else if (installedSearch.isBlank())
                                 "No ${activeType} installed in this instance"
                             else "No matching items found",
-                            color = Color.White,
+                            color = UiTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -1030,10 +1016,11 @@ fun ModsScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                         NuxButton(
                             onClick = { mainMode = "browse" },
-                            backgroundColor = NuxColors.ForestGreen,
+                            backgroundColor = UiPrimaryBtnBg,
+                            contentColor = UiPrimaryBtnFg,
                             cornerRadius = 6.dp
                         ) {
-                            Text(tr("mods.browse_modrinth"), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.White)
+                            Text(tr("mods.browse_modrinth"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                         }
                     }
                 }
@@ -1046,8 +1033,8 @@ fun ModsScreen(
                     itemsIndexed(filteredInstalled, key = { index, item -> "${item.id}_${item.filename}_$index" }) { _, item ->
                         NuxCard(
                             modifier = Modifier.fillMaxWidth(),
-                            backgroundColor = if (item.isEnabled) NuxColors.SurfaceElevated else NuxColors.SurfaceElevated.copy(alpha = 0.6f),
-                            borderColor = NuxColors.CardBorder,
+                            backgroundColor = if (item.isEnabled) UiSurfaceCard else UiSurfaceCard.copy(alpha = 0.6f),
+                            borderColor = UiBorderSubtle,
                             shadowOffset = 0.dp,
                             cornerRadius = 8.dp,
                             borderWidth = 1.dp
@@ -1067,17 +1054,14 @@ fun ModsScreen(
                                         modifier = Modifier
                                             .size(32.dp)
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(
-                                                if (item.isEnabled) NuxColors.ForestGreen.copy(alpha = 0.15f) else Color(0x0DFFFFFF),
-                                                RoundedCornerShape(6.dp)
-                                            )
-                                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp)),
+                                            .background(UiSurfaceElevated, RoundedCornerShape(6.dp))
+                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = item.name.take(2).uppercase(),
-                                            fontWeight = FontWeight.Black,
-                                            color = if (item.isEnabled) NuxColors.MintGreen else NuxColors.GrayNeutral,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (item.isEnabled) UiTextPrimary else UiTextMuted,
                                             fontSize = 11.sp
                                         )
                                     }
@@ -1090,7 +1074,7 @@ fun ModsScreen(
                                                 text = item.name,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 12.sp,
-                                                color = if (item.isEnabled) Color.White else NuxColors.GrayNeutral,
+                                                color = if (item.isEnabled) UiTextPrimary else UiTextMuted,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
@@ -1098,14 +1082,15 @@ fun ModsScreen(
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(Color(0x1AFFFFFF), RoundedCornerShape(3.dp))
+                                                        .background(UiSurfaceElevated, RoundedCornerShape(3.dp))
+                                                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
                                                         .padding(horizontal = 4.dp, vertical = 1.dp)
                                                 ) {
                                                     Text(
                                                         text = tr("common.disabled"),
                                                         fontSize = 8.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = NuxColors.GrayNeutral
+                                                        color = UiTextSecondary
                                                     )
                                                 }
                                             }
@@ -1113,7 +1098,7 @@ fun ModsScreen(
                                         Text(
                                             text = "${item.filename} · ${formatBytes(item.sizeBytes)}",
                                             fontSize = 9.5.sp,
-                                            color = NuxColors.GrayNeutral,
+                                            color = UiTextSecondary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -1132,10 +1117,10 @@ fun ModsScreen(
                                         },
                                         modifier = Modifier.scale(0.75f),
                                         colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = NuxColors.ForestGreen,
-                                            uncheckedThumbColor = NuxColors.GrayNeutral,
-                                            uncheckedTrackColor = Color(0x26FFFFFF)
+                                            checkedThumbColor = UiPrimaryBtnFg,
+                                            checkedTrackColor = UiPrimaryBtnBg,
+                                            uncheckedThumbColor = UiTextSecondary,
+                                            uncheckedTrackColor = UiSurfaceElevated
                                         )
                                     )
 
@@ -1145,15 +1130,15 @@ fun ModsScreen(
                                         modifier = Modifier
                                             .size(26.dp)
                                             .clip(RoundedCornerShape(5.dp))
-                                            .background(NuxColors.ErrorRed.copy(alpha = 0.12f), RoundedCornerShape(5.dp))
-                                            .border(1.dp, NuxColors.ErrorRed.copy(alpha = 0.35f), RoundedCornerShape(5.dp))
+                                            .background(UiSurfaceElevated, RoundedCornerShape(5.dp))
+                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
                                             .clickable { itemToDelete = item },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Delete,
                                             contentDescription = tr("common.delete"),
-                                            tint = NuxColors.ErrorRed,
+                                            tint = Color(0xFFF87171),
                                             modifier = Modifier.size(13.dp)
                                         )
                                     }
@@ -1170,9 +1155,9 @@ fun ModsScreen(
             if (isSearching) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = NuxColors.ForestGreen, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text(tr("common.loading"), color = NuxColors.GrayNeutral, fontSize = 11.sp)
+                        Text(tr("common.loading"), color = UiTextSecondary, fontSize = 11.sp)
                     }
                 }
             } else if (searchErrorMessage != null) {
@@ -1184,30 +1169,31 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.Outlined.CloudOff,
                             contentDescription = null,
-                            tint = NuxColors.ErrorRed,
+                            tint = Color(0xFFF87171),
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "Failed to Load from Modrinth",
-                            color = Color.White,
+                            color = UiTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.5.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = searchErrorMessage ?: "Network error occurred",
-                            color = NuxColors.GrayNeutral,
+                            color = UiTextSecondary,
                             fontSize = 10.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         NuxButton(
                             onClick = { performSearch(currentPage) },
-                            backgroundColor = NuxColors.ForestGreen,
+                            backgroundColor = UiPrimaryBtnBg,
+                            contentColor = UiPrimaryBtnFg,
                             cornerRadius = 6.dp
                         ) {
-                            Text(tr("common.retry"), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.White)
+                            Text(tr("common.retry"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                         }
                     }
                 }
@@ -1217,7 +1203,7 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.Outlined.SearchOff,
                             contentDescription = null,
-                            tint = NuxColors.GrayNeutral,
+                            tint = UiTextMuted,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -1227,14 +1213,14 @@ fun ModsScreen(
                             } else {
                                 "No results found for this search"
                             },
-                            color = Color.White,
+                            color = UiTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Try modifying keywords or disable version filter",
-                            color = NuxColors.GrayNeutral,
+                            color = UiTextSecondary,
                             fontSize = 10.sp
                         )
                         if (filterByGameVersion) {
@@ -1245,10 +1231,11 @@ fun ModsScreen(
                                     currentPage = 1
                                     performSearch(1)
                                 },
-                                backgroundColor = NuxColors.ForestGreen,
+                                backgroundColor = UiPrimaryBtnBg,
+                                contentColor = UiPrimaryBtnFg,
                                 cornerRadius = 6.dp
                             ) {
-                                Text(tr("mods.btn_search_all_versions"), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.White)
+                                Text(tr("mods.btn_search_all_versions"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                             }
                         }
                     }
@@ -1261,7 +1248,6 @@ fun ModsScreen(
                 ) {
                     itemsIndexed(searchHits, key = { index, hit -> "${hit.projectId}_$index" }) { _, hit ->
                         val isInstalled = installedItems.any { isModInstalled(it, hit) }
-
                         val isDownloading = downloadingProjectIds.containsKey(hit.projectId)
                         val downloadStatus = downloadingProjectIds[hit.projectId] ?: ""
 
@@ -1285,8 +1271,8 @@ fun ModsScreen(
                                         isDetailLoading = false
                                     }
                                 },
-                            backgroundColor = NuxColors.SurfaceElevated,
-                            borderColor = NuxColors.CardBorder,
+                            backgroundColor = UiSurfaceCard,
+                            borderColor = UiBorderSubtle,
                             shadowOffset = 0.dp,
                             cornerRadius = 8.dp,
                             borderWidth = 1.dp
@@ -1297,27 +1283,25 @@ fun ModsScreen(
                                     .padding(horizontal = 10.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Project Icon (38dp)
                                 NuxNetworkImage(
                                     model = hit.iconUrl,
                                     contentDescription = hit.title,
                                     modifier = Modifier
                                         .size(38.dp)
-                                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp)),
+                                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp)),
                                     fallbackInitials = hit.title.take(2).uppercase(),
                                     shape = RoundedCornerShape(6.dp)
                                 )
 
                                 Spacer(modifier = Modifier.width(10.dp))
 
-                                // Info Column
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             text = hit.title,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp,
-                                            color = Color.White,
+                                            color = UiTextPrimary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -1326,7 +1310,7 @@ fun ModsScreen(
                                             Text(
                                                 text = "by ${hit.author}",
                                                 fontSize = 9.5.sp,
-                                                color = NuxColors.GrayNeutral,
+                                                color = UiTextSecondary,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
@@ -1335,11 +1319,11 @@ fun ModsScreen(
                                             Spacer(modifier = Modifier.width(5.dp))
                                             Box(
                                                 modifier = Modifier
-                                                    .background(NuxColors.ForestGreen.copy(alpha = 0.15f), RoundedCornerShape(3.dp))
-                                                    .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.35f), RoundedCornerShape(3.dp))
+                                                    .background(UiSurfaceElevated, RoundedCornerShape(3.dp))
+                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
                                                     .padding(horizontal = 4.dp, vertical = 1.dp)
                                             ) {
-                                                Text(tr("mods.pack_badge"), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = NuxColors.MintGreen)
+                                                Text(tr("mods.pack_badge"), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = UiTextSecondary)
                                             }
                                         }
                                     }
@@ -1349,7 +1333,7 @@ fun ModsScreen(
                                     Text(
                                         text = hit.description ?: "No description available",
                                         fontSize = 10.sp,
-                                        color = NuxColors.GrayNeutral.copy(alpha = 0.85f),
+                                        color = UiTextSecondary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -1362,30 +1346,30 @@ fun ModsScreen(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .background(Color(0x0DFFFFFF), RoundedCornerShape(3.dp))
-                                                .border(1.dp, NuxColors.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(3.dp))
-                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                .background(UiSurfaceElevated, RoundedCornerShape(3.dp))
+                                                .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
+                                                .padding(horizontal = 5.dp, vertical = 1.dp)
                                         ) {
                                             Text(
-                                                text = "📥 ${formatCompactNumber(hit.downloads)}",
+                                                text = formatCompactNumber(hit.downloads),
                                                 fontSize = 8.5.sp,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = NuxColors.GrayNeutral
+                                                color = UiTextSecondary
                                             )
                                         }
 
                                         hit.categories?.take(2)?.forEach { cat ->
                                             Box(
                                                 modifier = Modifier
-                                                    .background(Color(0x08FFFFFF), RoundedCornerShape(3.dp))
-                                                    .border(1.dp, NuxColors.CardBorder.copy(alpha = 0.4f), RoundedCornerShape(3.dp))
-                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    .background(UiSurfaceElevated.copy(alpha = 0.7f), RoundedCornerShape(3.dp))
+                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
+                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
                                             ) {
                                                 Text(
                                                     text = cat,
                                                     fontSize = 8.5.sp,
                                                     fontWeight = FontWeight.Normal,
-                                                    color = NuxColors.GrayNeutral.copy(alpha = 0.8f)
+                                                    color = UiTextMuted
                                                 )
                                             }
                                         }
@@ -1398,7 +1382,7 @@ fun ModsScreen(
                                 if (isDownloading) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         CircularProgressIndicator(
-                                            color = NuxColors.ForestGreen,
+                                            color = UiTextPrimary,
                                             modifier = Modifier.size(14.dp),
                                             strokeWidth = 2.dp
                                         )
@@ -1407,7 +1391,7 @@ fun ModsScreen(
                                             text = downloadStatus.ifBlank { "Download..." },
                                             fontSize = 8.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = NuxColors.ForestGreen
+                                            color = UiTextSecondary
                                         )
                                     }
                                 } else if (isInstalled) {
@@ -1415,8 +1399,8 @@ fun ModsScreen(
                                         modifier = Modifier
                                             .height(26.dp)
                                             .clip(RoundedCornerShape(5.dp))
-                                            .background(NuxColors.ForestGreen.copy(alpha = 0.12f), RoundedCornerShape(5.dp))
-                                            .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.35f), RoundedCornerShape(5.dp))
+                                            .background(UiSurfaceElevated, RoundedCornerShape(5.dp))
+                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
                                             .padding(horizontal = 8.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -1424,13 +1408,13 @@ fun ModsScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Check,
                                                 contentDescription = null,
-                                                tint = NuxColors.ForestGreen,
+                                                tint = UiTextPrimary,
                                                 modifier = Modifier.size(11.dp)
                                             )
                                             Spacer(modifier = Modifier.width(3.dp))
                                             Text(
                                                 text = tr("mods.installed_badge"),
-                                                color = NuxColors.ForestGreen,
+                                                color = UiTextPrimary,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 9.sp
                                             )
@@ -1442,8 +1426,8 @@ fun ModsScreen(
                                         modifier = Modifier
                                             .height(26.dp)
                                             .clip(RoundedCornerShape(5.dp))
-                                            .background(NuxColors.ForestGreen, RoundedCornerShape(5.dp))
-                                            .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.4f), RoundedCornerShape(5.dp))
+                                            .background(UiPrimaryBtnBg, RoundedCornerShape(5.dp))
+                                            .border(1.dp, UiPrimaryBtnBg, RoundedCornerShape(5.dp))
                                             .clickable {
                                                 scope.launch {
                                                     downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Finding version...")
@@ -1494,9 +1478,9 @@ fun ModsScreen(
                                     ) {
                                         Text(
                                             text = buttonLabel,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 9.5.sp
+                                            color = UiPrimaryBtnFg,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.sp
                                         )
                                     }
                                 }
@@ -1517,12 +1501,12 @@ fun ModsScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(if (currentPage > 1) NuxColors.SurfaceElevated else Color(0x08FFFFFF), RoundedCornerShape(5.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(5.dp))
+                                    .background(if (currentPage > 1) UiSurfaceCard else UiSurfaceCard.copy(alpha = 0.4f), RoundedCornerShape(5.dp))
+                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
                                     .clickable(enabled = currentPage > 1) { performSearch(currentPage - 1) }
                                     .padding(horizontal = 9.dp, vertical = 4.dp)
                             ) {
-                                Text(tr("common.previous"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = if (currentPage > 1) Color.White else NuxColors.GrayNeutral.copy(alpha = 0.35f))
+                                Text(tr("common.previous"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = if (currentPage > 1) UiTextPrimary else UiTextMuted)
                             }
 
                             Spacer(modifier = Modifier.width(10.dp))
@@ -1531,7 +1515,7 @@ fun ModsScreen(
                                 text = "$currentPage / $totalPages",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.5.sp,
-                                color = NuxColors.GrayNeutral
+                                color = UiTextSecondary
                             )
 
                             Spacer(modifier = Modifier.width(10.dp))
@@ -1539,12 +1523,12 @@ fun ModsScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(if (currentPage < totalPages) NuxColors.SurfaceElevated else Color(0x08FFFFFF), RoundedCornerShape(5.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(5.dp))
+                                    .background(if (currentPage < totalPages) UiSurfaceCard else UiSurfaceCard.copy(alpha = 0.4f), RoundedCornerShape(5.dp))
+                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
                                     .clickable(enabled = currentPage < totalPages) { performSearch(currentPage + 1) }
                                     .padding(horizontal = 9.dp, vertical = 4.dp)
                             ) {
-                                Text(tr("common.next"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = if (currentPage < totalPages) Color.White else NuxColors.GrayNeutral.copy(alpha = 0.35f))
+                                Text(tr("common.next"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = if (currentPage < totalPages) UiTextPrimary else UiTextMuted)
                             }
                         }
                     }
@@ -1565,7 +1549,7 @@ fun ModsScreen(
                 Icon(
                     imageVector = Icons.Outlined.WarningAmber,
                     contentDescription = null,
-                    tint = NuxColors.ErrorRed,
+                    tint = Color(0xFFF87171),
                     modifier = Modifier.size(34.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1573,7 +1557,7 @@ fun ModsScreen(
                     text = if (activeType == "modpacks") "Delete Modpack?" else "Delete ${item.category}?",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = Color.White
+                    color = UiTextPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -1583,7 +1567,7 @@ fun ModsScreen(
                         "Are you sure you want to delete \"${item.name}\" from this instance?"
                     },
                     fontSize = 11.sp,
-                    color = NuxColors.GrayNeutral,
+                    color = UiTextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(14.dp))
@@ -1593,12 +1577,13 @@ fun ModsScreen(
                 ) {
                     NuxButton(
                         onClick = { itemToDelete = null },
-                        backgroundColor = NuxColors.SurfaceElevated,
-                        borderColor = NuxColors.CardBorder,
+                        backgroundColor = UiSurfaceElevated,
+                        contentColor = UiTextPrimary,
+                        borderColor = UiBorderSubtle,
                         cornerRadius = 6.dp,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(tr("common.cancel"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = Color.White)
+                        Text(tr("common.cancel"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
                     }
                     NuxButton(
                         onClick = {
@@ -1617,13 +1602,13 @@ fun ModsScreen(
                                 }
                             }
                         },
-                        backgroundColor = NuxColors.ErrorRed,
-                        borderColor = NuxColors.CardBorder,
-                        contentColor = Color.White,
+                        backgroundColor = Color(0xFFDC2626),
+                        borderColor = Color(0xFFEF4444),
+                        contentColor = UiTextPrimary,
                         cornerRadius = 6.dp,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(tr("common.delete"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = Color.White)
+                        Text(tr("common.delete"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
                     }
                 }
             }
@@ -1632,7 +1617,7 @@ fun ModsScreen(
 
     // --- 4.5 MODPACK IMPORT PROGRESS DIALOG ---
     if (isImportingModpack) {
-        NuxDialog(onDismissRequest = { /* Tidak bisa ditutup saat sedang mengunduh */ }) {
+        NuxDialog(onDismissRequest = {}) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1643,13 +1628,13 @@ fun ModsScreen(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), CircleShape),
+                        .background(UiSurfaceElevated)
+                        .border(1.dp, UiBorderSubtle, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = NuxColors.ForestGreen,
+                        color = UiTextPrimary,
                         strokeWidth = 2.5.dp
                     )
                 }
@@ -1660,7 +1645,7 @@ fun ModsScreen(
                     text = "Importing & Installing Modpack",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = Color.White
+                    color = UiTextPrimary
                 )
 
                 if (modpackImportName.isNotBlank()) {
@@ -1668,7 +1653,7 @@ fun ModsScreen(
                     Text(
                         text = modpackImportName,
                         fontSize = 11.sp,
-                        color = NuxColors.ForestGreen,
+                        color = UiTextSecondary,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -1680,7 +1665,7 @@ fun ModsScreen(
                 Text(
                     text = if (modpackImportStatus.isNotBlank()) modpackImportStatus else "Parsing mod list and downloading files...",
                     fontSize = 11.sp,
-                    color = NuxColors.GrayNeutral,
+                    color = UiTextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -1697,14 +1682,14 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = NuxColors.ForestGreen,
-                        trackColor = NuxColors.SurfaceElevated
+                        color = UiPrimaryBtnBg,
+                        trackColor = UiSurfaceElevated
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "$modpackImportCurrent / $modpackImportTotal mod files",
                         fontSize = 10.sp,
-                        color = NuxColors.GrayNeutral
+                        color = UiTextSecondary
                     )
                 } else {
                     LinearProgressIndicator(
@@ -1712,8 +1697,8 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = NuxColors.ForestGreen,
-                        trackColor = NuxColors.SurfaceElevated
+                        color = UiPrimaryBtnBg,
+                        trackColor = UiSurfaceElevated
                     )
                 }
 
@@ -1722,7 +1707,7 @@ fun ModsScreen(
                 Text(
                     text = "Launcher is reading mod list and downloading modpack files. Please wait.",
                     fontSize = 9.5.sp,
-                    color = NuxColors.GrayNeutral.copy(alpha = 0.6f),
+                    color = UiTextMuted,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
@@ -1740,24 +1725,19 @@ fun ModsScreen(
             modifier = Modifier.fillMaxWidth(0.92f),
             fillMaxHeight = true
         ) {
-            val modalOuterShape = RoundedCornerShape(20.dp)
-            val modalInnerShape = RoundedCornerShape(14.dp)
-            val subCardShape = RoundedCornerShape(10.dp)
+            val modalOuterShape = RoundedCornerShape(16.dp)
+            val modalInnerShape = RoundedCornerShape(10.dp)
+            val subCardShape = RoundedCornerShape(8.dp)
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(modalOuterShape)
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            listOf(Color(0xFF151922), Color(0xFF0E1017))
-                        )
-                    )
-                    .border(1.dp, Color(0x2EFFFFFF), modalOuterShape)
+                    .background(UiSurfaceCard)
+                    .border(1.dp, UiBorderSubtle, modalOuterShape)
                     .padding(14.dp)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // 1. Header Bar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1771,8 +1751,8 @@ fun ModsScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(subCardShape)
-                                    .background(Color(0xFF181C26))
-                                    .border(1.dp, Color(0x33FFFFFF), subCardShape),
+                                    .background(UiSurfaceElevated)
+                                    .border(1.dp, UiBorderSubtle, subCardShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 NuxNetworkImage(
@@ -1788,46 +1768,25 @@ fun ModsScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = hit.title,
-                                        fontWeight = FontWeight.Black,
+                                        fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
-                                        color = Color.White,
+                                        color = UiTextPrimary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(
-                                                when (hit.projectType) {
-                                                    "mod" -> Color(0xFF10B981).copy(alpha = 0.18f)
-                                                    "modpack" -> Color(0xFF8B5CF6).copy(alpha = 0.18f)
-                                                    "resourcepack" -> Color(0xFF38BDF8).copy(alpha = 0.18f)
-                                                    else -> Color(0xFFF59E0B).copy(alpha = 0.18f)
-                                                }
-                                            )
-                                            .border(
-                                                1.dp,
-                                                when (hit.projectType) {
-                                                    "mod" -> NuxColors.ForestGreen.copy(alpha = 0.5f)
-                                                    "modpack" -> Color(0xFF8B5CF6).copy(alpha = 0.5f)
-                                                    "resourcepack" -> Color(0xFF38BDF8).copy(alpha = 0.5f)
-                                                    else -> Color(0xFFF59E0B).copy(alpha = 0.5f)
-                                                },
-                                                RoundedCornerShape(6.dp)
-                                            )
+                                            .clip(RoundedCornerShape(5.dp))
+                                            .background(UiSurfaceElevated)
+                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = hit.projectType.uppercase(),
                                             fontSize = 8.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = when (hit.projectType) {
-                                                "mod" -> NuxColors.MintGreen
-                                                "modpack" -> Color(0xFFA78BFA)
-                                                "resourcepack" -> Color(0xFF7DD3FC)
-                                                else -> Color(0xFFFCD34D)
-                                            }
+                                            color = UiTextSecondary
                                         )
                                     }
                                 }
@@ -1836,40 +1795,35 @@ fun ModsScreen(
                                     Text(
                                         text = "by ${hit.author ?: "Community"}",
                                         fontSize = 10.sp,
-                                        color = Color(0xFFA1A1AA),
+                                        color = UiTextSecondary,
                                         fontWeight = FontWeight.Medium
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "·",
-                                        color = Color(0xFF52525B),
-                                        fontSize = 10.sp
-                                    )
+                                    Text(text = "·", color = UiTextMuted, fontSize = 10.sp)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "📥 ${formatCompactNumber(hit.downloads)}",
+                                        text = formatCompactNumber(hit.downloads),
                                         fontSize = 10.sp,
-                                        color = Color(0xFFA1A1AA),
+                                        color = UiTextSecondary,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }
                         }
 
-                        // Close Pill Button
                         Box(
                             modifier = Modifier
                                 .size(28.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF1E222D))
-                                .border(1.dp, Color(0x33FFFFFF), CircleShape)
+                                .background(UiSurfaceElevated)
+                                .border(1.dp, UiBorderSubtle, CircleShape)
                                 .clickable(enabled = !isDetailInstalling) { detailModalHit = null },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Close,
                                 contentDescription = "Close",
-                                tint = Color(0xFFA1A1AA),
+                                tint = UiTextSecondary,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -1877,14 +1831,14 @@ fun ModsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 2. Segmented Tab Switcher (Double Bezel)
+                    // Segmented Tab Switcher
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF0C0E14))
-                            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(UiSurfaceInput)
+                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
                             .padding(3.dp)
                     ) {
                         Row(
@@ -1896,13 +1850,8 @@ fun ModsScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isTabOverview) Color(0xFF181C26) else Color.Transparent)
-                                    .border(
-                                        width = if (isTabOverview) 1.dp else 0.dp,
-                                        color = if (isTabOverview) Color(0x33FFFFFF) else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isTabOverview) UiPrimaryBtnBg else Color.Transparent)
                                     .clickable { detailTab = "overview" },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1910,15 +1859,15 @@ fun ModsScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.Description,
                                         contentDescription = null,
-                                        tint = if (isTabOverview) NuxColors.MintGreen else Color(0xFF71717A),
+                                        tint = if (isTabOverview) UiPrimaryBtnFg else UiTextSecondary,
                                         modifier = Modifier.size(13.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "RINGKASAN & GALERI",
                                         fontSize = 10.sp,
-                                        fontWeight = if (isTabOverview) FontWeight.Black else FontWeight.SemiBold,
-                                        color = if (isTabOverview) Color.White else Color(0xFF71717A)
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isTabOverview) UiPrimaryBtnFg else UiTextSecondary
                                     )
                                 }
                             }
@@ -1928,13 +1877,8 @@ fun ModsScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isTabVersions) Color(0xFF181C26) else Color.Transparent)
-                                    .border(
-                                        width = if (isTabVersions) 1.dp else 0.dp,
-                                        color = if (isTabVersions) Color(0x33FFFFFF) else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isTabVersions) UiPrimaryBtnBg else Color.Transparent)
                                     .clickable { detailTab = "versions" },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1942,15 +1886,15 @@ fun ModsScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.Layers,
                                         contentDescription = null,
-                                        tint = if (isTabVersions) NuxColors.MintGreen else Color(0xFF71717A),
+                                        tint = if (isTabVersions) UiPrimaryBtnFg else UiTextSecondary,
                                         modifier = Modifier.size(13.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "VERSI KOMPATIBEL (${compatibleVersions.size})",
                                         fontSize = 10.sp,
-                                        fontWeight = if (isTabVersions) FontWeight.Black else FontWeight.SemiBold,
-                                        color = if (isTabVersions) Color.White else Color(0xFF71717A)
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isTabVersions) UiPrimaryBtnFg else UiTextSecondary
                                     )
                                 }
                             }
@@ -1959,14 +1903,13 @@ fun ModsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 3. Detail Content Scrollable (Inner Core)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
                             .clip(modalInnerShape)
-                            .background(Color(0xFF0F1218))
-                            .border(1.dp, Color(0x1AFFFFFF), modalInnerShape)
+                            .background(UiSurfaceInput)
+                            .border(1.dp, UiBorderSubtle, modalInnerShape)
                             .padding(10.dp)
                     ) {
                         Column(
@@ -1981,17 +1924,16 @@ fun ModsScreen(
                                         .height(140.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(color = NuxColors.ForestGreen, modifier = Modifier.size(26.dp))
+                                    CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(26.dp))
                                 }
                             } else if (detailTab == "overview") {
-                                // TAB 1: OVERVIEW & GALLERY
                                 val galleryList = detailProject?.gallery ?: emptyList()
                                 if (galleryList.isNotEmpty()) {
                                     Text(
                                         text = "SCREENSHOTS",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 9.sp,
-                                        color = Color(0xFF71717A),
+                                        color = UiTextMuted,
                                         letterSpacing = 0.8.sp
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -2005,8 +1947,8 @@ fun ModsScreen(
                                                     .width(170.dp)
                                                     .height(96.dp)
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(Color(0xFF141720))
-                                                    .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(8.dp))
+                                                    .background(UiSurfaceElevated)
+                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
                                                     .clickable { previewGalleryUrl = gal.url }
                                             ) {
                                                 NuxNetworkImage(
@@ -2025,20 +1967,19 @@ fun ModsScreen(
                                     text = "DESKRIPSI LENGKAP",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 9.sp,
-                                    color = Color(0xFF71717A),
+                                    color = UiTextMuted,
                                     letterSpacing = 0.8.sp
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = detailProject?.description ?: hit.description ?: "No description summary available.",
                                     fontSize = 11.5.sp,
-                                    color = Color(0xFFE2E8F0),
+                                    color = UiTextPrimary,
                                     lineHeight = 17.sp
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // Category & Loader Tags
                                 val allLoaders = (detailProject?.loaders ?: hit.categories ?: emptyList()).distinct()
                                 if (allLoaders.isNotEmpty()) {
                                     Row(
@@ -2048,14 +1989,14 @@ fun ModsScreen(
                                         allLoaders.take(5).forEach { tag ->
                                             Box(
                                                 modifier = Modifier
-                                                    .background(Color(0xFF181C26), RoundedCornerShape(6.dp))
-                                                    .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(6.dp))
+                                                    .background(UiSurfaceElevated, RoundedCornerShape(6.dp))
+                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
                                                     .padding(horizontal = 7.dp, vertical = 3.dp)
                                             ) {
                                                 Text(
                                                     text = tag.uppercase(),
                                                     fontSize = 8.5.sp,
-                                                    color = Color(0xFFA1A1AA),
+                                                    color = UiTextSecondary,
                                                     fontWeight = FontWeight.Bold
                                                 )
                                             }
@@ -2063,26 +2004,25 @@ fun ModsScreen(
                                     }
                                 }
                             } else {
-                                // TAB 2: COMPATIBLE VERSIONS ONLY
                                 if (compatibleVersions.isEmpty()) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(Color(0xFFF43F5E).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                                            .border(1.dp, Color(0xFFF43F5E).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                            .background(UiSurfaceElevated, RoundedCornerShape(8.dp))
+                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
                                             .padding(12.dp)
                                     ) {
                                         Column {
                                             Text(
-                                                text = "⚠️ No Supported Version",
-                                                color = Color(0xFFFDA4AF),
+                                                text = "No Supported Version",
+                                                color = Color(0xFFF87171),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.sp
                                             )
                                             Spacer(modifier = Modifier.height(3.dp))
                                             Text(
                                                 text = "This mod has no release matching Minecraft ${selectedInstance?.mcVersion ?: ""} (${(selectedInstance?.loader ?: "Vanilla").uppercase()}).",
-                                                color = Color(0xFFE2E8F0),
+                                                color = UiTextSecondary,
                                                 fontSize = 10.sp,
                                                 lineHeight = 14.sp
                                             )
@@ -2097,12 +2037,12 @@ fun ModsScreen(
                                                     .fillMaxWidth()
                                                     .clip(RoundedCornerShape(8.dp))
                                                     .background(
-                                                        if (isPicked) Color(0xFF10B981).copy(alpha = 0.14f) else Color(0xFF141720),
+                                                        if (isPicked) UiSurfaceElevated else UiSurfaceCard,
                                                         RoundedCornerShape(8.dp)
                                                     )
                                                     .border(
                                                         width = 1.dp,
-                                                        color = if (isPicked) NuxColors.ForestGreen else Color(0x14FFFFFF),
+                                                        color = if (isPicked) UiPrimaryBtnBg else UiBorderSubtle,
                                                         shape = RoundedCornerShape(8.dp)
                                                     )
                                                     .clickable { selectedVersion = ver }
@@ -2121,8 +2061,8 @@ fun ModsScreen(
                                                             modifier = Modifier
                                                                 .size(14.dp)
                                                                 .clip(CircleShape)
-                                                                .background(if (isPicked) NuxColors.ForestGreen else Color.Transparent)
-                                                                .border(1.5.dp, if (isPicked) NuxColors.MintGreen else Color(0xFF71717A), CircleShape)
+                                                                .background(if (isPicked) UiPrimaryBtnBg else Color.Transparent)
+                                                                .border(1.5.dp, if (isPicked) UiPrimaryBtnBg else UiTextMuted, CircleShape)
                                                         )
                                                         Spacer(modifier = Modifier.width(9.dp))
                                                         Column {
@@ -2130,39 +2070,29 @@ fun ModsScreen(
                                                                 text = ver.name.ifBlank { ver.versionNumber },
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 11.5.sp,
-                                                                color = Color.White,
+                                                                color = UiTextPrimary,
                                                                 maxLines = 1,
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
                                                             Text(
                                                                 text = "Versi: ${ver.versionNumber} · MC: ${ver.gameVersions.joinToString(", ")}",
                                                                 fontSize = 9.sp,
-                                                                color = Color(0xFFA1A1AA)
+                                                                color = UiTextSecondary
                                                             )
                                                         }
                                                     }
 
                                                     Box(
                                                         modifier = Modifier
-                                                            .background(
-                                                                when (ver.versionType) {
-                                                                    "release" -> Color(0xFF10B981).copy(alpha = 0.2f)
-                                                                    "beta" -> Color(0xFFF59E0B).copy(alpha = 0.2f)
-                                                                    else -> Color(0xFFF43F5E).copy(alpha = 0.15f)
-                                                                },
-                                                                RoundedCornerShape(4.dp)
-                                                            )
+                                                            .background(UiSurfaceInput, RoundedCornerShape(4.dp))
+                                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(4.dp))
                                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                                     ) {
                                                         Text(
                                                             text = ver.versionType.uppercase(),
                                                             fontSize = 8.5.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = when (ver.versionType) {
-                                                                "release" -> NuxColors.MintGreen
-                                                                "beta" -> Color(0xFFFBBF24)
-                                                                else -> Color(0xFFFDA4AF)
-                                                            }
+                                                            color = UiTextSecondary
                                                         )
                                                     }
                                                 }
@@ -2176,15 +2106,15 @@ fun ModsScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF141720), RoundedCornerShape(8.dp))
-                                    .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(8.dp))
+                                    .background(UiSurfaceElevated, RoundedCornerShape(8.dp))
+                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
                                     .padding(8.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Outlined.AutoFixHigh,
                                         contentDescription = null,
-                                        tint = NuxColors.ForestGreen,
+                                        tint = UiTextSecondary,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -2194,7 +2124,7 @@ fun ModsScreen(
                                         else
                                             "Auto-Download Dependencies active: required dependencies will be installed automatically.",
                                         fontSize = 9.sp,
-                                        color = Color(0xFFA1A1AA)
+                                        color = UiTextSecondary
                                     )
                                 }
                             }
@@ -2203,19 +2133,18 @@ fun ModsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 4. Bottom Action Area
                     if (isDetailInstalling) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            CircularProgressIndicator(color = NuxColors.ForestGreen, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = detailProgressText.ifBlank { "Downloading and installing..." },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.5.sp,
-                                color = NuxColors.MintGreen
+                                color = UiTextPrimary
                             )
                         }
                     } else {
@@ -2225,12 +2154,13 @@ fun ModsScreen(
                         ) {
                             NuxButton(
                                 onClick = { detailModalHit = null },
-                                backgroundColor = Color(0xFF1E222D),
-                                borderColor = Color(0x33FFFFFF),
-                                cornerRadius = 10.dp,
+                                backgroundColor = UiSurfaceElevated,
+                                contentColor = UiTextSecondary,
+                                borderColor = UiBorderSubtle,
+                                cornerRadius = 8.dp,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text(tr("common.close"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = Color(0xFFA1A1AA))
+                                Text(tr("common.close"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
                             }
 
                             if (isHitInstalled) {
@@ -2238,23 +2168,23 @@ fun ModsScreen(
                                     modifier = Modifier
                                         .weight(2f)
                                         .height(38.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(UiSurfaceElevated)
+                                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             imageVector = Icons.Outlined.Check,
                                             contentDescription = null,
-                                            tint = NuxColors.MintGreen,
+                                            tint = UiTextPrimary,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = tr("mods.already_installed"),
-                                            color = NuxColors.MintGreen,
-                                            fontWeight = FontWeight.Black,
+                                            color = UiTextPrimary,
+                                            fontWeight = FontWeight.Bold,
                                             fontSize = 11.sp
                                         )
                                     }
@@ -2265,18 +2195,12 @@ fun ModsScreen(
                                     modifier = Modifier
                                         .weight(2f)
                                         .height(38.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(
-                                            if (canInstall) androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                                listOf(Color(0xFF059669), Color(0xFF10B981))
-                                            ) else androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                                listOf(Color(0xFF27272A), Color(0xFF18181B))
-                                            )
-                                        )
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (canInstall) UiPrimaryBtnBg else UiSurfaceElevated)
                                         .border(
                                             1.dp,
-                                            if (canInstall) Color(0x6634D399) else Color(0x1AFFFFFF),
-                                            RoundedCornerShape(10.dp)
+                                            if (canInstall) UiPrimaryBtnBg else UiBorderSubtle,
+                                            RoundedCornerShape(8.dp)
                                         )
                                         .clickable(enabled = canInstall) {
                                             val ver = selectedVersion ?: compatibleVersions.firstOrNull()
@@ -2324,14 +2248,14 @@ fun ModsScreen(
                                         Icon(
                                             imageVector = Icons.Outlined.Download,
                                             contentDescription = null,
-                                            tint = if (canInstall) Color.White else Color(0xFF71717A),
+                                            tint = if (canInstall) UiPrimaryBtnFg else UiTextMuted,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = if (hit.projectType == "modpack") tr("mods.install_modpack") else tr("mods.install_to_instance"),
-                                            color = if (canInstall) Color.White else Color(0xFF71717A),
-                                            fontWeight = FontWeight.Black,
+                                            color = if (canInstall) UiPrimaryBtnFg else UiTextMuted,
+                                            fontWeight = FontWeight.Bold,
                                             fontSize = 11.sp
                                         )
                                     }
@@ -2362,18 +2286,18 @@ fun ModsScreen(
                         text = "Screenshots",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
-                        color = Color.White
+                        color = UiTextPrimary
                     )
                     Box(
                         modifier = Modifier
                             .size(26.dp)
                             .clip(CircleShape)
-                            .background(NuxColors.SurfaceElevated, CircleShape)
-                            .border(1.dp, NuxColors.CardBorder, CircleShape)
+                            .background(UiSurfaceElevated, CircleShape)
+                            .border(1.dp, UiBorderSubtle, CircleShape)
                             .clickable { previewGalleryUrl = null },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.Close, contentDescription = "Close", tint = UiTextPrimary, modifier = Modifier.size(13.dp))
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2384,7 +2308,7 @@ fun ModsScreen(
                         .fillMaxWidth()
                         .height(240.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp)),
+                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp)),
                     shape = RoundedCornerShape(8.dp)
                 )
             }
@@ -2392,9 +2316,6 @@ fun ModsScreen(
     }
 }
 
-/**
- * Ultra-Compact Cyber-Glass Search Bar for Mobile Landscape layout
- */
 @Composable
 private fun CompactSearchBar(
     value: String,
@@ -2406,15 +2327,15 @@ private fun CompactSearchBar(
         modifier = modifier
             .height(25.dp)
             .clip(RoundedCornerShape(5.dp))
-            .background(NuxColors.SurfaceInput, RoundedCornerShape(5.dp))
-            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(5.dp))
+            .background(UiSurfaceInput, RoundedCornerShape(5.dp))
+            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
             .padding(horizontal = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Outlined.Search,
             contentDescription = null,
-            tint = NuxColors.GrayNeutral,
+            tint = UiTextMuted,
             modifier = Modifier.size(13.dp)
         )
         Spacer(modifier = Modifier.width(5.dp))
@@ -2422,7 +2343,7 @@ private fun CompactSearchBar(
             if (value.isEmpty()) {
                 Text(
                     text = placeholder,
-                    color = NuxColors.GrayNeutral.copy(alpha = 0.5f),
+                    color = UiTextMuted,
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.Normal,
                     maxLines = 1,
@@ -2433,11 +2354,11 @@ private fun CompactSearchBar(
                 value = value,
                 onValueChange = onValueChange,
                 textStyle = TextStyle(
-                    color = Color.White,
+                    color = UiTextPrimary,
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.Normal
                 ),
-                cursorBrush = SolidColor(NuxColors.ForestGreen),
+                cursorBrush = SolidColor(UiTextPrimary),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -2446,7 +2367,7 @@ private fun CompactSearchBar(
             Icon(
                 imageVector = Icons.Outlined.Close,
                 contentDescription = tr("common.delete"),
-                tint = NuxColors.GrayNeutral,
+                tint = UiTextSecondary,
                 modifier = Modifier
                     .size(12.dp)
                     .clickable { onValueChange("") }
