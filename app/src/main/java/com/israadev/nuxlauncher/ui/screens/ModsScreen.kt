@@ -48,17 +48,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 
-// Palet netral monokrom yang diselaraskan dengan tampilan Dashboard
-private val UiSurfaceCard = Color(0xFF141418)
-private val UiSurfaceElevated = Color(0xFF1A1A20)
-private val UiSurfaceInput = Color(0xFF111115)
-private val UiBorderSubtle = Color(0xFF282830)
-private val UiBorderActive = Color(0xFF52525B)
-private val UiPrimaryBtnBg = Color(0xFFF4F4F5)
-private val UiPrimaryBtnFg = Color(0xFF0A0A0C)
-private val UiTextPrimary = Color(0xFFFFFFFF)
-private val UiTextSecondary = Color(0xFFA1A1AA)
-private val UiTextMuted = Color(0xFF71717A)
+// Token desain mengikuti Dashboard (translucent dark glass + crisp white pills)
+private val DashGlassPanel = Color(0xB80E1015)
+private val DashGlassElevated = Color(0xD9161820)
+private val DashGlassInput = Color(0xCC0B0C10)
+private val DashBorder = Color(0x29FFFFFF)
+private val DashBorderStrong = Color(0x52FFFFFF)
+private val DashPillWhite = Color(0xFFFFFFFF)
+private val DashInkDark = Color(0xFF0A0A0C)
+private val DashTextPrimary = Color(0xFFFFFFFF)
+private val DashTextSecondary = Color(0xFFB4B6BE)
+private val DashTextMuted = Color(0xFF787B85)
 
 private fun getMimeTypesForType(type: String): Array<String> {
     return when (type) {
@@ -146,42 +146,42 @@ data class ModCategoryItem(val id: String, val label: String)
 
 private val CATEGORIES_MAP = mapOf(
     "mods" to listOf(
-        ModCategoryItem("All", "All"),
-        ModCategoryItem("optimization", "Optimization"),
-        ModCategoryItem("technology", "Technology"),
-        ModCategoryItem("magic", "Magic"),
-        ModCategoryItem("adventure", "Adventure"),
-        ModCategoryItem("utility", "Utility"),
-        ModCategoryItem("decoration", "Decoration")
+        ModCategoryItem("All", "ALL"),
+        ModCategoryItem("optimization", "OPTIMIZATION"),
+        ModCategoryItem("technology", "TECHNOLOGY"),
+        ModCategoryItem("magic", "MAGIC"),
+        ModCategoryItem("adventure", "ADVENTURE"),
+        ModCategoryItem("utility", "UTILITY"),
+        ModCategoryItem("decoration", "DECORATION")
     ),
     "modpacks" to listOf(
-        ModCategoryItem("All", "All"),
-        ModCategoryItem("adventure", "Adventure"),
-        ModCategoryItem("optimization", "Optimization"),
-        ModCategoryItem("technology", "Technology"),
-        ModCategoryItem("magic", "Magic"),
-        ModCategoryItem("quests", "Quests")
+        ModCategoryItem("All", "ALL"),
+        ModCategoryItem("adventure", "ADVENTURE"),
+        ModCategoryItem("optimization", "OPTIMIZATION"),
+        ModCategoryItem("technology", "TECHNOLOGY"),
+        ModCategoryItem("magic", "MAGIC"),
+        ModCategoryItem("quests", "QUESTS")
     ),
     "resourcepacks" to listOf(
-        ModCategoryItem("All", "All"),
-        ModCategoryItem("16x", "16x"),
-        ModCategoryItem("32x", "32x"),
-        ModCategoryItem("simplistic", "Simplistic"),
-        ModCategoryItem("traditional", "Traditional"),
-        ModCategoryItem("medieval", "Medieval")
+        ModCategoryItem("All", "ALL"),
+        ModCategoryItem("16x", "16X"),
+        ModCategoryItem("32x", "32X"),
+        ModCategoryItem("simplistic", "SIMPLISTIC"),
+        ModCategoryItem("traditional", "TRADITIONAL"),
+        ModCategoryItem("medieval", "MEDIEVAL")
     ),
     "shaderpacks" to listOf(
-        ModCategoryItem("All", "All"),
-        ModCategoryItem("realistic", "Realistic"),
-        ModCategoryItem("stylized", "Stylized"),
-        ModCategoryItem("fantasy", "Fantasy")
+        ModCategoryItem("All", "ALL"),
+        ModCategoryItem("realistic", "REALISTIC"),
+        ModCategoryItem("stylized", "STYLIZED"),
+        ModCategoryItem("fantasy", "FANTASY")
     ),
     "datapacks" to listOf(
-        ModCategoryItem("All", "All"),
-        ModCategoryItem("adventure", "Adventure"),
-        ModCategoryItem("utility", "Utility"),
-        ModCategoryItem("magic", "Magic"),
-        ModCategoryItem("worldgen", "Worldgen")
+        ModCategoryItem("All", "ALL"),
+        ModCategoryItem("adventure", "ADVENTURE"),
+        ModCategoryItem("utility", "UTILITY"),
+        ModCategoryItem("magic", "MAGIC"),
+        ModCategoryItem("worldgen", "WORLDGEN")
     )
 )
 
@@ -441,52 +441,49 @@ fun ModsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Transparent)
-            .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         if (selectedInstance == null) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                NuxCard(
-                    modifier = Modifier.width(320.dp),
-                    backgroundColor = UiSurfaceCard,
-                    borderColor = UiBorderSubtle,
-                    cornerRadius = 8.dp
+                Box(
+                    modifier = Modifier
+                        .width(340.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DashGlassElevated)
+                        .border(1.dp, DashBorder, RoundedCornerShape(14.dp))
+                        .padding(20.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             imageVector = Icons.Outlined.ExtensionOff,
                             contentDescription = null,
-                            tint = UiTextSecondary,
-                            modifier = Modifier.size(36.dp)
+                            tint = DashTextSecondary,
+                            modifier = Modifier.size(34.dp)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "No Instances Found",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = UiTextPrimary
+                            text = "NO INSTANCES FOUND",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            letterSpacing = 0.8.sp,
+                            color = DashTextPrimary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Select or create an instance on Dashboard to start installing mods.",
-                            color = UiTextSecondary,
+                            color = DashTextSecondary,
                             fontSize = 11.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        NuxButton(
-                            onClick = { onNavigateBack() },
-                            backgroundColor = UiPrimaryBtnBg,
-                            contentColor = UiPrimaryBtnFg,
-                            cornerRadius = 6.dp
-                        ) {
-                            Text(tr("mods.btn_back_dashboard"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        DashPrimaryButton(
+                            text = tr("mods.btn_back_dashboard").uppercase(),
+                            icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                            onClick = { onNavigateBack() }
+                        )
                     }
                 }
             }
@@ -496,12 +493,12 @@ fun ModsScreen(
         val currentInst = selectedInstance!!
 
         // =========================================================================
-        // ROW 1: TOP NAVIGATION BAR
+        // HEADER BAR: DASHBOARD STYLE (BACK + MODE PILLS + INSTANCE SELECTOR)
         // =========================================================================
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 6.dp),
+                .padding(bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -509,118 +506,141 @@ fun ModsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Back Button
+                // Tombol Kembali (Gaya BG MEDIA / Icon Square di Dashboard)
                 Box(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(UiSurfaceCard, RoundedCornerShape(6.dp))
-                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DashGlassPanel)
+                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
                         .clickable { onNavigateBack() }
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = tr("common.back"),
-                            tint = UiTextPrimary,
-                            modifier = Modifier.size(12.dp)
+                            tint = DashTextPrimary,
+                            modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "DASHBOARD",
-                            color = UiTextPrimary,
+                            color = DashTextPrimary,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp,
-                            letterSpacing = 0.5.sp
+                            fontSize = 10.sp,
+                            letterSpacing = 0.8.sp
                         )
                     }
                 }
 
-                // Segmented Mode Tabs: [ Terpasang (X) | Jelajah Modrinth ]
-                Row(
+                // Mode Switcher (Gaya Pill Putih Solid seperti VANILLA / HOME di Dashboard)
+                val isInstalled = mainMode == "installed"
+                Box(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(UiSurfaceCard, RoundedCornerShape(6.dp))
-                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
-                        .padding(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isInstalled) DashPillWhite else DashGlassPanel)
+                        .border(
+                            1.dp,
+                            if (isInstalled) DashPillWhite else DashBorder,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable { mainMode = "installed" }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    val isInstalled = mainMode == "installed"
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (isInstalled) UiPrimaryBtnBg else Color.Transparent)
-                            .clickable { mainMode = "installed" }
-                            .padding(horizontal = 9.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tr("mods.installed_count", installedItems.size),
-                            color = if (isInstalled) UiPrimaryBtnFg else UiTextSecondary,
-                            fontWeight = if (isInstalled) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 9.5.sp
-                        )
-                    }
+                    Text(
+                        text = tr("mods.installed_count", installedItems.size).uppercase(),
+                        color = if (isInstalled) DashInkDark else DashTextSecondary,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 10.sp,
+                        letterSpacing = 0.7.sp
+                    )
+                }
 
-                    val isBrowse = mainMode == "browse"
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (isBrowse) UiPrimaryBtnBg else Color.Transparent)
-                            .clickable { mainMode = "browse" }
-                            .padding(horizontal = 9.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tr("mods.browse_modrinth"),
-                            color = if (isBrowse) UiPrimaryBtnFg else UiTextSecondary,
-                            fontWeight = if (isBrowse) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 9.5.sp
+                val isBrowse = mainMode == "browse"
+                Box(
+                    modifier = Modifier
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isBrowse) DashPillWhite else DashGlassPanel)
+                        .border(
+                            1.dp,
+                            if (isBrowse) DashPillWhite else DashBorder,
+                            RoundedCornerShape(8.dp)
                         )
-                    }
+                        .clickable { mainMode = "browse" }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = tr("mods.browse_modrinth").uppercase(),
+                        color = if (isBrowse) DashInkDark else DashTextSecondary,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 10.sp,
+                        letterSpacing = 0.7.sp
+                    )
                 }
             }
 
-            // Instance Selector Dropdown Pill
+            // Instance Selector (Gaya Dropdown Version "26.3 Vanilla v" di Dashboard)
             Box {
                 Row(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(UiSurfaceCard, RoundedCornerShape(6.dp))
-                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DashGlassPanel)
+                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
                         .clickable { if (instances.size > 1) showInstanceMenu = true }
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Inventory2,
-                        contentDescription = null,
-                        tint = UiTextSecondary,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = "${currentInst.name} (${currentInst.mcVersion} · ${currentInst.loader.uppercase()})",
-                        color = UiTextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 9.5.sp,
+                        text = currentInst.name,
+                        color = DashTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.5.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(DashPillWhite)
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = currentInst.loader.uppercase(),
+                            color = DashInkDark,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 8.5.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0x1FFFFFFF))
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = currentInst.mcVersion,
+                            color = DashTextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 8.5.sp
+                        )
+                    }
                     if (instances.size > 1) {
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Icon(
-                            imageVector = Icons.Outlined.ArrowDropDown,
+                            imageVector = Icons.Outlined.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = UiTextSecondary,
-                            modifier = Modifier.size(13.dp)
+                            tint = DashTextSecondary,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
@@ -649,110 +669,100 @@ fun ModsScreen(
         }
 
         // =========================================================================
-        // ROW 2: ADDON TYPES + SEARCH & ACTIONS TOOLBAR
+        // TOOLBAR: ADDON TYPE PILLS + SEARCH & VERSION FILTER
         // =========================================================================
         val addonTypes = listOf(
-            "mods" to "Mods",
-            "modpacks" to "Modpacks",
-            "resourcepacks" to "Resource Packs",
-            "shaderpacks" to "Shaders",
-            "datapacks" to "Datapacks"
+            "mods" to "MODS",
+            "modpacks" to "MODPACKS",
+            "resourcepacks" to "RESOURCE PACKS",
+            "shaderpacks" to "SHADERS",
+            "datapacks" to "DATAPACKS"
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 5.dp),
+                .padding(bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             LazyRow(
                 modifier = Modifier.weight(1f, fill = false),
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(addonTypes) { (typeId, typeLabel) ->
                     val isSelected = activeType == typeId
                     Box(
                         modifier = Modifier
-                            .height(25.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(
-                                if (isSelected) UiSurfaceElevated else UiSurfaceCard.copy(alpha = 0.65f),
-                                RoundedCornerShape(5.dp)
-                            )
+                            .height(30.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(if (isSelected) DashPillWhite else DashGlassPanel)
                             .border(
                                 width = 1.dp,
-                                color = if (isSelected) UiBorderActive else UiBorderSubtle,
-                                shape = RoundedCornerShape(5.dp)
+                                color = if (isSelected) DashPillWhite else DashBorder,
+                                shape = RoundedCornerShape(7.dp)
                             )
                             .clickable {
                                 activeType = typeId
                                 selectedCategory = "All"
                             }
-                            .padding(horizontal = 9.dp),
+                            .padding(horizontal = 11.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = typeLabel,
-                            color = if (isSelected) UiTextPrimary else UiTextSecondary,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 9.5.sp
+                            color = if (isSelected) DashInkDark else DashTextSecondary,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 9.5.sp,
+                            letterSpacing = 0.6.sp
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 if (mainMode == "browse") {
-                    CompactSearchBar(
+                    DashSearchBar(
                         value = browseQuery,
                         onValueChange = { onQueryChanged(it) },
                         placeholder = tr("mods.search_placeholder"),
-                        modifier = Modifier.width(160.dp)
+                        modifier = Modifier.width(180.dp)
                     )
 
                     if (activeType == "datapacks") {
                         Box {
                             Row(
                                 modifier = Modifier
-                                    .height(25.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(UiSurfaceCard, RoundedCornerShape(5.dp))
-                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(DashGlassPanel)
+                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
                                     .clickable { if (worlds.isNotEmpty()) showWorldMenu = true }
-                                    .padding(horizontal = 7.dp),
+                                    .padding(horizontal = 9.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Public,
                                     contentDescription = null,
-                                    tint = UiTextSecondary,
-                                    modifier = Modifier.size(12.dp)
+                                    tint = DashTextPrimary,
+                                    modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (worlds.isNotEmpty()) "World: $selectedWorld" else "No Worlds",
-                                    color = UiTextPrimary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 9.sp,
+                                    text = if (worlds.isNotEmpty()) selectedWorld.uppercase() else "NO WORLDS",
+                                    color = DashTextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.5.sp,
+                                    letterSpacing = 0.5.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                if (worlds.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Icon(
-                                        imageVector = Icons.Outlined.ArrowDropDown,
-                                        contentDescription = null,
-                                        tint = UiTextSecondary,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
                             }
 
                             DropdownMenu(
@@ -779,88 +789,78 @@ fun ModsScreen(
                         }
                     }
 
-                    // Version Filter Toggle Pill
+                    // Version Filter Toggle
                     Box(
                         modifier = Modifier
-                            .height(25.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(
-                                if (filterByGameVersion) UiSurfaceElevated else UiSurfaceCard,
-                                RoundedCornerShape(5.dp)
-                            )
+                            .height(30.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(if (filterByGameVersion) DashPillWhite else DashGlassPanel)
                             .border(
                                 1.dp,
-                                if (filterByGameVersion) UiBorderActive else UiBorderSubtle,
-                                RoundedCornerShape(5.dp)
+                                if (filterByGameVersion) DashPillWhite else DashBorder,
+                                RoundedCornerShape(7.dp)
                             )
                             .clickable {
                                 filterByGameVersion = !filterByGameVersion
                                 currentPage = 1
                                 performSearch(1)
                             }
-                            .padding(horizontal = 7.dp),
+                            .padding(horizontal = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = if (filterByGameVersion) Icons.Outlined.Check else Icons.Outlined.Close,
+                                imageVector = if (filterByGameVersion) Icons.Outlined.Check else Icons.Outlined.FilterAltOff,
                                 contentDescription = null,
-                                tint = if (filterByGameVersion) UiTextPrimary else UiTextMuted,
-                                modifier = Modifier.size(10.dp)
+                                tint = if (filterByGameVersion) DashInkDark else DashTextSecondary,
+                                modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(3.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (filterByGameVersion) currentInst.mcVersion else tr("mods.all_versions"),
-                                color = if (filterByGameVersion) UiTextPrimary else UiTextSecondary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp
+                                text = if (filterByGameVersion) currentInst.mcVersion else "ALL",
+                                color = if (filterByGameVersion) DashInkDark else DashTextSecondary,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 9.5.sp,
+                                letterSpacing = 0.5.sp
                             )
                         }
                     }
                 } else {
-                    CompactSearchBar(
+                    DashSearchBar(
                         value = installedSearch,
                         onValueChange = { installedSearch = it },
                         placeholder = tr("mods.search_installed_placeholder", installedItems.size),
-                        modifier = Modifier.width(160.dp)
+                        modifier = Modifier.width(180.dp)
                     )
 
                     if (activeType == "datapacks") {
                         Box {
                             Row(
                                 modifier = Modifier
-                                    .height(25.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(UiSurfaceCard, RoundedCornerShape(5.dp))
-                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(DashGlassPanel)
+                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
                                     .clickable { if (worlds.isNotEmpty()) showWorldMenu = true }
-                                    .padding(horizontal = 7.dp),
+                                    .padding(horizontal = 9.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Public,
                                     contentDescription = null,
-                                    tint = UiTextSecondary,
-                                    modifier = Modifier.size(12.dp)
+                                    tint = DashTextPrimary,
+                                    modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (worlds.isNotEmpty()) "World: $selectedWorld" else "No Worlds",
-                                    color = UiTextPrimary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 9.sp,
+                                    text = if (worlds.isNotEmpty()) selectedWorld.uppercase() else "NO WORLDS",
+                                    color = DashTextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.5.sp,
+                                    letterSpacing = 0.5.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                if (worlds.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Icon(
-                                        imageVector = Icons.Outlined.ArrowDropDown,
-                                        contentDescription = null,
-                                        tint = UiTextSecondary,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
                             }
 
                             DropdownMenu(
@@ -887,13 +887,12 @@ fun ModsScreen(
                         }
                     }
 
-                    // Import Button
+                    // Import Button (Gaya tombol putih solid seperti UNDUH di Dashboard)
                     Box(
                         modifier = Modifier
-                            .height(25.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(UiPrimaryBtnBg, RoundedCornerShape(5.dp))
-                            .border(1.dp, UiPrimaryBtnBg, RoundedCornerShape(5.dp))
+                            .height(30.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(DashPillWhite)
                             .clickable {
                                 if (selectedInstance == null) {
                                     Toast.makeText(context, trStr("dashboard.select_instance"), Toast.LENGTH_SHORT).show()
@@ -902,22 +901,23 @@ fun ModsScreen(
                                 val mimeTypes = getMimeTypesForType(activeType)
                                 filePicker.launch(mimeTypes)
                             }
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Outlined.FileUpload,
                                 contentDescription = "Import",
-                                tint = UiPrimaryBtnFg,
-                                modifier = Modifier.size(12.dp)
+                                tint = DashInkDark,
+                                modifier = Modifier.size(13.dp)
                             )
-                            Spacer(modifier = Modifier.width(3.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                text = tr("mods.import_btn"),
-                                color = UiPrimaryBtnFg,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp
+                                text = tr("mods.import_btn").uppercase(),
+                                color = DashInkDark,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 9.5.sp,
+                                letterSpacing = 0.6.sp
                             )
                         }
                     }
@@ -926,45 +926,43 @@ fun ModsScreen(
         }
 
         // =========================================================================
-        // ROW 3: CATEGORY SUB-FILTERS
+        // SUB-FILTERS (MINIMALIST TAGS)
         // =========================================================================
         if (mainMode == "browse") {
-            val categories = CATEGORIES_MAP[activeType] ?: listOf(ModCategoryItem("All", "All"))
+            val categories = CATEGORIES_MAP[activeType] ?: listOf(ModCategoryItem("All", "ALL"))
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 5.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    .padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(categories) { cat ->
                     val isSelected = selectedCategory == cat.id
                     Box(
                         modifier = Modifier
-                            .height(22.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (isSelected) UiPrimaryBtnBg else UiSurfaceCard.copy(alpha = 0.6f),
-                                RoundedCornerShape(4.dp)
-                            )
+                            .height(24.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(if (isSelected) Color(0x33FFFFFF) else DashGlassPanel)
                             .border(
                                 1.dp,
-                                if (isSelected) UiPrimaryBtnBg else UiBorderSubtle,
-                                RoundedCornerShape(4.dp)
+                                if (isSelected) DashBorderStrong else DashBorder,
+                                RoundedCornerShape(5.dp)
                             )
                             .clickable {
                                 selectedCategory = cat.id
                                 currentPage = 1
                                 performSearch(1)
                             }
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 9.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = cat.label,
-                            color = if (isSelected) UiPrimaryBtnFg else UiTextSecondary,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 8.5.sp
+                            color = if (isSelected) DashTextPrimary else DashTextMuted,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 8.5.sp,
+                            letterSpacing = 0.6.sp
                         )
                     }
                 }
@@ -972,7 +970,7 @@ fun ModsScreen(
         }
 
         // =========================================================================
-        // INSTALLED OR BROWSE LIST
+        // CONTENT LIST (TRANSLUCENT GLASS CARDS)
         // =========================================================================
         if (mainMode == "installed") {
             val filteredInstalled = remember(installedItems, installedSearch) {
@@ -985,7 +983,7 @@ fun ModsScreen(
 
             if (isInstalledLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(26.dp))
                 }
             } else if (filteredInstalled.isEmpty()) {
                 Box(
@@ -996,51 +994,46 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.Outlined.FolderOpen,
                             contentDescription = null,
-                            tint = UiTextMuted,
-                            modifier = Modifier.size(32.dp)
+                            tint = DashTextMuted,
+                            modifier = Modifier.size(34.dp)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = if (activeType == "datapacks" && worlds.isEmpty())
                                 "No worlds found in this instance. Launch the game to create a world first."
                             else if (installedSearch.isBlank())
                                 "No ${activeType} installed in this instance"
                             else "No matching items found",
-                            color = UiTextPrimary,
+                            color = DashTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        NuxButton(
-                            onClick = { mainMode = "browse" },
-                            backgroundColor = UiPrimaryBtnBg,
-                            contentColor = UiPrimaryBtnFg,
-                            cornerRadius = 6.dp
-                        ) {
-                            Text(tr("mods.browse_modrinth"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        DashPrimaryButton(
+                            text = tr("mods.browse_modrinth").uppercase(),
+                            icon = Icons.Outlined.Explore,
+                            onClick = { mainMode = "browse" }
+                        )
                     }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     itemsIndexed(filteredInstalled, key = { index, item -> "${item.id}_${item.filename}_$index" }) { _, item ->
-                        NuxCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            backgroundColor = if (item.isEnabled) UiSurfaceCard else UiSurfaceCard.copy(alpha = 0.6f),
-                            borderColor = UiBorderSubtle,
-                            shadowOffset = 0.dp,
-                            cornerRadius = 8.dp,
-                            borderWidth = 1.dp
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (item.isEnabled) DashGlassPanel else Color(0x800E1015))
+                                .border(1.dp, DashBorder, RoundedCornerShape(10.dp))
+                                .padding(horizontal = 12.dp, vertical = 9.dp)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1050,60 +1043,65 @@ fun ModsScreen(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(UiSurfaceElevated, RoundedCornerShape(6.dp))
-                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp)),
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0x1AFFFFFF))
+                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = item.name.take(2).uppercase(),
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (item.isEnabled) UiTextPrimary else UiTextMuted,
-                                            fontSize = 11.sp
+                                            fontWeight = FontWeight.Black,
+                                            color = if (item.isEnabled) DashTextPrimary else DashTextMuted,
+                                            fontSize = 11.5.sp
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
 
                                     Column {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
                                                 text = item.name,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = if (item.isEnabled) UiTextPrimary else UiTextMuted,
+                                                fontSize = 12.5.sp,
+                                                color = if (item.isEnabled) DashTextPrimary else DashTextMuted,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             if (!item.isEnabled) {
-                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Spacer(modifier = Modifier.width(8.dp))
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(UiSurfaceElevated, RoundedCornerShape(3.dp))
-                                                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
-                                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(Color(0x1FFFFFFF))
+                                                        .padding(horizontal = 6.dp, vertical = 1.dp)
                                                 ) {
                                                     Text(
-                                                        text = tr("common.disabled"),
+                                                        text = tr("common.disabled").uppercase(),
                                                         fontSize = 8.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = UiTextSecondary
+                                                        letterSpacing = 0.5.sp,
+                                                        color = DashTextSecondary
                                                     )
                                                 }
                                             }
                                         }
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = "${item.filename} · ${formatBytes(item.sizeBytes)}",
-                                            fontSize = 9.5.sp,
-                                            color = UiTextSecondary,
+                                            fontSize = 10.sp,
+                                            color = DashTextSecondary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     Switch(
                                         checked = item.isEnabled,
                                         onCheckedChange = {
@@ -1113,23 +1111,22 @@ fun ModsScreen(
                                                 reloadInstalled()
                                             }
                                         },
-                                        modifier = Modifier.scale(0.75f),
+                                        modifier = Modifier.scale(0.8f),
                                         colors = SwitchDefaults.colors(
-                                            checkedThumbColor = UiPrimaryBtnFg,
-                                            checkedTrackColor = UiPrimaryBtnBg,
-                                            uncheckedThumbColor = UiTextSecondary,
-                                            uncheckedTrackColor = UiSurfaceElevated
+                                            checkedThumbColor = DashInkDark,
+                                            checkedTrackColor = DashPillWhite,
+                                            uncheckedThumbColor = DashTextSecondary,
+                                            uncheckedTrackColor = Color(0x26FFFFFF)
                                         )
                                     )
 
-                                    Spacer(modifier = Modifier.width(4.dp))
-
+                                    // Icon Button Square seperti tombol Settings di samping UNDUH pada Dashboard
                                     Box(
                                         modifier = Modifier
-                                            .size(26.dp)
-                                            .clip(RoundedCornerShape(5.dp))
-                                            .background(UiSurfaceElevated, RoundedCornerShape(5.dp))
-                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
+                                            .size(32.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(DashGlassElevated)
+                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
                                             .clickable { itemToDelete = item },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -1137,7 +1134,7 @@ fun ModsScreen(
                                             imageVector = Icons.Outlined.Delete,
                                             contentDescription = tr("common.delete"),
                                             tint = Color(0xFFF87171),
-                                            modifier = Modifier.size(13.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
@@ -1153,9 +1150,9 @@ fun ModsScreen(
             if (isSearching) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(tr("common.loading"), color = UiTextSecondary, fontSize = 11.sp)
+                        CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(26.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(tr("common.loading").uppercase(), color = DashTextSecondary, fontSize = 10.sp, letterSpacing = 0.8.sp)
                     }
                 }
             } else if (searchErrorMessage != null) {
@@ -1168,31 +1165,29 @@ fun ModsScreen(
                             imageVector = Icons.Outlined.CloudOff,
                             contentDescription = null,
                             tint = Color(0xFFF87171),
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(34.dp)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Failed to Load from Modrinth",
-                            color = UiTextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.5.sp
+                            text = "FAILED TO LOAD FROM MODRINTH",
+                            color = DashTextPrimary,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.6.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = searchErrorMessage ?: "Network error occurred",
-                            color = UiTextSecondary,
+                            color = DashTextSecondary,
                             fontSize = 10.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        NuxButton(
-                            onClick = { performSearch(currentPage) },
-                            backgroundColor = UiPrimaryBtnBg,
-                            contentColor = UiPrimaryBtnFg,
-                            cornerRadius = 6.dp
-                        ) {
-                            Text(tr("common.retry"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        DashPrimaryButton(
+                            text = tr("common.retry").uppercase(),
+                            icon = Icons.Outlined.Refresh,
+                            onClick = { performSearch(currentPage) }
+                        )
                     }
                 }
             } else if (searchHits.isEmpty()) {
@@ -1201,47 +1196,44 @@ fun ModsScreen(
                         Icon(
                             imageVector = Icons.Outlined.SearchOff,
                             contentDescription = null,
-                            tint = UiTextMuted,
-                            modifier = Modifier.size(32.dp)
+                            tint = DashTextMuted,
+                            modifier = Modifier.size(34.dp)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = if (filterByGameVersion) {
                                 "No results found for Minecraft ${currentInst.mcVersion} (${currentInst.loader.uppercase()})"
                             } else {
                                 "No results found for this search"
                             },
-                            color = UiTextPrimary,
+                            color = DashTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Try modifying keywords or disable version filter",
-                            color = UiTextSecondary,
+                            color = DashTextSecondary,
                             fontSize = 10.sp
                         )
                         if (filterByGameVersion) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            NuxButton(
+                            Spacer(modifier = Modifier.height(12.dp))
+                            DashPrimaryButton(
+                                text = tr("mods.btn_search_all_versions").uppercase(),
+                                icon = Icons.Outlined.FilterAltOff,
                                 onClick = {
                                     filterByGameVersion = false
                                     currentPage = 1
                                     performSearch(1)
-                                },
-                                backgroundColor = UiPrimaryBtnBg,
-                                contentColor = UiPrimaryBtnFg,
-                                cornerRadius = 6.dp
-                            ) {
-                                Text(tr("mods.btn_search_all_versions"), fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                            }
+                                }
+                            )
                         }
                     }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
                     contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
                     itemsIndexed(searchHits, key = { index, hit -> "${hit.projectId}_$index" }) { _, hit ->
@@ -1249,9 +1241,12 @@ fun ModsScreen(
                         val isDownloading = downloadingProjectIds.containsKey(hit.projectId)
                         val downloadStatus: String = downloadingProjectIds[hit.projectId].orEmpty()
 
-                        NuxCard(
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(DashGlassPanel)
+                                .border(1.dp, DashBorder, RoundedCornerShape(10.dp))
                                 .clickable {
                                     detailModalHit = hit
                                     detailProject = null
@@ -1268,219 +1263,211 @@ fun ModsScreen(
                                         selectedVersion = vers.firstOrNull()
                                         isDetailLoading = false
                                     }
-                                },
-                            backgroundColor = UiSurfaceCard,
-                            borderColor = UiBorderSubtle,
-                            shadowOffset = 0.dp,
-                            cornerRadius = 8.dp,
-                            borderWidth = 1.dp
+                                }
+                                .padding(horizontal = 12.dp, vertical = 9.dp)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 NuxNetworkImage(
                                     model = hit.iconUrl,
                                     contentDescription = hit.title,
                                     modifier = Modifier
-                                        .size(38.dp)
-                                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp)),
+                                        .size(42.dp)
+                                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp)),
                                     fallbackInitials = hit.title.take(2).uppercase(),
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = RoundedCornerShape(8.dp)
                                 )
 
-                                Spacer(modifier = Modifier.width(10.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             text = hit.title,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            color = UiTextPrimary,
+                                            fontSize = 13.sp,
+                                            color = DashTextPrimary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         if (!hit.author.isNullOrBlank()) {
-                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = "by ${hit.author}",
-                                                fontSize = 9.5.sp,
-                                                color = UiTextSecondary,
+                                                fontSize = 10.sp,
+                                                color = DashTextSecondary,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                         if (hit.projectType == "modpack") {
-                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Box(
                                                 modifier = Modifier
-                                                    .background(UiSurfaceElevated, RoundedCornerShape(3.dp))
-                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
-                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(DashPillWhite)
+                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
                                             ) {
-                                                Text(tr("mods.pack_badge"), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = UiTextSecondary)
+                                                Text(
+                                                    text = tr("mods.pack_badge").uppercase(),
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = DashInkDark
+                                                )
                                             }
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Spacer(modifier = Modifier.height(2.dp))
 
                                     Text(
                                         text = hit.description ?: "No description available",
-                                        fontSize = 10.sp,
-                                        color = UiTextSecondary,
+                                        fontSize = 10.5.sp,
+                                        color = DashTextSecondary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
 
-                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Spacer(modifier = Modifier.height(5.dp))
 
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .background(UiSurfaceElevated, RoundedCornerShape(3.dp))
-                                                .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
-                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color(0x1AFFFFFF))
+                                                .border(1.dp, DashBorder, RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
                                             Text(
                                                 text = formatCompactNumber(hit.downloads),
                                                 fontSize = 8.5.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = UiTextSecondary
+                                                fontWeight = FontWeight.Bold,
+                                                color = DashTextPrimary
                                             )
                                         }
 
                                         hit.categories?.take(2)?.forEach { cat ->
                                             Box(
                                                 modifier = Modifier
-                                                    .background(UiSurfaceElevated.copy(alpha = 0.7f), RoundedCornerShape(3.dp))
-                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(3.dp))
-                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(Color(0x0FFFFFFF))
+                                                    .border(1.dp, DashBorder, RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                                             ) {
                                                 Text(
-                                                    text = cat,
-                                                    fontSize = 8.5.sp,
-                                                    fontWeight = FontWeight.Normal,
-                                                    color = UiTextMuted
+                                                    text = cat.uppercase(),
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    letterSpacing = 0.4.sp,
+                                                    color = DashTextSecondary
                                                 )
                                             }
                                         }
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
 
-                                // Action Button
+                                // Action Button (Gaya tombol UNDUH di Dashboard)
                                 if (isDownloading) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         CircularProgressIndicator(
-                                            color = UiTextPrimary,
-                                            modifier = Modifier.size(14.dp),
+                                            color = DashTextPrimary,
+                                            modifier = Modifier.size(16.dp),
                                             strokeWidth = 2.dp
                                         )
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Spacer(modifier = Modifier.height(3.dp))
                                         Text(
-                                            text = downloadStatus.ifBlank { "Download..." },
-                                            fontSize = 8.5.sp,
+                                            text = downloadStatus.ifBlank { "DOWNLOADING" }.uppercase(),
+                                            fontSize = 8.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = UiTextSecondary
+                                            letterSpacing = 0.5.sp,
+                                            color = DashTextSecondary
                                         )
                                     }
                                 } else if (isInstalled) {
                                     Box(
                                         modifier = Modifier
-                                            .height(26.dp)
-                                            .clip(RoundedCornerShape(5.dp))
-                                            .background(UiSurfaceElevated, RoundedCornerShape(5.dp))
-                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
-                                            .padding(horizontal = 8.dp),
+                                            .height(34.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0x1AFFFFFF))
+                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 12.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
                                                 imageVector = Icons.Outlined.Check,
                                                 contentDescription = null,
-                                                tint = UiTextPrimary,
-                                                modifier = Modifier.size(11.dp)
+                                                tint = DashTextPrimary,
+                                                modifier = Modifier.size(13.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Spacer(modifier = Modifier.width(5.dp))
                                             Text(
-                                                text = tr("mods.installed_badge"),
-                                                color = UiTextPrimary,
+                                                text = tr("mods.installed_badge").uppercase(),
+                                                color = DashTextPrimary,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 9.sp
+                                                fontSize = 9.5.sp,
+                                                letterSpacing = 0.6.sp
                                             )
                                         }
                                     }
                                 } else {
-                                    val buttonLabel = if (hit.projectType == "modpack") "+ INSTALL PACK" else "+ INSTALL"
-                                    Box(
-                                        modifier = Modifier
-                                            .height(26.dp)
-                                            .clip(RoundedCornerShape(5.dp))
-                                            .background(UiPrimaryBtnBg, RoundedCornerShape(5.dp))
-                                            .border(1.dp, UiPrimaryBtnBg, RoundedCornerShape(5.dp))
-                                            .clickable {
-                                                scope.launch {
-                                                    downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Finding version...")
-                                                    val vRes = NuxModManager.getCompatibleVersions(hit.projectId, currentInst, activeType)
-                                                    val compList = vRes.getOrNull()
-                                                    if (compList.isNullOrEmpty()) {
-                                                        Toast.makeText(context, "No compatible version for ${currentInst.mcVersion}!", Toast.LENGTH_SHORT).show()
-                                                        downloadingProjectIds = downloadingProjectIds - hit.projectId
-                                                        return@launch
-                                                    }
-
-                                                    val targetVer = compList.first()
-                                                    downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Downloading...")
-
-                                                    val targetWorld = if (activeType == "datapacks") selectedWorld else null
-                                                    val downRes = NuxModManager.downloadVersionAndDependencies(
-                                                        context = context,
-                                                        instance = currentInst,
-                                                        version = targetVer,
-                                                        itemType = activeType,
-                                                        worldName = targetWorld,
-                                                        onProgress = { status ->
-                                                            downloadingProjectIds = downloadingProjectIds + (hit.projectId to status)
-                                                        }
-                                                    )
-
+                                    val buttonLabel = if (hit.projectType == "modpack") "UNDUH PACK" else "UNDUH"
+                                    DashPrimaryButton(
+                                        text = buttonLabel,
+                                        icon = Icons.Outlined.Download,
+                                        onClick = {
+                                            scope.launch {
+                                                downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Finding version...")
+                                                val vRes = NuxModManager.getCompatibleVersions(hit.projectId, currentInst, activeType)
+                                                val compList = vRes.getOrNull()
+                                                if (compList.isNullOrEmpty()) {
+                                                    Toast.makeText(context, "No compatible version for ${currentInst.mcVersion}!", Toast.LENGTH_SHORT).show()
                                                     downloadingProjectIds = downloadingProjectIds - hit.projectId
+                                                    return@launch
+                                                }
 
-                                                    if (downRes.isSuccess) {
-                                                        val downloaded = downRes.getOrNull() ?: emptyList()
-                                                        val depCount = (downloaded.size - 1).coerceAtLeast(0)
-                                                        val msg = if (activeType == "modpacks") {
-                                                            "Modpack ${hit.title} installed successfully!"
-                                                        } else if (depCount > 0) {
-                                                            "Installed ${hit.title} and $depCount dependencies!"
-                                                        } else {
-                                                            "Successfully installed ${hit.title}!"
-                                                        }
-                                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                                        reloadInstalled()
-                                                    } else {
-                                                        Toast.makeText(context, "Download failed: ${downRes.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                                val targetVer = compList.first()
+                                                downloadingProjectIds = downloadingProjectIds + (hit.projectId to "Downloading...")
+
+                                                val targetWorld = if (activeType == "datapacks") selectedWorld else null
+                                                val downRes = NuxModManager.downloadVersionAndDependencies(
+                                                    context = context,
+                                                    instance = currentInst,
+                                                    version = targetVer,
+                                                    itemType = activeType,
+                                                    worldName = targetWorld,
+                                                    onProgress = { status ->
+                                                        downloadingProjectIds = downloadingProjectIds + (hit.projectId to status)
                                                     }
+                                                )
+
+                                                downloadingProjectIds = downloadingProjectIds - hit.projectId
+
+                                                if (downRes.isSuccess) {
+                                                    val downloaded = downRes.getOrNull() ?: emptyList()
+                                                    val depCount = (downloaded.size - 1).coerceAtLeast(0)
+                                                    val msg = if (activeType == "modpacks") {
+                                                        "Modpack ${hit.title} installed successfully!"
+                                                    } else if (depCount > 0) {
+                                                        "Installed ${hit.title} and $depCount dependencies!"
+                                                    } else {
+                                                        "Successfully installed ${hit.title}!"
+                                                    }
+                                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                                    reloadInstalled()
+                                                } else {
+                                                    Toast.makeText(context, "Download failed: ${downRes.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
                                                 }
                                             }
-                                            .padding(horizontal = 10.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = buttonLabel,
-                                            color = UiPrimaryBtnFg,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 9.sp
-                                        )
-                                    }
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -1498,35 +1485,51 @@ fun ModsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(if (currentPage > 1) UiSurfaceCard else UiSurfaceCard.copy(alpha = 0.4f), RoundedCornerShape(5.dp))
-                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(DashGlassPanel)
+                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
                                     .clickable(enabled = currentPage > 1) { performSearch(currentPage - 1) }
-                                    .padding(horizontal = 9.dp, vertical = 4.dp)
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(tr("common.previous"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = if (currentPage > 1) UiTextPrimary else UiTextMuted)
+                                Text(
+                                    text = tr("common.previous").uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.5.sp,
+                                    letterSpacing = 0.6.sp,
+                                    color = if (currentPage > 1) DashTextPrimary else DashTextMuted
+                                )
                             }
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
 
                             Text(
                                 text = "$currentPage / $totalPages",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 10.5.sp,
-                                color = UiTextSecondary
+                                fontSize = 11.sp,
+                                color = DashTextSecondary
                             )
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(if (currentPage < totalPages) UiSurfaceCard else UiSurfaceCard.copy(alpha = 0.4f), RoundedCornerShape(5.dp))
-                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(DashGlassPanel)
+                                    .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
                                     .clickable(enabled = currentPage < totalPages) { performSearch(currentPage + 1) }
-                                    .padding(horizontal = 9.dp, vertical = 4.dp)
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(tr("common.next"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = if (currentPage < totalPages) UiTextPrimary else UiTextMuted)
+                                Text(
+                                    text = tr("common.next").uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.5.sp,
+                                    letterSpacing = 0.6.sp,
+                                    color = if (currentPage < totalPages) DashTextPrimary else DashTextMuted
+                                )
                             }
                         }
                     }
@@ -1535,13 +1538,13 @@ fun ModsScreen(
         }
     }
 
-    // --- 4. DELETE CONFIRMATION DIALOG ---
+    // --- DELETE CONFIRMATION DIALOG ---
     itemToDelete?.let { item ->
         NuxDialog(onDismissRequest = { itemToDelete = null }) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
@@ -1552,10 +1555,11 @@ fun ModsScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (activeType == "modpacks") "Delete Modpack?" else "Delete ${item.category}?",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = UiTextPrimary
+                    text = if (activeType == "modpacks") "DELETE MODPACK?" else "DELETE ${item.category.uppercase()}?",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 13.sp,
+                    letterSpacing = 0.6.sp,
+                    color = DashTextPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -1565,55 +1569,70 @@ fun ModsScreen(
                         "Are you sure you want to delete \"${item.name}\" from this instance?"
                     },
                     fontSize = 11.sp,
-                    color = UiTextSecondary,
+                    color = DashTextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    NuxButton(
-                        onClick = { itemToDelete = null },
-                        backgroundColor = UiSurfaceElevated,
-                        contentColor = UiTextPrimary,
-                        borderColor = UiBorderSubtle,
-                        cornerRadius = 6.dp,
-                        modifier = Modifier.weight(1f)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DashGlassElevated)
+                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
+                            .clickable { itemToDelete = null },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(tr("common.cancel"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
+                        Text(
+                            text = tr("common.cancel").uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            letterSpacing = 0.6.sp,
+                            color = DashTextPrimary
+                        )
                     }
-                    NuxButton(
-                        onClick = {
-                            if (selectedInstance != null) {
-                                scope.launch {
-                                    val targetWorld = if (activeType == "datapacks") selectedWorld else null
-                                    NuxModManager.deleteItem(context, selectedInstance!!, activeType, item, targetWorld)
-                                    itemToDelete = null
-                                    reloadInstalled()
-                                    val toastMsg = if (activeType == "modpacks") {
-                                        "Modpack and installed mods deleted!"
-                                    } else {
-                                        "${item.name} deleted successfully!"
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFDC2626))
+                            .clickable {
+                                if (selectedInstance != null) {
+                                    scope.launch {
+                                        val targetWorld = if (activeType == "datapacks") selectedWorld else null
+                                        NuxModManager.deleteItem(context, selectedInstance!!, activeType, item, targetWorld)
+                                        itemToDelete = null
+                                        reloadInstalled()
+                                        val toastMsg = if (activeType == "modpacks") {
+                                            "Modpack and installed mods deleted!"
+                                        } else {
+                                            "${item.name} deleted successfully!"
+                                        }
+                                        Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
                                     }
-                                    Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
                                 }
-                            }
-                        },
-                        backgroundColor = Color(0xFFDC2626),
-                        borderColor = Color(0xFFEF4444),
-                        contentColor = UiTextPrimary,
-                        cornerRadius = 6.dp,
-                        modifier = Modifier.weight(1f)
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(tr("common.delete"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
+                        Text(
+                            text = tr("common.delete").uppercase(),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 10.sp,
+                            letterSpacing = 0.6.sp,
+                            color = DashTextPrimary
+                        )
                     }
                 }
             }
         }
     }
 
-    // --- 4.5 MODPACK IMPORT PROGRESS DIALOG ---
+    // --- MODPACK IMPORT PROGRESS DIALOG ---
     if (isImportingModpack) {
         NuxDialog(onDismissRequest = {}) {
             Column(
@@ -1626,13 +1645,13 @@ fun ModsScreen(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(UiSurfaceElevated)
-                        .border(1.dp, UiBorderSubtle, CircleShape),
+                        .background(DashGlassElevated)
+                        .border(1.dp, DashBorder, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = UiTextPrimary,
+                        color = DashTextPrimary,
                         strokeWidth = 2.5.dp
                     )
                 }
@@ -1640,10 +1659,11 @@ fun ModsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "Importing & Installing Modpack",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = UiTextPrimary
+                    text = "IMPORTING MODPACK",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 13.sp,
+                    letterSpacing = 0.7.sp,
+                    color = DashTextPrimary
                 )
 
                 if (modpackImportName.isNotBlank()) {
@@ -1651,7 +1671,7 @@ fun ModsScreen(
                     Text(
                         text = modpackImportName,
                         fontSize = 11.sp,
-                        color = UiTextSecondary,
+                        color = DashTextSecondary,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -1663,7 +1683,7 @@ fun ModsScreen(
                 Text(
                     text = if (modpackImportStatus.isNotBlank()) modpackImportStatus else "Parsing mod list and downloading files...",
                     fontSize = 11.sp,
-                    color = UiTextSecondary,
+                    color = DashTextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -1680,14 +1700,14 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = UiPrimaryBtnBg,
-                        trackColor = UiSurfaceElevated
+                        color = DashPillWhite,
+                        trackColor = Color(0x26FFFFFF)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "$modpackImportCurrent / $modpackImportTotal mod files",
                         fontSize = 10.sp,
-                        color = UiTextSecondary
+                        color = DashTextSecondary
                     )
                 } else {
                     LinearProgressIndicator(
@@ -1695,8 +1715,8 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = UiPrimaryBtnBg,
-                        trackColor = UiSurfaceElevated
+                        color = DashPillWhite,
+                        trackColor = Color(0x26FFFFFF)
                     )
                 }
 
@@ -1705,14 +1725,14 @@ fun ModsScreen(
                 Text(
                     text = "Launcher is reading mod list and downloading modpack files. Please wait.",
                     fontSize = 9.5.sp,
-                    color = UiTextMuted,
+                    color = DashTextMuted,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         }
     }
 
-    // --- 5. MODRINTH PROJECT DETAIL MODAL ---
+    // --- MODRINTH PROJECT DETAIL MODAL ---
     detailModalHit?.let { hit ->
         val isHitInstalled = installedItems.any { isModInstalled(it, hit) }
 
@@ -1731,8 +1751,8 @@ fun ModsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(modalOuterShape)
-                    .background(UiSurfaceCard)
-                    .border(1.dp, UiBorderSubtle, modalOuterShape)
+                    .background(DashGlassElevated)
+                    .border(1.dp, DashBorder, modalOuterShape)
                     .padding(14.dp)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -1749,8 +1769,8 @@ fun ModsScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(subCardShape)
-                                    .background(UiSurfaceElevated)
-                                    .border(1.dp, UiBorderSubtle, subCardShape),
+                                    .background(Color(0x1AFFFFFF))
+                                    .border(1.dp, DashBorder, subCardShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 NuxNetworkImage(
@@ -1768,23 +1788,22 @@ fun ModsScreen(
                                         text = hit.title,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
-                                        color = UiTextPrimary,
+                                        color = DashTextPrimary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(5.dp))
-                                            .background(UiSurfaceElevated)
-                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(DashPillWhite)
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = hit.projectType.uppercase(),
-                                            fontSize = 8.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = UiTextSecondary
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = DashInkDark
                                         )
                                     }
                                 }
@@ -1793,16 +1812,16 @@ fun ModsScreen(
                                     Text(
                                         text = "by ${hit.author ?: "Community"}",
                                         fontSize = 10.sp,
-                                        color = UiTextSecondary,
+                                        color = DashTextSecondary,
                                         fontWeight = FontWeight.Medium
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = "·", color = UiTextMuted, fontSize = 10.sp)
+                                    Text(text = "·", color = DashTextMuted, fontSize = 10.sp)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = formatCompactNumber(hit.downloads),
                                         fontSize = 10.sp,
-                                        color = UiTextSecondary,
+                                        color = DashTextSecondary,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
@@ -1811,17 +1830,17 @@ fun ModsScreen(
 
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(UiSurfaceElevated)
-                                .border(1.dp, UiBorderSubtle, CircleShape)
+                                .size(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(DashGlassPanel)
+                                .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
                                 .clickable(enabled = !isDetailInstalling) { detailModalHit = null },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Close,
                                 contentDescription = "Close",
-                                tint = UiTextSecondary,
+                                tint = DashTextPrimary,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -1829,73 +1848,57 @@ fun ModsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Segmented Tab Switcher
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(UiSurfaceInput)
-                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
-                            .padding(3.dp)
+                    // Tab Switcher
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        val isTabOverview = detailTab == "overview"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isTabOverview) DashPillWhite else DashGlassPanel)
+                                .border(
+                                    1.dp,
+                                    if (isTabOverview) DashPillWhite else DashBorder,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable { detailTab = "overview" },
+                            contentAlignment = Alignment.Center
                         ) {
-                            val isTabOverview = detailTab == "overview"
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isTabOverview) UiPrimaryBtnBg else Color.Transparent)
-                                    .clickable { detailTab = "overview" },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Description,
-                                        contentDescription = null,
-                                        tint = if (isTabOverview) UiPrimaryBtnFg else UiTextSecondary,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "RINGKASAN & GALERI",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isTabOverview) UiPrimaryBtnFg else UiTextSecondary
-                                    )
-                                }
-                            }
+                            Text(
+                                text = "RINGKASAN & GALERI",
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.6.sp,
+                                color = if (isTabOverview) DashInkDark else DashTextSecondary
+                            )
+                        }
 
-                            val isTabVersions = detailTab == "versions"
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isTabVersions) UiPrimaryBtnBg else Color.Transparent)
-                                    .clickable { detailTab = "versions" },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Layers,
-                                        contentDescription = null,
-                                        tint = if (isTabVersions) UiPrimaryBtnFg else UiTextSecondary,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "VERSI KOMPATIBEL (${compatibleVersions.size})",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isTabVersions) UiPrimaryBtnFg else UiTextSecondary
-                                    )
-                                }
-                            }
+                        val isTabVersions = detailTab == "versions"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isTabVersions) DashPillWhite else DashGlassPanel)
+                                .border(
+                                    1.dp,
+                                    if (isTabVersions) DashPillWhite else DashBorder,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable { detailTab = "versions" },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "VERSI KOMPATIBEL (${compatibleVersions.size})",
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.6.sp,
+                                color = if (isTabVersions) DashInkDark else DashTextSecondary
+                            )
                         }
                     }
 
@@ -1906,8 +1909,8 @@ fun ModsScreen(
                             .fillMaxWidth()
                             .weight(1f)
                             .clip(modalInnerShape)
-                            .background(UiSurfaceInput)
-                            .border(1.dp, UiBorderSubtle, modalInnerShape)
+                            .background(DashGlassInput)
+                            .border(1.dp, DashBorder, modalInnerShape)
                             .padding(10.dp)
                     ) {
                         Column(
@@ -1922,7 +1925,7 @@ fun ModsScreen(
                                         .height(140.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(26.dp))
+                                    CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(26.dp))
                                 }
                             } else if (detailTab == "overview") {
                                 val galleryList = detailProject?.gallery ?: emptyList()
@@ -1931,7 +1934,7 @@ fun ModsScreen(
                                         text = "SCREENSHOTS",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 9.sp,
-                                        color = UiTextMuted,
+                                        color = DashTextMuted,
                                         letterSpacing = 0.8.sp
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -1945,8 +1948,8 @@ fun ModsScreen(
                                                     .width(170.dp)
                                                     .height(96.dp)
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(UiSurfaceElevated)
-                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
+                                                    .background(DashGlassPanel)
+                                                    .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
                                                     .clickable { previewGalleryUrl = gal.url }
                                             ) {
                                                 NuxNetworkImage(
@@ -1965,14 +1968,14 @@ fun ModsScreen(
                                     text = "DESKRIPSI LENGKAP",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 9.sp,
-                                    color = UiTextMuted,
+                                    color = DashTextMuted,
                                     letterSpacing = 0.8.sp
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = detailProject?.description ?: hit.description ?: "No description summary available.",
                                     fontSize = 11.5.sp,
-                                    color = UiTextPrimary,
+                                    color = DashTextPrimary,
                                     lineHeight = 17.sp
                                 )
 
@@ -1987,14 +1990,15 @@ fun ModsScreen(
                                         allLoaders.take(5).forEach { tag ->
                                             Box(
                                                 modifier = Modifier
-                                                    .background(UiSurfaceElevated, RoundedCornerShape(6.dp))
-                                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(6.dp))
+                                                    .clip(RoundedCornerShape(5.dp))
+                                                    .background(Color(0x1AFFFFFF))
+                                                    .border(1.dp, DashBorder, RoundedCornerShape(5.dp))
                                                     .padding(horizontal = 7.dp, vertical = 3.dp)
                                             ) {
                                                 Text(
                                                     text = tag.uppercase(),
                                                     fontSize = 8.5.sp,
-                                                    color = UiTextSecondary,
+                                                    color = DashTextSecondary,
                                                     fontWeight = FontWeight.Bold
                                                 )
                                             }
@@ -2006,45 +2010,44 @@ fun ModsScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(UiSurfaceElevated, RoundedCornerShape(8.dp))
-                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(DashGlassPanel)
+                                            .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
                                             .padding(12.dp)
                                     ) {
                                         Column {
                                             Text(
-                                                text = "No Supported Version",
+                                                text = "NO SUPPORTED VERSION",
                                                 color = Color(0xFFF87171),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 10.5.sp,
+                                                letterSpacing = 0.6.sp
                                             )
                                             Spacer(modifier = Modifier.height(3.dp))
                                             Text(
                                                 text = "This mod has no release matching Minecraft ${selectedInstance?.mcVersion ?: ""} (${(selectedInstance?.loader ?: "Vanilla").uppercase()}).",
-                                                color = UiTextSecondary,
+                                                color = DashTextSecondary,
                                                 fontSize = 10.sp,
                                                 lineHeight = 14.sp
                                             )
                                         }
                                     }
                                 } else {
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         compatibleVersions.forEach { ver ->
                                             val isPicked = selectedVersion?.id == ver.id
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(
-                                                        if (isPicked) UiSurfaceElevated else UiSurfaceCard,
-                                                        RoundedCornerShape(8.dp)
-                                                    )
+                                                    .background(if (isPicked) Color(0x26FFFFFF) else DashGlassPanel)
                                                     .border(
                                                         width = 1.dp,
-                                                        color = if (isPicked) UiPrimaryBtnBg else UiBorderSubtle,
+                                                        color = if (isPicked) DashPillWhite else DashBorder,
                                                         shape = RoundedCornerShape(8.dp)
                                                     )
                                                     .clickable { selectedVersion = ver }
-                                                    .padding(horizontal = 10.dp, vertical = 7.dp)
+                                                    .padding(horizontal = 10.dp, vertical = 8.dp)
                                             ) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
@@ -2059,8 +2062,8 @@ fun ModsScreen(
                                                             modifier = Modifier
                                                                 .size(14.dp)
                                                                 .clip(CircleShape)
-                                                                .background(if (isPicked) UiPrimaryBtnBg else Color.Transparent)
-                                                                .border(1.5.dp, if (isPicked) UiPrimaryBtnBg else UiTextMuted, CircleShape)
+                                                                .background(if (isPicked) DashPillWhite else Color.Transparent)
+                                                                .border(1.5.dp, if (isPicked) DashPillWhite else DashTextMuted, CircleShape)
                                                         )
                                                         Spacer(modifier = Modifier.width(9.dp))
                                                         Column {
@@ -2068,29 +2071,30 @@ fun ModsScreen(
                                                                 text = ver.name.ifBlank { ver.versionNumber },
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 11.5.sp,
-                                                                color = UiTextPrimary,
+                                                                color = DashTextPrimary,
                                                                 maxLines = 1,
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
                                                             Text(
                                                                 text = "Versi: ${ver.versionNumber} · MC: ${ver.gameVersions.joinToString(", ")}",
                                                                 fontSize = 9.sp,
-                                                                color = UiTextSecondary
+                                                                color = DashTextSecondary
                                                             )
                                                         }
                                                     }
 
                                                     Box(
                                                         modifier = Modifier
-                                                            .background(UiSurfaceInput, RoundedCornerShape(4.dp))
-                                                            .border(1.dp, UiBorderSubtle, RoundedCornerShape(4.dp))
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .background(Color(0x1AFFFFFF))
+                                                            .border(1.dp, DashBorder, RoundedCornerShape(4.dp))
                                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                                     ) {
                                                         Text(
                                                             text = ver.versionType.uppercase(),
-                                                            fontSize = 8.5.sp,
+                                                            fontSize = 8.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = UiTextSecondary
+                                                            color = DashTextPrimary
                                                         )
                                                     }
                                                 }
@@ -2104,15 +2108,16 @@ fun ModsScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(UiSurfaceElevated, RoundedCornerShape(8.dp))
-                                    .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(DashGlassPanel)
+                                    .border(1.dp, DashBorder, RoundedCornerShape(8.dp))
                                     .padding(8.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Outlined.AutoFixHigh,
                                         contentDescription = null,
-                                        tint = UiTextSecondary,
+                                        tint = DashTextSecondary,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -2122,7 +2127,7 @@ fun ModsScreen(
                                         else
                                             "Auto-Download Dependencies active: required dependencies will be installed automatically.",
                                         fontSize = 9.sp,
-                                        color = UiTextSecondary
+                                        color = DashTextSecondary
                                     )
                                 }
                             }
@@ -2137,13 +2142,13 @@ fun ModsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            CircularProgressIndicator(color = UiTextPrimary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = DashTextPrimary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = installingLabel,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.5.sp,
-                                color = UiTextPrimary
+                                color = DashTextPrimary
                             )
                         }
                     } else {
@@ -2151,15 +2156,23 @@ fun ModsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            NuxButton(
-                                onClick = { detailModalHit = null },
-                                backgroundColor = UiSurfaceElevated,
-                                contentColor = UiTextSecondary,
-                                borderColor = UiBorderSubtle,
-                                cornerRadius = 8.dp,
-                                modifier = Modifier.weight(1f)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(9.dp))
+                                    .background(DashGlassPanel)
+                                    .border(1.dp, DashBorder, RoundedCornerShape(9.dp))
+                                    .clickable { detailModalHit = null },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(tr("common.close"), fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
+                                Text(
+                                    text = tr("common.close").uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    letterSpacing = 0.7.sp,
+                                    color = DashTextSecondary
+                                )
                             }
 
                             if (isHitInstalled) {
@@ -2167,24 +2180,25 @@ fun ModsScreen(
                                     modifier = Modifier
                                         .weight(2f)
                                         .height(38.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(UiSurfaceElevated)
-                                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp)),
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(Color(0x1AFFFFFF))
+                                        .border(1.dp, DashBorder, RoundedCornerShape(9.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             imageVector = Icons.Outlined.Check,
                                             contentDescription = null,
-                                            tint = UiTextPrimary,
+                                            tint = DashTextPrimary,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = tr("mods.already_installed"),
-                                            color = UiTextPrimary,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
+                                            text = tr("mods.already_installed").uppercase(),
+                                            color = DashTextPrimary,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 10.5.sp,
+                                            letterSpacing = 0.7.sp
                                         )
                                     }
                                 }
@@ -2194,13 +2208,8 @@ fun ModsScreen(
                                     modifier = Modifier
                                         .weight(2f)
                                         .height(38.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (canInstall) UiPrimaryBtnBg else UiSurfaceElevated)
-                                        .border(
-                                            1.dp,
-                                            if (canInstall) UiPrimaryBtnBg else UiBorderSubtle,
-                                            RoundedCornerShape(8.dp)
-                                        )
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(if (canInstall) DashPillWhite else Color(0x1AFFFFFF))
                                         .clickable(enabled = canInstall) {
                                             val ver = selectedVersion ?: compatibleVersions.firstOrNull()
                                             val inst = selectedInstance
@@ -2247,15 +2256,16 @@ fun ModsScreen(
                                         Icon(
                                             imageVector = Icons.Outlined.Download,
                                             contentDescription = null,
-                                            tint = if (canInstall) UiPrimaryBtnFg else UiTextMuted,
-                                            modifier = Modifier.size(14.dp)
+                                            tint = if (canInstall) DashInkDark else DashTextMuted,
+                                            modifier = Modifier.size(15.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = if (hit.projectType == "modpack") tr("mods.install_modpack") else tr("mods.install_to_instance"),
-                                            color = if (canInstall) UiPrimaryBtnFg else UiTextMuted,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
+                                            text = (if (hit.projectType == "modpack") tr("mods.install_modpack") else tr("mods.install_to_instance")).uppercase(),
+                                            color = if (canInstall) DashInkDark else DashTextMuted,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 10.5.sp,
+                                            letterSpacing = 0.7.sp
                                         )
                                     }
                                 }
@@ -2267,13 +2277,13 @@ fun ModsScreen(
         }
     }
 
-    // --- 5.5 MODAL PREVIEW GALERI GAMBAR FULLSCREEN ---
+    // --- MODAL PREVIEW GALERI GAMBAR ---
     previewGalleryUrl?.let { url ->
         NuxDialog(onDismissRequest = { previewGalleryUrl = null }) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp),
+                    .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -2282,21 +2292,22 @@ fun ModsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Screenshots",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = UiTextPrimary
+                        text = "SCREENSHOTS",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.7.sp,
+                        color = DashTextPrimary
                     )
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(UiSurfaceElevated, CircleShape)
-                            .border(1.dp, UiBorderSubtle, CircleShape)
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(DashGlassPanel)
+                            .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
                             .clickable { previewGalleryUrl = null },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Close", tint = UiTextPrimary, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.Close, contentDescription = "Close", tint = DashTextPrimary, modifier = Modifier.size(14.dp))
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2307,7 +2318,7 @@ fun ModsScreen(
                         .fillMaxWidth()
                         .height(240.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, UiBorderSubtle, RoundedCornerShape(8.dp)),
+                        .border(1.dp, DashBorder, RoundedCornerShape(8.dp)),
                     shape = RoundedCornerShape(8.dp)
                 )
             }
@@ -2315,8 +2326,46 @@ fun ModsScreen(
     }
 }
 
+/**
+ * Tombol utama bergaya tombol UNDUH di Dashboard (putih solid, sudut membulat 9.dp, tipografi kapital)
+ */
 @Composable
-private fun CompactSearchBar(
+private fun DashPrimaryButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(DashPillWhite)
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = DashInkDark,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = text,
+                color = DashInkDark,
+                fontWeight = FontWeight.Black,
+                fontSize = 10.sp,
+                letterSpacing = 0.7.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -2324,26 +2373,26 @@ private fun CompactSearchBar(
 ) {
     Row(
         modifier = modifier
-            .height(25.dp)
-            .clip(RoundedCornerShape(5.dp))
-            .background(UiSurfaceInput, RoundedCornerShape(5.dp))
-            .border(1.dp, UiBorderSubtle, RoundedCornerShape(5.dp))
-            .padding(horizontal = 7.dp),
+            .height(30.dp)
+            .clip(RoundedCornerShape(7.dp))
+            .background(DashGlassPanel)
+            .border(1.dp, DashBorder, RoundedCornerShape(7.dp))
+            .padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Outlined.Search,
             contentDescription = null,
-            tint = UiTextMuted,
+            tint = DashTextMuted,
             modifier = Modifier.size(13.dp)
         )
-        Spacer(modifier = Modifier.width(5.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Box(modifier = Modifier.weight(1f)) {
             if (value.isEmpty()) {
                 Text(
                     text = placeholder,
-                    color = UiTextMuted,
-                    fontSize = 9.5.sp,
+                    color = DashTextMuted,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2353,11 +2402,11 @@ private fun CompactSearchBar(
                 value = value,
                 onValueChange = onValueChange,
                 textStyle = TextStyle(
-                    color = UiTextPrimary,
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Normal
+                    color = DashTextPrimary,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium
                 ),
-                cursorBrush = SolidColor(UiTextPrimary),
+                cursorBrush = SolidColor(DashTextPrimary),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -2366,7 +2415,7 @@ private fun CompactSearchBar(
             Icon(
                 imageVector = Icons.Outlined.Close,
                 contentDescription = tr("common.delete"),
-                tint = UiTextSecondary,
+                tint = DashTextSecondary,
                 modifier = Modifier
                     .size(12.dp)
                     .clickable { onValueChange("") }
