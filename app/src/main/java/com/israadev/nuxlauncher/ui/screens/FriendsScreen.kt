@@ -1,15 +1,9 @@
 package com.israadev.nuxlauncher.ui.screens
 
-import com.israadev.nuxlauncher.core.lang.tr
-import com.israadev.nuxlauncher.core.lang.trStr
-import com.israadev.nuxlauncher.core.lang.NuxLanguageManager
-
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -44,22 +38,34 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.israadev.nuxlauncher.core.account.AccountManager
+import com.israadev.nuxlauncher.core.lang.NuxLanguageManager
+import com.israadev.nuxlauncher.core.lang.tr
 import com.israadev.nuxlauncher.core.social.*
-import com.israadev.nuxlauncher.ui.components.NuxBadge
 import com.israadev.nuxlauncher.ui.components.NuxNetworkImage
 import com.israadev.nuxlauncher.ui.components.NuxUserAvatar
 import com.israadev.nuxlauncher.ui.components.NuxUserBadge
 import com.israadev.nuxlauncher.ui.dialogs.NuxPremiumDialog
-import com.israadev.nuxlauncher.ui.theme.NuxColors
-import com.israadev.nuxlauncher.ui.theme.NuxSizes
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * NUX Launcher Social & Voice Hub (Android Landscape Optimized)
- * Clean Neo-Brutalist Soft Green palette matching Windows & Android Dashboard
- */
+// Token Desain Bell Launcher (Monochrome Obsidian Glass + Crisp White)
+private val BellBgCanvas = Color(0xFF07070A)
+private val BellGlassSidebar = Color(0xD90D0D11)
+private val BellGlassCard = Color(0xCC131318)
+private val BellGlassElevated = Color(0xEB1A1A22)
+private val BellGlassInput = Color(0xD90A0A0E)
+private val BellBorder = Color(0x26FFFFFF)
+private val BellBorderActive = Color(0x66FFFFFF)
+private val BellPillWhite = Color(0xFFFFFFFF)
+private val BellInkDark = Color(0xFF09090B)
+private val BellTextPrimary = Color(0xFFFFFFFF)
+private val BellTextSecondary = Color(0xFFB4B6BE)
+private val BellTextMuted = Color(0xFF787B85)
+private val BellSuccess = Color(0xFF10B981)
+private val BellInGame = Color(0xFF06B6D4)
+private val BellDanger = Color(0xFFF87171)
+
 @Composable
 fun FriendsScreen(
     onNavigateBack: () -> Unit,
@@ -120,109 +126,105 @@ fun FriendsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(NuxColors.Background)
-            .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+            .background(BellBgCanvas)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         // =====================================================================
-        // 1. TOP HEADER BAR (Minimalist Cyber-Glass matching Home, Accounts & Mods)
+        // 1. TOP HEADER BAR (Bell Launcher Obsidian Glass)
         // =====================================================================
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 6.dp),
+                .padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Back Button
                 Box(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellGlassSidebar)
+                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                         .clickable { onNavigateBack() }
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = tr("common.back"),
-                            tint = NuxColors.ForestGreen,
-                            modifier = Modifier.size(12.dp)
+                            tint = BellTextPrimary,
+                            modifier = Modifier.size(13.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
                             text = "DASHBOARD",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp,
+                            color = BellTextPrimary,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 9.5.sp,
                             letterSpacing = 0.5.sp
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = "SOCIAL",
-                    color = Color.White,
+                    text = "SOCIAL HUB",
+                    color = BellTextPrimary,
                     fontWeight = FontWeight.Black,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     letterSpacing = 0.8.sp
                 )
             }
 
-            // Top Action Buttons: Cari Teman & Buat Room
+            // Top Action Buttons: Find Friends & Create Room
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Button: Cari Teman
                 Box(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellGlassSidebar)
+                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                         .clickable { openAddFriendDialogFresh() }
-                        .padding(horizontal = 9.dp),
+                        .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = null, tint = NuxColors.ForestGreen, modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.PersonAdd, contentDescription = null, tint = BellTextPrimary, modifier = Modifier.size(13.dp))
                         Spacer(modifier = Modifier.width(5.dp))
-                        Text("+ FIND FRIENDS", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                        Text("+ FIND FRIENDS", color = BellTextPrimary, fontWeight = FontWeight.Bold, fontSize = 9.5.sp, letterSpacing = 0.4.sp)
                     }
                 }
 
-                // Button: Buat Voice Room
                 Box(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.ForestGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellPillWhite)
                         .clickable {
                             if (launcherUser?.isActivated != true) {
-                                premiumInitialPrompt = "Real-time voice rooms (LiveKit WebRTC) are exclusive to NUX Premium. Upgrade your account to create and join voice rooms!"
+                                premiumInitialPrompt = "Real-time voice rooms (LiveKit WebRTC) are exclusive to Bell Premium. Upgrade your account to create and join voice rooms!"
                                 showPremiumDialog = true
                             } else {
                                 showCreateRoomDialog = true
                             }
                         }
-                        .padding(horizontal = 9.dp),
+                        .padding(horizontal = 11.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Mic, contentDescription = null, tint = NuxColors.MintGreen, modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.Mic, contentDescription = null, tint = BellInkDark, modifier = Modifier.size(13.dp))
                         Spacer(modifier = Modifier.width(5.dp))
-                        Text("+ CREATE ROOM", color = NuxColors.MintGreen, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                        Text("+ CREATE ROOM", color = BellInkDark, fontWeight = FontWeight.Black, fontSize = 9.5.sp, letterSpacing = 0.4.sp)
                     }
                 }
             }
         }
 
         // =====================================================================
-        // 2. MAIN 2-COLUMN STAGE (Left Panel ~300dp + Right Interactive Stage)
+        // 2. MAIN 2-COLUMN STAGE
         // =====================================================================
         Row(
             modifier = Modifier
@@ -237,12 +239,11 @@ fun FriendsScreen(
                 modifier = Modifier
                     .width(300.dp)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(NuxColors.SurfaceElevated, RoundedCornerShape(8.dp))
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
-                    .padding(8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(BellGlassSidebar)
+                    .border(1.dp, BellBorder, RoundedCornerShape(12.dp))
+                    .padding(10.dp)
             ) {
-                // Segmented Tabs: CHAT (if in active room) | TEMAN | VOICE | REQUEST
                 if (activeVoiceRoom != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -252,7 +253,7 @@ fun FriendsScreen(
                             title = "CHAT",
                             count = voiceMessages.size,
                             isSelected = selectedTab == "room_chat",
-                            badgeColor = NuxColors.ForestGreen,
+                            badgeColor = BellSuccess,
                             onClick = { selectedTab = "room_chat" },
                             modifier = Modifier.weight(1.1f)
                         )
@@ -274,7 +275,7 @@ fun FriendsScreen(
                             title = "REQ",
                             count = pendingReceived.size,
                             isSelected = selectedTab == "requests",
-                            badgeColor = if (pendingReceived.isNotEmpty()) Color(0xFFEF4444) else null,
+                            badgeColor = if (pendingReceived.isNotEmpty()) BellDanger else null,
                             onClick = { selectedTab = "requests" },
                             modifier = Modifier.weight(0.9f)
                         )
@@ -302,7 +303,7 @@ fun FriendsScreen(
                             title = "REQUESTS",
                             count = pendingReceived.size,
                             isSelected = selectedTab == "requests",
-                            badgeColor = if (pendingReceived.isNotEmpty()) Color(0xFFEF4444) else null,
+                            badgeColor = if (pendingReceived.isNotEmpty()) BellDanger else null,
                             onClick = { selectedTab = "requests" },
                             modifier = Modifier.weight(1f)
                         )
@@ -318,8 +319,7 @@ fun FriendsScreen(
                         modifier = Modifier.weight(1f)
                     )
                 } else {
-                    // Compact Search Bar
-                    NuxCompactSearchBar(
+                    BellCompactSearchBar(
                         value = searchQuery,
                         onValueChange = {
                             searchQuery = it
@@ -332,7 +332,6 @@ fun FriendsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Content List inside Left Card
                     Box(modifier = Modifier.weight(1f)) {
                         when (selectedTab) {
                             "friends" -> {
@@ -346,7 +345,7 @@ fun FriendsScreen(
                                         icon = Icons.Outlined.Group,
                                         title = if (searchQuery.isNotBlank()) "No results found" else "No Friends Yet",
                                         subtitle = if (searchQuery.isNotBlank()) "No friends match \"$searchQuery\""
-                                        else "Use the \"+ FIND FRIENDS\" button above to add friends!"
+                                        else "Use \"+ FIND FRIENDS\" above to add friends!"
                                     )
                                 } else {
                                     LazyColumn(
@@ -387,7 +386,7 @@ fun FriendsScreen(
                                                 isJoined = activeVoiceRoom?.id == room.id,
                                                 onJoin = {
                                                     if (launcherUser?.isActivated != true) {
-                                                        premiumInitialPrompt = "Multiplayer Voice Rooms (LiveKit WebRTC) are exclusive to NUX Premium. Upgrade your account to voice chat with friends!"
+                                                        premiumInitialPrompt = "Multiplayer Voice Rooms (LiveKit WebRTC) are exclusive to Bell Premium. Upgrade your account to voice chat with friends!"
                                                         showPremiumDialog = true
                                                         return@VoiceRoomItem
                                                     }
@@ -424,9 +423,10 @@ fun FriendsScreen(
                                             item {
                                                 Text(
                                                     text = "INCOMING REQUESTS (${pendingReceived.size})",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = NuxColors.ForestGreen,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    letterSpacing = 0.6.sp,
+                                                    color = BellTextSecondary,
                                                     modifier = Modifier.padding(vertical = 2.dp, horizontal = 4.dp)
                                                 )
                                             }
@@ -443,14 +443,15 @@ fun FriendsScreen(
                                             item {
                                                 Text(
                                                     text = "PENDING INVITES (${pendingSent.size})",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = NuxColors.GrayNeutral,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    letterSpacing = 0.6.sp,
+                                                    color = BellTextMuted,
                                                     modifier = Modifier.padding(top = 8.dp, bottom = 2.dp, start = 4.dp)
                                                 )
                                             }
                                             itemsIndexed(pendingSent, key = { index, req -> "${req.uid}_$index" }) { _, req ->
-                                                 RequestSentItem(
+                                                RequestSentItem(
                                                     friend = req,
                                                     onCancel = { scope.launch { NuxSocialManager.removeFriend(req.uid) } }
                                                 )
@@ -471,12 +472,11 @@ fun FriendsScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(NuxColors.SurfaceElevated, RoundedCornerShape(8.dp))
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(BellGlassCard)
+                    .border(1.dp, BellBorder, RoundedCornerShape(12.dp))
             ) {
                 when {
-                    // 1. Voice Room Active
                     activeVoiceRoom != null -> {
                         VoiceRoomView(
                             room = activeVoiceRoom!!,
@@ -484,7 +484,6 @@ fun FriendsScreen(
                         )
                     }
 
-                    // 2. Direct Chat Active
                     activeFriend != null -> {
                         DirectChatView(
                             friend = activeFriend!!,
@@ -509,7 +508,6 @@ fun FriendsScreen(
                         )
                     }
 
-                    // 3. Empty Social Stage
                     else -> {
                         EmptySocialHubView(
                             friendsCount = acceptedFriends.size,
@@ -524,10 +522,8 @@ fun FriendsScreen(
     }
 
     // =====================================================================
-    // DIALOGS (Landscape-First Compact Design, Never Cut Off!)
+    // DIALOGS
     // =====================================================================
-
-    // 1. Dialog Tambah / Cari Teman (Fresh & Rekomendasi Online)
     if (showAddFriendDialog) {
         AddFriendDialog(
             searchResults = searchResults,
@@ -588,7 +584,6 @@ fun FriendsScreen(
         )
     }
 
-    // 2. Dialog Buat Voice Room Baru (Landscape 2-Column Compact)
     if (showCreateRoomDialog) {
         CreateVoiceRoomDialog(
             onCreate = { name, pass, max ->
@@ -606,7 +601,6 @@ fun FriendsScreen(
         )
     }
 
-    // 3. Dialog Input Password Room
     if (roomToJoinWithPassword != null) {
         JoinPasswordDialog(
             room = roomToJoinWithPassword!!,
@@ -624,7 +618,6 @@ fun FriendsScreen(
         )
     }
 
-    // 4. Dialog NUX Premium & Showcase
     if (showPremiumDialog) {
         NuxPremiumDialog(
             initialPrompt = premiumInitialPrompt,
@@ -648,17 +641,17 @@ private fun PillTab(
     modifier: Modifier = Modifier,
     badgeColor: Color? = null
 ) {
-    val bg = if (isSelected) NuxColors.ForestGreen else NuxColors.SurfaceInput
-    val textColor = if (isSelected) Color.White else NuxColors.GrayNeutral
-    val border = if (isSelected) NuxColors.ForestGreen else NuxColors.CardBorder
+    val bg = if (isSelected) BellPillWhite else BellGlassInput
+    val textColor = if (isSelected) BellInkDark else BellTextSecondary
+    val border = if (isSelected) BellPillWhite else BellBorder
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(bg)
-            .border(1.dp, border, RoundedCornerShape(6.dp))
+            .border(1.dp, border, RoundedCornerShape(8.dp))
             .clickable { onClick() }
-            .padding(vertical = 5.dp, horizontal = 3.dp),
+            .padding(vertical = 6.dp, horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -667,25 +660,24 @@ private fun PillTab(
         ) {
             Text(
                 text = title,
-                fontSize = 9.5.sp,
+                fontSize = 9.sp,
                 fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                 color = textColor,
                 letterSpacing = 0.4.sp
             )
             if (count > 0) {
-                Spacer(modifier = Modifier.width(3.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(badgeColor ?: if (isSelected) Color(0xFF064E3B) else NuxColors.SurfaceElevated)
-                        .border(0.8.dp, if (isSelected) NuxColors.MintGreen.copy(alpha = 0.4f) else NuxColors.CardBorder, CircleShape)
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                        .background(badgeColor ?: if (isSelected) BellInkDark else Color(0x26FFFFFF))
+                        .padding(horizontal = 4.5.dp, vertical = 1.dp)
                 ) {
                     Text(
                         text = "$count",
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        fontSize = 7.5.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (badgeColor == BellDanger) BellInkDark else BellTextPrimary
                     )
                 }
             }
@@ -697,7 +689,7 @@ private fun PillTab(
 // COMPONENT: COMPACT SEARCH BAR
 // =====================================================================
 @Composable
-private fun NuxCompactSearchBar(
+private fun BellCompactSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -706,25 +698,26 @@ private fun NuxCompactSearchBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(32.dp)
-            .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp),
+            .height(34.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(BellGlassInput)
+            .border(1.dp, if (value.isNotEmpty()) BellBorderActive else BellBorder, RoundedCornerShape(8.dp))
+            .padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = NuxColors.GrayNeutral,
-            modifier = Modifier.size(13.dp)
+            tint = BellTextSecondary,
+            modifier = Modifier.size(14.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             if (value.isEmpty()) {
                 Text(
                     text = placeholder,
-                    fontSize = 11.sp,
-                    color = NuxColors.GrayNeutral,
+                    fontSize = 10.5.sp,
+                    color = BellTextMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -736,8 +729,9 @@ private fun NuxCompactSearchBar(
                 textStyle = TextStyle(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White
+                    color = BellTextPrimary
                 ),
+                cursorBrush = SolidColor(BellPillWhite),
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -745,9 +739,9 @@ private fun NuxCompactSearchBar(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Clear",
-                tint = NuxColors.GrayNeutral,
+                tint = BellTextSecondary,
                 modifier = Modifier
-                    .size(13.dp)
+                    .size(14.dp)
                     .clickable { onValueChange("") }
             )
         }
@@ -763,24 +757,23 @@ private fun FriendItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (isSelected) NuxColors.ForestGreen.copy(alpha = 0.15f) else NuxColors.SurfaceInput
-    val border = if (isSelected) NuxColors.ForestGreen.copy(alpha = 0.5f) else NuxColors.CardBorder
+    val bg = if (isSelected) Color(0x1FFFFFFF) else BellGlassInput
+    val border = if (isSelected) BellPillWhite else BellBorder
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(9.dp))
             .background(bg)
-            .border(1.dp, border, RoundedCornerShape(6.dp))
+            .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(9.dp))
             .clickable { onClick() }
-            .padding(6.dp),
+            .padding(7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar + Status Dot + Platform Indicator
         val dotColor = when {
-            friend.isInGame -> Color(0xFF06B6D4) // Cyan (In Game)
-            friend.isOnline -> Color(0xFF10B981) // Green (Online)
-            else -> Color(0xFF71717A)            // Gray (Offline)
+            friend.isInGame -> BellInGame
+            friend.isOnline -> BellSuccess
+            else -> BellTextMuted
         }
         NuxUserAvatar(
             photoUrl = friend.photoUrl,
@@ -793,14 +786,13 @@ private fun FriendItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Username + Badges + Status text
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = friend.username,
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = BellTextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -813,19 +805,19 @@ private fun FriendItem(
             }
 
             val statusText = when {
-                friend.isInGame -> if (!friend.inGameInstance.isNullOrBlank()) "Sedang bermain (${friend.inGameInstance})" else "Sedang bermain"
+                friend.isInGame -> if (!friend.inGameInstance.isNullOrBlank()) "In-Game (${friend.inGameInstance})" else "In-Game"
                 friend.isOnline -> "Online"
                 friend.lastOnline != null -> {
                     val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(friend.lastOnline))
-                    "Terlihat $timeStr"
+                    "Last seen $timeStr"
                 }
                 else -> "Offline"
             }
 
             val statusColor = when {
-                friend.isInGame -> Color(0xFF06B6D4) // Cyan
-                friend.isOnline -> NuxColors.MintGreen
-                else -> NuxColors.GrayNeutral
+                friend.isInGame -> BellInGame
+                friend.isOnline -> BellSuccess
+                else -> BellTextMuted
             }
 
             Text(
@@ -837,19 +829,18 @@ private fun FriendItem(
             )
         }
 
-        // Unread Badge
         if (friend.unreadCount > 0) {
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Color(0xFFEF4444))
-                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                    .background(BellPillWhite)
+                    .padding(horizontal = 6.dp, vertical = 1.5.dp)
             ) {
                 Text(
                     text = "${friend.unreadCount}",
-                    color = Color.White,
+                    color = BellInkDark,
                     fontSize = 8.5.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Black
                 )
             }
         }
@@ -865,30 +856,30 @@ private fun VoiceRoomItem(
     isJoined: Boolean,
     onJoin: () -> Unit
 ) {
-    val bg = if (isJoined) NuxColors.ForestGreen.copy(alpha = 0.15f) else NuxColors.SurfaceInput
-    val border = if (isJoined) NuxColors.ForestGreen.copy(alpha = 0.5f) else NuxColors.CardBorder
+    val bg = if (isJoined) Color(0x1FFFFFFF) else BellGlassInput
+    val border = if (isJoined) BellPillWhite else BellBorder
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(9.dp))
             .background(bg)
-            .border(1.dp, border, RoundedCornerShape(6.dp))
-            .padding(6.dp),
+            .border(1.dp, border, RoundedCornerShape(9.dp))
+            .padding(7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(if (isJoined) NuxColors.ForestGreen else NuxColors.ForestGreen.copy(alpha = 0.12f))
-                .border(1.dp, if (isJoined) NuxColors.MintGreen.copy(alpha = 0.5f) else NuxColors.CardBorder, RoundedCornerShape(6.dp)),
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isJoined) BellPillWhite else Color(0x1AFFFFFF))
+                .border(1.dp, if (isJoined) BellPillWhite else BellBorder, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.RecordVoiceOver,
                 contentDescription = null,
-                tint = if (isJoined) Color.White else NuxColors.MintGreen,
+                tint = if (isJoined) BellInkDark else BellTextPrimary,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -901,16 +892,16 @@ private fun VoiceRoomItem(
                     text = room.name,
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = BellTextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (room.isLocked) {
-                    Spacer(modifier = Modifier.width(3.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "Private",
-                        tint = Color(0xFFF59E0B),
+                        tint = Color(0xFFFBBF24),
                         modifier = Modifier.size(10.dp)
                     )
                 }
@@ -919,24 +910,25 @@ private fun VoiceRoomItem(
             Text(
                 text = "${room.participantCount}/${room.maxUsers} Members",
                 fontSize = 9.5.sp,
-                color = NuxColors.GrayNeutral
+                color = BellTextSecondary
             )
         }
 
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(if (isJoined) NuxColors.ForestGreen else NuxColors.ForestGreen.copy(alpha = 0.15f))
-                .border(1.dp, if (isJoined) NuxColors.ForestGreen else NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(7.dp))
+                .background(if (isJoined) BellSuccess.copy(alpha = 0.2f) else BellPillWhite)
+                .border(1.dp, if (isJoined) BellSuccess else BellPillWhite, RoundedCornerShape(7.dp))
                 .clickable { onJoin() }
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 9.dp, vertical = 4.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = if (isJoined) "ACTIVE" else "JOIN",
-                color = if (isJoined) Color.White else NuxColors.MintGreen,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold
+                color = if (isJoined) BellSuccess else BellInkDark,
+                fontSize = 8.5.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.4.sp
             )
         }
     }
@@ -954,10 +946,10 @@ private fun RequestReceivedItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(NuxColors.SurfaceInput)
-            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-            .padding(6.dp),
+            .clip(RoundedCornerShape(9.dp))
+            .background(BellGlassInput)
+            .border(1.dp, BellBorder, RoundedCornerShape(9.dp))
+            .padding(7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         NuxUserAvatar(
@@ -969,29 +961,28 @@ private fun RequestReceivedItem(
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = friend.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(text = "Friend Request", fontSize = 9.5.sp, color = NuxColors.GrayNeutral)
+            Text(text = friend.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
+            Text(text = "Friend Request", fontSize = 9.sp, color = BellTextSecondary)
         }
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(NuxColors.ForestGreen)
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(7.dp))
+                .background(BellPillWhite)
                 .clickable { onAccept() }
-                .padding(4.dp)
+                .padding(5.dp)
         ) {
-            Icon(Icons.Default.Check, contentDescription = "Accept", tint = Color.White, modifier = Modifier.size(12.dp))
+            Icon(Icons.Default.Check, contentDescription = "Accept", tint = BellInkDark, modifier = Modifier.size(12.dp))
         }
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(5.dp))
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color(0xFFEF4444).copy(alpha = 0.2f))
-                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(7.dp))
+                .background(BellDanger.copy(alpha = 0.16f))
+                .border(1.dp, BellDanger.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
                 .clickable { onReject() }
-                .padding(4.dp)
+                .padding(5.dp)
         ) {
-            Icon(Icons.Default.Close, contentDescription = "Decline", tint = Color(0xFFFCA5A5), modifier = Modifier.size(12.dp))
+            Icon(Icons.Default.Close, contentDescription = "Decline", tint = BellDanger, modifier = Modifier.size(12.dp))
         }
     }
 }
@@ -1004,10 +995,10 @@ private fun RequestSentItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(NuxColors.SurfaceInput)
-            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-            .padding(6.dp),
+            .clip(RoundedCornerShape(9.dp))
+            .background(BellGlassInput)
+            .border(1.dp, BellBorder, RoundedCornerShape(9.dp))
+            .padding(7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         NuxUserAvatar(
@@ -1019,18 +1010,18 @@ private fun RequestSentItem(
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = friend.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(text = "Pending approval...", fontSize = 9.5.sp, color = NuxColors.GrayNeutral)
+            Text(text = friend.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
+            Text(text = "Pending approval...", fontSize = 9.sp, color = BellTextMuted)
         }
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(NuxColors.SurfaceElevated)
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(7.dp))
+                .background(BellGlassCard)
+                .border(1.dp, BellBorder, RoundedCornerShape(7.dp))
                 .clickable { onCancel() }
-                .padding(horizontal = 6.dp, vertical = 3.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
-            Text("Cancel", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
+            Text("Cancel", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = BellTextSecondary)
         }
     }
 }
@@ -1050,7 +1041,6 @@ private fun DirectChatView(
     onStartVoiceWithFriend: () -> Unit
 ) {
     val context = LocalContext.current
-    val langVersion by NuxLanguageManager.languageVersion.collectAsState()
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     var inputMessage by remember { mutableStateOf("") }
@@ -1072,9 +1062,8 @@ private fun DirectChatView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(NuxColors.SurfaceElevated)
-                .border(BorderStroke(1.dp, NuxColors.CardBorder))
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .background(BellGlassSidebar)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1092,74 +1081,73 @@ private fun DirectChatView(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = friend.username,
-                            color = Color.White,
+                            color = BellTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         NuxUserBadge(isVerified = friend.isVerified, isPremium = friend.isPremium, size = 11.dp)
                     }
 
                     val headerStatusText = when {
-                        friend.isInGame -> if (!friend.inGameInstance.isNullOrBlank()) "🎮 In-Game (${friend.inGameInstance})" else "🎮 In-Game"
-                        friend.isOnline -> "🟢 Online"
+                        friend.isInGame -> if (!friend.inGameInstance.isNullOrBlank()) "In-Game (${friend.inGameInstance})" else "In-Game"
+                        friend.isOnline -> "Online"
                         else -> "Offline"
                     }
                     val headerStatusColor = when {
-                        friend.isInGame -> Color(0xFF06B6D4)
-                        friend.isOnline -> NuxColors.MintGreen
-                        else -> NuxColors.GrayNeutral
+                        friend.isInGame -> BellInGame
+                        friend.isOnline -> BellSuccess
+                        else -> BellTextMuted
                     }
 
                     Text(
                         text = headerStatusText,
                         color = headerStatusColor,
-                        fontSize = 9.sp
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Voice Call Button
                 Box(
                     modifier = Modifier
                         .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.ForestGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(BellPillWhite)
                         .clickable { onStartVoiceWithFriend() }
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 9.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Mic, contentDescription = null, tint = NuxColors.MintGreen, modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.Mic, contentDescription = null, tint = BellInkDark, modifier = Modifier.size(12.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Voice", color = NuxColors.MintGreen, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                        Text("Voice", color = BellInkDark, fontSize = 9.5.sp, fontWeight = FontWeight.Black)
                     }
                 }
 
-                // Close Button
                 Box(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                        .clickable { onCloseChat() }
-                        .padding(horizontal = 8.dp),
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(BellGlassInput)
+                        .border(1.dp, BellBorder, RoundedCornerShape(7.dp))
+                        .clickable { onCloseChat() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✕", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("✕", color = BellTextPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
+
+        HorizontalDivider(color = BellBorder, thickness = 1.dp)
 
         // Messages Feed
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(NuxColors.Background)
+                .background(BellBgCanvas.copy(alpha = 0.65f))
         ) {
             if (messages.isEmpty()) {
                 EmptyIndicator(
@@ -1185,112 +1173,110 @@ private fun DirectChatView(
                 }
             }
 
-            // Typing indicator banner
             if (isFriendTyping) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated)
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(BellGlassElevated)
+                        .border(1.dp, BellBorder, RoundedCornerShape(7.dp))
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "✍️ ${friend.username} is typing...",
+                        text = "${friend.username} is typing...",
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Medium,
-                        color = NuxColors.MintGreen
+                        color = BellTextSecondary
                     )
                 }
             }
         }
 
-        // Replying snippet preview (if any)
         if (replyingTo != null) {
+            HorizontalDivider(color = BellBorder, thickness = 1.dp)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(NuxColors.SurfaceElevated)
-                    .border(BorderStroke(1.dp, NuxColors.CardBorder))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .background(BellGlassSidebar)
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Reply, contentDescription = null, tint = NuxColors.MintGreen, modifier = Modifier.size(13.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Replying to: ${replyingTo.text.take(60)}", fontSize = 9.5.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Icon(Icons.Default.Reply, contentDescription = null, tint = BellTextPrimary, modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(text = "Replying to: ${replyingTo.text.take(60)}", fontSize = 9.5.sp, color = BellTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Cancel",
-                    tint = NuxColors.GrayNeutral,
+                    tint = BellTextMuted,
                     modifier = Modifier
-                        .size(13.dp)
+                        .size(14.dp)
                         .clickable { onCancelReply() }
                 )
             }
         }
 
-        // Image Attachment Preview
         if (selectedImageUri != null) {
+            HorizontalDivider(color = BellBorder, thickness = 1.dp)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .background(Color(0x1AFFFFFF))
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("📷 Photo ready to send", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.MintGreen)
+                Text("Photo ready to send", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Delete",
-                    tint = NuxColors.GrayNeutral,
+                    tint = BellTextSecondary,
                     modifier = Modifier
-                        .size(13.dp)
+                        .size(14.dp)
                         .clickable { selectedImageUri = null }
                 )
             }
         }
 
+        HorizontalDivider(color = BellBorder, thickness = 1.dp)
+
         // Bottom Input Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(NuxColors.SurfaceElevated)
-                .border(BorderStroke(1.dp, NuxColors.CardBorder))
-                .padding(horizontal = 8.dp, vertical = 5.dp),
+                .background(BellGlassSidebar)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Attach image button
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                     .clickable { imagePickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Image, contentDescription = "Photo", tint = NuxColors.GrayNeutral, modifier = Modifier.size(15.dp))
+                Icon(Icons.Default.Image, contentDescription = "Photo", tint = BellTextSecondary, modifier = Modifier.size(15.dp))
             }
 
-            // Message text input box
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .height(32.dp)
-                    .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 8.dp),
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (inputMessage.isEmpty()) {
-                        Text("Type a message...", fontSize = 11.sp, color = NuxColors.GrayNeutral)
+                        Text("Type a message...", fontSize = 11.sp, color = BellTextMuted)
                     }
                     BasicTextField(
                         value = inputMessage,
@@ -1302,21 +1288,22 @@ private fun DirectChatView(
                         textStyle = TextStyle(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            color = BellTextPrimary
                         ),
+                        cursorBrush = SolidColor(BellPillWhite),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
 
-            // Send Button
+            val canSend = inputMessage.isNotBlank() || selectedImageUri != null
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (inputMessage.isNotBlank() || selectedImageUri != null) NuxColors.ForestGreen else NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                    .border(1.dp, if (inputMessage.isNotBlank() || selectedImageUri != null) NuxColors.ForestGreen else NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                    .clickable(enabled = !isSending && (inputMessage.isNotBlank() || selectedImageUri != null)) {
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (canSend) BellPillWhite else BellGlassInput)
+                    .border(1.dp, if (canSend) BellPillWhite else BellBorder, RoundedCornerShape(8.dp))
+                    .clickable(enabled = !isSending && canSend) {
                         val textToSend = inputMessage.trim()
                         val uriToSend = selectedImageUri
                         val replyObj = replyingTo?.let {
@@ -1356,9 +1343,14 @@ private fun DirectChatView(
                 contentAlignment = Alignment.Center
             ) {
                 if (isSending) {
-                    CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 1.8.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), color = BellInkDark, strokeWidth = 1.8.dp)
                 } else {
-                    Icon(Icons.Default.Send, contentDescription = "Send", tint = if (inputMessage.isNotBlank() || selectedImageUri != null) Color.White else NuxColors.GrayNeutral, modifier = Modifier.size(14.dp))
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Send",
+                        tint = if (canSend) BellInkDark else BellTextMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
             }
         }
@@ -1375,8 +1367,10 @@ private fun ChatBubble(
     onReply: () -> Unit
 ) {
     val align = if (isMine) Alignment.End else Alignment.Start
-    val bg = if (isMine) NuxColors.ForestGreen.copy(alpha = 0.22f) else NuxColors.SurfaceElevated
-    val border = if (isMine) NuxColors.ForestGreen.copy(alpha = 0.45f) else NuxColors.CardBorder
+    val bg = if (isMine) BellPillWhite else BellGlassElevated
+    val border = if (isMine) BellPillWhite else BellBorder
+    val contentColor = if (isMine) BellInkDark else BellTextPrimary
+    val timeColor = if (isMine) BellInkDark.copy(alpha = 0.65f) else BellTextMuted
     val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.timestamp))
 
     Column(
@@ -1390,10 +1384,10 @@ private fun ChatBubble(
                 .widthIn(min = 60.dp, max = 250.dp)
                 .clip(
                     RoundedCornerShape(
-                        topStart = 8.dp,
-                        topEnd = 8.dp,
-                        bottomStart = if (isMine) 8.dp else 2.dp,
-                        bottomEnd = if (isMine) 2.dp else 8.dp
+                        topStart = 10.dp,
+                        topEnd = 10.dp,
+                        bottomStart = if (isMine) 10.dp else 3.dp,
+                        bottomEnd = if (isMine) 3.dp else 10.dp
                     )
                 )
                 .background(bg)
@@ -1401,37 +1395,35 @@ private fun ChatBubble(
                     width = 1.dp,
                     color = border,
                     shape = RoundedCornerShape(
-                        topStart = 8.dp,
-                        topEnd = 8.dp,
-                        bottomStart = if (isMine) 8.dp else 2.dp,
-                        bottomEnd = if (isMine) 2.dp else 8.dp
+                        topStart = 10.dp,
+                        topEnd = 10.dp,
+                        bottomStart = if (isMine) 10.dp else 3.dp,
+                        bottomEnd = if (isMine) 3.dp else 10.dp
                     )
                 )
                 .clickable { onReply() }
-                .padding(horizontal = 8.dp, vertical = 5.dp)
+                .padding(horizontal = 9.dp, vertical = 6.dp)
         ) {
             Column {
-                // Quoted reply
                 if (message.replyTo != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(NuxColors.SurfaceInput)
-                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isMine) Color(0x14000000) else BellGlassInput)
+                            .padding(horizontal = 7.dp, vertical = 4.dp)
                     ) {
                         Column {
                             Text(
                                 text = message.replyTo.senderName.ifBlank { "User" },
                                 fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NuxColors.MintGreen
+                                fontWeight = FontWeight.Black,
+                                color = if (isMine) BellInkDark else BellTextSecondary
                             )
                             Text(
                                 text = message.replyTo.text,
                                 fontSize = 8.5.sp,
-                                color = Color.White,
+                                color = contentColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1440,21 +1432,18 @@ private fun ChatBubble(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                // Image attachment
                 if (!message.imageUrl.isNullOrEmpty()) {
                     NuxNetworkImage(
                         model = message.imageUrl,
                         contentDescription = "Foto",
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(7.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 140.dp)
-                            .border(1.dp, border, RoundedCornerShape(6.dp))
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                // Text & Timestamp side by side
                 Row(
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1463,7 +1452,8 @@ private fun ChatBubble(
                         Text(
                             text = message.text,
                             fontSize = 11.5.sp,
-                            color = Color.White,
+                            fontWeight = if (isMine) FontWeight.SemiBold else FontWeight.Normal,
+                            color = contentColor,
                             lineHeight = 15.sp,
                             modifier = Modifier.weight(1f, fill = false)
                         )
@@ -1471,7 +1461,7 @@ private fun ChatBubble(
                     Text(
                         text = timeStr,
                         fontSize = 7.5.sp,
-                        color = NuxColors.GrayNeutral,
+                        color = timeColor,
                         modifier = Modifier.padding(bottom = 1.dp)
                     )
                 }
@@ -1481,8 +1471,7 @@ private fun ChatBubble(
 }
 
 // =====================================================================
-// =====================================================================
-// COMPONENT: VOICE ROOM CHAT PANEL (Placed in Left Column, Windows Style!)
+// COMPONENT: VOICE ROOM CHAT PANEL
 // =====================================================================
 @Composable
 private fun VoiceRoomChatPanel(
@@ -1501,29 +1490,29 @@ private fun VoiceRoomChatPanel(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        // Room Chat Info Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                .padding(horizontal = 8.dp, vertical = 5.dp),
+                .clip(RoundedCornerShape(8.dp))
+                .background(BellGlassInput)
+                .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Box(
                     modifier = Modifier
                         .size(7.dp)
                         .clip(CircleShape)
-                        .background(NuxColors.MintGreen)
+                        .background(BellSuccess)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "CHAT: ${room.name}",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    color = BellTextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1531,23 +1520,23 @@ private fun VoiceRoomChatPanel(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                    .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                    .background(BellSuccess.copy(alpha = 0.16f))
+                    .border(1.dp, BellSuccess.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
                     .padding(horizontal = 5.dp, vertical = 1.dp)
             ) {
-                Text("LIVE", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = NuxColors.MintGreen)
+                Text("LIVE", fontSize = 7.5.sp, fontWeight = FontWeight.Black, color = BellSuccess)
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Message Feed
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(NuxColors.Background, RoundedCornerShape(6.dp))
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .background(BellBgCanvas.copy(alpha = 0.65f))
+                .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                 .padding(6.dp)
         ) {
             if (messages.isEmpty()) {
@@ -1555,7 +1544,7 @@ private fun VoiceRoomChatPanel(
                     Text(
                         text = "No messages in room yet.\nType a message below!",
                         fontSize = 10.sp,
-                        color = NuxColors.GrayNeutral,
+                        color = BellTextMuted,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -1564,7 +1553,7 @@ private fun VoiceRoomChatPanel(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     itemsIndexed(messages, key = { index, msg -> "${msg.id}_$index" }) { _, msg ->
                         val isMine = msg.senderId == myUid
@@ -1582,7 +1571,7 @@ private fun VoiceRoomChatPanel(
                                     text = senderDisplayName,
                                     fontSize = 8.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = NuxColors.MintGreen,
+                                    color = BellTextSecondary,
                                     modifier = Modifier.padding(start = 4.dp, bottom = 1.dp)
                                 )
                             }
@@ -1590,20 +1579,21 @@ private fun VoiceRoomChatPanel(
                                 modifier = Modifier
                                     .clip(
                                         RoundedCornerShape(
-                                            topStart = 6.dp,
-                                            topEnd = 6.dp,
-                                            bottomStart = if (isMine) 6.dp else 2.dp,
-                                            bottomEnd = if (isMine) 2.dp else 6.dp
+                                            topStart = 8.dp,
+                                            topEnd = 8.dp,
+                                            bottomStart = if (isMine) 8.dp else 2.dp,
+                                            bottomEnd = if (isMine) 2.dp else 8.dp
                                         )
                                     )
-                                    .background(if (isMine) NuxColors.ForestGreen.copy(alpha = 0.22f) else NuxColors.SurfaceElevated)
-                                    .border(1.dp, if (isMine) NuxColors.ForestGreen.copy(alpha = 0.45f) else NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 7.dp, vertical = 4.dp)
+                                    .background(if (isMine) BellPillWhite else BellGlassElevated)
+                                    .border(1.dp, if (isMine) BellPillWhite else BellBorder, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = msg.text,
                                     fontSize = 10.sp,
-                                    color = Color.White,
+                                    fontWeight = if (isMine) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isMine) BellInkDark else BellTextPrimary,
                                     lineHeight = 13.sp
                                 )
                             }
@@ -1611,7 +1601,7 @@ private fun VoiceRoomChatPanel(
                                 Text(
                                     text = timeStr,
                                     fontSize = 7.5.sp,
-                                    color = NuxColors.GrayNeutral,
+                                    color = BellTextMuted,
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                 )
                             }
@@ -1623,32 +1613,33 @@ private fun VoiceRoomChatPanel(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Input Box
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(32.dp)
-                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                .padding(horizontal = 8.dp),
+                .clip(RoundedCornerShape(8.dp))
+                .background(BellGlassInput)
+                .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                .padding(horizontal = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (textInput.isEmpty()) {
-                    Text("Send message in room...", fontSize = 10.sp, color = NuxColors.GrayNeutral)
+                    Text("Send message in room...", fontSize = 10.sp, color = BellTextMuted)
                 }
                 BasicTextField(
                     value = textInput,
                     onValueChange = { textInput = it },
                     singleLine = true,
-                    textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color.White),
+                    textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = BellTextPrimary),
+                    cursorBrush = SolidColor(BellPillWhite),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
             Icon(
                 imageVector = Icons.Default.Send,
                 contentDescription = "Send",
-                tint = if (textInput.isNotBlank()) NuxColors.ForestGreen else NuxColors.GrayNeutral,
+                tint = if (textInput.isNotBlank()) BellPillWhite else BellTextMuted,
                 modifier = Modifier
                     .size(15.dp)
                     .clickable {
@@ -1664,7 +1655,7 @@ private fun VoiceRoomChatPanel(
 }
 
 // =====================================================================
-// STAGE 2: VOICE ROOM VIEW (Dedicated Clean Stage)
+// STAGE 2: VOICE ROOM VIEW
 // =====================================================================
 @Composable
 private fun VoiceRoomView(
@@ -1675,13 +1666,11 @@ private fun VoiceRoomView(
     val activeSpeakers by NuxVoiceManager.activeSpeakers.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Voice Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(NuxColors.SurfaceElevated)
-                .border(BorderStroke(1.dp, NuxColors.CardBorder))
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .background(BellGlassSidebar)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1689,15 +1678,15 @@ private fun VoiceRoomView(
                 Box(
                     modifier = Modifier
                         .size(28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(6.dp)),
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x1AFFFFFF))
+                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.RecordVoiceOver,
                         contentDescription = null,
-                        tint = NuxColors.MintGreen,
+                        tint = BellTextPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -1706,7 +1695,7 @@ private fun VoiceRoomView(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = room.name,
-                            color = Color.White,
+                            color = BellTextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1714,41 +1703,41 @@ private fun VoiceRoomView(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                                .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                                .background(BellSuccess.copy(alpha = 0.16f))
+                                .border(1.dp, BellSuccess.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
                                 .padding(horizontal = 5.dp, vertical = 1.dp)
                         ) {
-                            Text("LIVEKIT SFU", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = NuxColors.MintGreen)
+                            Text("LIVEKIT SFU", fontSize = 7.5.sp, fontWeight = FontWeight.Black, color = BellSuccess)
                         }
                     }
                     Text(
                         text = "${room.participantCount}/${room.maxUsers} Active Members",
-                        color = NuxColors.GrayNeutral,
+                        color = BellTextSecondary,
                         fontSize = 9.sp
                     )
                 }
             }
 
-            // Tombol Keluar
             Box(
                 modifier = Modifier
                     .height(26.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFFEF4444).copy(alpha = 0.18f), RoundedCornerShape(6.dp))
-                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(BellDanger.copy(alpha = 0.16f))
+                    .border(1.dp, BellDanger.copy(alpha = 0.45f), RoundedCornerShape(7.dp))
                     .clickable { onLeave() }
                     .padding(horizontal = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CallEnd, contentDescription = null, tint = Color(0xFFFCA5A5), modifier = Modifier.size(12.dp))
+                    Icon(Icons.Default.CallEnd, contentDescription = null, tint = BellDanger, modifier = Modifier.size(12.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("LEAVE", color = Color(0xFFFCA5A5), fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                    Text("LEAVE", color = BellDanger, fontSize = 9.sp, fontWeight = FontWeight.Black)
                 }
             }
         }
 
-        // Voice Arena (Dedicated Participant Stage, Minimalist & Spacious!)
+        HorizontalDivider(color = BellBorder, thickness = 1.dp)
+
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -1773,21 +1762,21 @@ private fun VoiceRoomView(
             }
         }
 
-        // Bottom Voice Control Bar
+        HorizontalDivider(color = BellBorder, thickness = 1.dp)
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(NuxColors.SurfaceElevated)
-                .border(BorderStroke(1.dp, NuxColors.CardBorder))
-                .padding(vertical = 6.dp),
+                .background(BellGlassSidebar)
+                .padding(vertical = 7.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .height(30.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (isMuted) Color(0xFFEF4444).copy(alpha = 0.2f) else NuxColors.ForestGreen.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
-                    .border(1.dp, if (isMuted) Color(0xFFEF4444).copy(alpha = 0.6f) else NuxColors.ForestGreen.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isMuted) BellDanger.copy(alpha = 0.16f) else BellPillWhite)
+                    .border(1.dp, if (isMuted) BellDanger.copy(alpha = 0.5f) else BellPillWhite, RoundedCornerShape(8.dp))
                     .clickable { NuxVoiceManager.toggleMute() }
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
@@ -1796,15 +1785,15 @@ private fun VoiceRoomView(
                     Icon(
                         imageVector = if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
                         contentDescription = null,
-                        tint = if (isMuted) Color(0xFFFCA5A5) else NuxColors.MintGreen,
+                        tint = if (isMuted) BellDanger else BellInkDark,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (isMuted) "MIC MUTED" else "MIC ACTIVE (SPEAKING)",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
+                        color = if (isMuted) BellDanger else BellInkDark,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Black,
                         letterSpacing = 0.4.sp
                     )
                 }
@@ -1814,7 +1803,7 @@ private fun VoiceRoomView(
 }
 
 // =====================================================================
-// COMPONENT: PARTICIPANT BADGE IN VOICE ROOM (Minimalist, Max 4 Chars)
+// COMPONENT: PARTICIPANT BADGE IN VOICE ROOM
 // =====================================================================
 @Composable
 private fun ParticipantBadge(
@@ -1830,22 +1819,21 @@ private fun ParticipantBadge(
     Column(
         modifier = Modifier
             .width(76.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSpeaking) NuxColors.ForestGreen.copy(alpha = 0.2f) else NuxColors.SurfaceElevated)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isSpeaking) Color(0x26FFFFFF) else BellGlassInput)
             .border(
-                width = 1.dp,
-                color = if (isSpeaking) NuxColors.MintGreen else NuxColors.CardBorder,
-                shape = RoundedCornerShape(8.dp)
+                width = if (isSpeaking) 1.5.dp else 1.dp,
+                color = if (isSpeaking) BellPillWhite else BellBorder,
+                shape = RoundedCornerShape(10.dp)
             )
-            .padding(vertical = 6.dp, horizontal = 4.dp),
+            .padding(vertical = 7.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar with ring if speaking
         Box(
             modifier = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
-                .border(1.5.dp, if (isSpeaking) NuxColors.MintGreen else NuxColors.CardBorder, CircleShape),
+                .border(1.5.dp, if (isSpeaking) BellPillWhite else BellBorder, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             NuxUserAvatar(
@@ -1860,14 +1848,13 @@ private fun ParticipantBadge(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Truncated Username
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = displayName,
-                color = Color.White,
+                color = BellTextPrimary,
                 fontSize = 9.5.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -1879,18 +1866,17 @@ private fun ParticipantBadge(
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Status Label: Bicara or Platform (Setara seperti versi Windows)
         if (isSpeaking) {
             Text(
-                text = "Talk",
-                color = NuxColors.MintGreen,
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold
+                text = "SPEAKING",
+                color = BellSuccess,
+                fontSize = 7.5.sp,
+                fontWeight = FontWeight.Black
             )
         } else {
             Text(
                 text = participant.platform.take(3).uppercase(),
-                color = NuxColors.GrayNeutral,
+                color = BellTextMuted,
                 fontSize = 7.5.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -1899,8 +1885,7 @@ private fun ParticipantBadge(
 }
 
 // =====================================================================
-// =====================================================================
-// STAGE 3: EMPTY SOCIAL HUB VIEW (Clean & Creative)
+// STAGE 3: EMPTY SOCIAL HUB VIEW
 // =====================================================================
 @Composable
 private fun EmptySocialHubView(
@@ -1916,103 +1901,99 @@ private fun EmptySocialHubView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Icon Badge Box
         Box(
             modifier = Modifier
-                .size(46.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0x1AFFFFFF))
+                .border(1.dp, BellBorder, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Group,
                 contentDescription = null,
-                tint = NuxColors.MintGreen,
+                tint = BellTextPrimary,
                 modifier = Modifier.size(24.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Text(
             text = "COMMUNICATION & VOICE HUB",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            letterSpacing = 0.5.sp
+            fontSize = 13.5.sp,
+            fontWeight = FontWeight.Black,
+            color = BellTextPrimary,
+            letterSpacing = 0.6.sp
         )
 
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = "Connect with friends across PC Windows & Android.\nDirect chat and low-latency voice via LiveKit WebRTC.",
-            fontSize = 10.5.sp,
-            color = NuxColors.GrayNeutral,
+            fontSize = 10.sp,
+            color = BellTextSecondary,
             textAlign = TextAlign.Center,
             lineHeight = 14.sp
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // Quick Stats Row
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(NuxColors.SurfaceInput)
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 11.dp, vertical = 6.dp)
             ) {
-                Text("👥 $friendsCount Friends Added", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("$friendsCount Friends Added", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
             }
 
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(NuxColors.SurfaceInput)
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 11.dp, vertical = 6.dp)
             ) {
-                Text("🎙️ $roomsCount Active Voice Rooms", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.MintGreen)
+                Text("$roomsCount Active Voice Rooms", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextSecondary)
             }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Action Buttons Row
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 modifier = Modifier
                     .height(30.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(NuxColors.SurfaceInput)
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                     .clickable { onOpenSearch() }
                     .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = NuxColors.ForestGreen, modifier = Modifier.size(13.dp))
+                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = BellTextPrimary, modifier = Modifier.size(13.dp))
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text("FIND NEW FRIENDS", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                    Text("FIND NEW FRIENDS", color = BellTextPrimary, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
                 }
             }
 
             Box(
                 modifier = Modifier
                     .height(30.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                    .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BellPillWhite)
                     .clickable { onOpenCreateRoom() }
                     .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Mic, contentDescription = null, tint = NuxColors.MintGreen, modifier = Modifier.size(13.dp))
+                    Icon(Icons.Default.Mic, contentDescription = null, tint = BellInkDark, modifier = Modifier.size(13.dp))
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text("CREATE VOICE ROOM", color = NuxColors.MintGreen, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                    Text("CREATE VOICE ROOM", color = BellInkDark, fontWeight = FontWeight.Black, fontSize = 9.5.sp)
                 }
             }
         }
@@ -2035,16 +2016,16 @@ private fun EmptyIndicator(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = NuxColors.ForestGreen.copy(alpha = 0.6f), modifier = Modifier.size(26.dp))
-        Spacer(modifier = Modifier.height(5.dp))
-        Text(text = title, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Icon(imageVector = icon, contentDescription = null, tint = BellTextMuted, modifier = Modifier.size(26.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
         Spacer(modifier = Modifier.height(2.dp))
-        Text(text = subtitle, fontSize = 9.5.sp, color = NuxColors.GrayNeutral, textAlign = TextAlign.Center, lineHeight = 13.sp)
+        Text(text = subtitle, fontSize = 9.5.sp, color = BellTextMuted, textAlign = TextAlign.Center, lineHeight = 13.sp)
     }
 }
 
 // =====================================================================
-// DIALOG 1: CARI & TAMBAH TEMAN (Landscape-First Compact)
+// DIALOG 1: ADD / SEARCH FRIENDS
 // =====================================================================
 @Composable
 private fun AddFriendDialog(
@@ -2076,33 +2057,33 @@ private fun AddFriendDialog(
             modifier = Modifier
                 .width(440.dp)
                 .wrapContentHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(NuxColors.SurfaceElevated, RoundedCornerShape(8.dp))
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
-                .padding(12.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(BellGlassElevated)
+                .border(1.dp, BellBorder, RoundedCornerShape(14.dp))
+                .padding(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "SEARCH & ADD FRIENDS", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(text = "SEARCH & ADD FRIENDS", fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, color = BellTextPrimary)
                 Box(
                     modifier = Modifier
-                        .size(22.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceInput)
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(BellGlassInput)
+                        .border(1.dp, BellBorder, CircleShape)
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            NuxCompactSearchBar(
+            BellCompactSearchBar(
                 value = query,
                 onValueChange = {
                     query = it
@@ -2123,26 +2104,18 @@ private fun AddFriendDialog(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = NuxColors.ForestGreen, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = BellPillWhite, strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Searching \"$query\"...",
-                            fontSize = 10.sp,
-                            color = NuxColors.GrayNeutral
-                        )
+                        Text(text = "Searching \"$query\"...", fontSize = 10.sp, color = BellTextSecondary)
                     }
                 } else if (isShowingRecommendations && isLoadingRecommendations && recommendations.isEmpty()) {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = NuxColors.ForestGreen, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = BellPillWhite, strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Loading online recommendations...",
-                            fontSize = 10.sp,
-                            color = NuxColors.GrayNeutral
-                        )
+                        Text(text = "Loading online recommendations...", fontSize = 10.sp, color = BellTextSecondary)
                     }
                 } else if (activeList.isEmpty()) {
                     Column(
@@ -2152,20 +2125,20 @@ private fun AddFriendDialog(
                         Text(
                             text = if (isShowingRecommendations) "No online recommendations available right now." else "No users found.",
                             fontSize = 10.5.sp,
-                            color = NuxColors.GrayNeutral,
+                            color = BellTextMuted,
                             textAlign = TextAlign.Center
                         )
                         if (isShowingRecommendations) {
                             Spacer(modifier = Modifier.height(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(NuxColors.SurfaceInput)
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(7.dp))
                                     .clickable { onRefreshRecommendations() }
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
-                                Text("Search Again", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = NuxColors.MintGreen)
+                                Text("Refresh", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                             }
                         }
                     }
@@ -2183,16 +2156,17 @@ private fun AddFriendDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
                                         modifier = Modifier
-                                            .size(7.dp)
+                                            .size(6.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFF10B981))
+                                            .background(BellSuccess)
                                     )
                                     Spacer(modifier = Modifier.width(5.dp))
                                     Text(
                                         text = "ONLINE RECOMMENDATIONS (${recommendations.size})",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = NuxColors.MintGreen
+                                        fontSize = 8.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.5.sp,
+                                        color = BellTextSecondary
                                     )
                                 }
                                 Row(
@@ -2205,7 +2179,7 @@ private fun AddFriendDialog(
                                     Icon(
                                         imageVector = Icons.Default.Refresh,
                                         contentDescription = "Shuffle",
-                                        tint = NuxColors.MintGreen,
+                                        tint = BellTextPrimary,
                                         modifier = Modifier.size(11.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
@@ -2213,7 +2187,7 @@ private fun AddFriendDialog(
                                         text = "Shuffle",
                                         fontSize = 8.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = NuxColors.MintGreen
+                                        color = BellTextPrimary
                                     )
                                 }
                             }
@@ -2224,147 +2198,145 @@ private fun AddFriendDialog(
                             verticalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             itemsIndexed(activeList, key = { index, user -> "${user.uid}_$index" }) { _, user ->
-                            val isMe = user.uid == currentMyUid
-                            val friendEntry = friends.find { it.uid == user.uid }
-                            val isPendingSent = (friendEntry?.isPendingSent == true || sentRequestUids.contains(user.uid)) && friendEntry?.isAccepted != true
-                            val isAccepted = friendEntry?.isAccepted == true
-                            val isPendingReceived = friendEntry?.isPendingReceived == true
-                            val isBlocked = friendEntry?.isBlocked == true
+                                val isMe = user.uid == currentMyUid
+                                val friendEntry = friends.find { it.uid == user.uid }
+                                val isPendingSent = (friendEntry?.isPendingSent == true || sentRequestUids.contains(user.uid)) && friendEntry?.isAccepted != true
+                                val isAccepted = friendEntry?.isAccepted == true
+                                val isPendingReceived = friendEntry?.isPendingReceived == true
+                                val isBlocked = friendEntry?.isBlocked == true
 
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(NuxColors.SurfaceInput)
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 8.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val dotColor = when {
-                                    user.status == "in_game" -> Color(0xFF06B6D4) // Cyan (In Game)
-                                    user.status == "online" -> Color(0xFF10B981)  // Green (Online)
-                                    else -> Color(0xFF71717A)                     // Gray (Offline)
-                                }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BellGlassInput)
+                                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val dotColor = when {
+                                        user.status == "in_game" -> BellInGame
+                                        user.status == "online" -> BellSuccess
+                                        else -> BellTextMuted
+                                    }
 
-                                NuxUserAvatar(
-                                    photoUrl = user.photoURL,
-                                    username = user.username,
-                                    avatarSize = 26.dp,
-                                    platform = user.platform,
-                                    isAndroid = user.isAndroid,
-                                    statusDotColor = dotColor
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        NuxUserBadge(isVerified = user.isVerified, isPremium = user.isPremium, size = 10.dp)
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val statusText = when {
-                                            user.status == "in_game" -> "IN-GAME"
-                                            user.status == "online" -> "ONLINE"
-                                            else -> "OFFLINE"
-                                        }
-                                        val statusTextColor = when {
-                                            user.status == "in_game" -> Color(0xFF06B6D4)
-                                            user.status == "online" -> Color(0xFF10B981)
-                                            else -> NuxColors.GrayNeutral
-                                        }
-                                        Text(statusText, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = statusTextColor)
-                                        Text(" • ${user.platform.uppercase()}", fontSize = 8.sp, color = NuxColors.GrayNeutral)
-                                    }
-                                }
-
-                                // Action Area
-                                if (isMe) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(NuxColors.SurfaceElevated)
-                                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Text("You", color = NuxColors.GrayNeutral, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                } else if (isAccepted) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(NuxColors.ForestGreen.copy(alpha = 0.15f))
-                                                .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                                .clickable {
-                                                    if (friendEntry != null) {
-                                                        onOpenChat(friendEntry)
-                                                        onDismiss()
-                                                    }
-                                                }
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text("✓ Friends", color = NuxColors.MintGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(Color(0xFFEF4444).copy(alpha = 0.18f))
-                                                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.45f), RoundedCornerShape(6.dp))
-                                                .clickable { onBlockUser(user.uid) }
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text("Block", color = Color(0xFFFCA5A5), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                } else if (isPendingSent) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(NuxColors.SurfaceElevated)
-                                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                                    ) {
+                                    NuxUserAvatar(
+                                        photoUrl = user.photoURL,
+                                        username = user.username,
+                                        avatarSize = 26.dp,
+                                        platform = user.platform,
+                                        isAndroid = user.isAndroid,
+                                        statusDotColor = dotColor
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.Schedule, contentDescription = null, tint = NuxColors.GrayNeutral, modifier = Modifier.size(10.dp))
+                                            Text(user.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                                             Spacer(modifier = Modifier.width(3.dp))
-                                            Text("Pending", color = NuxColors.GrayNeutral, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            NuxUserBadge(isVerified = user.isVerified, isPremium = user.isPremium, size = 10.dp)
                                         }
-                                    }
-                                } else if (isPendingReceived) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(NuxColors.ForestGreen)
-                                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                            .clickable { onAcceptRequest(user.uid) }
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Text("Accept", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                } else if (isBlocked) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0xFFEF4444).copy(alpha = 0.18f))
-                                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.45f), RoundedCornerShape(6.dp))
-                                            .clickable { onUnblockUser(user.uid) }
-                                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text("Unblock", color = Color(0xFFFCA5A5), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(NuxColors.ForestGreen)
-                                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                            .clickable {
-                                                sentRequestUids = sentRequestUids + user.uid
-                                                onSendRequest(user.uid)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            val statusText = when {
+                                                user.status == "in_game" -> "IN-GAME"
+                                                user.status == "online" -> "ONLINE"
+                                                else -> "OFFLINE"
                                             }
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Text("+ Add", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            val statusTextColor = when {
+                                                user.status == "in_game" -> BellInGame
+                                                user.status == "online" -> BellSuccess
+                                                else -> BellTextMuted
+                                            }
+                                            Text(statusText, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = statusTextColor)
+                                            Text(" • ${user.platform.uppercase()}", fontSize = 8.sp, color = BellTextMuted)
+                                        }
+                                    }
+
+                                    if (isMe) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(BellGlassCard)
+                                                .border(1.dp, BellBorder, RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text("You", color = BellTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    } else if (isAccepted) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(BellSuccess.copy(alpha = 0.16f))
+                                                    .border(1.dp, BellSuccess.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                                    .clickable {
+                                                        if (friendEntry != null) {
+                                                            onOpenChat(friendEntry)
+                                                            onDismiss()
+                                                        }
+                                                    }
+                                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                                            ) {
+                                                Text("✓ Friends", color = BellSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(BellDanger.copy(alpha = 0.16f))
+                                                    .border(1.dp, BellDanger.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                                    .clickable { onBlockUser(user.uid) }
+                                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                                            ) {
+                                                Text("Block", color = BellDanger, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    } else if (isPendingSent) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(BellGlassCard)
+                                                .border(1.dp, BellBorder, RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.Schedule, contentDescription = null, tint = BellTextSecondary, modifier = Modifier.size(10.dp))
+                                                Spacer(modifier = Modifier.width(3.dp))
+                                                Text("Pending", color = BellTextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    } else if (isPendingReceived) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(BellPillWhite)
+                                                .clickable { onAcceptRequest(user.uid) }
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text("Accept", color = BellInkDark, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                        }
+                                    } else if (isBlocked) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(BellDanger.copy(alpha = 0.16f))
+                                                .border(1.dp, BellDanger.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                                .clickable { onUnblockUser(user.uid) }
+                                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                                        ) {
+                                            Text("Unblock", color = BellDanger, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(BellPillWhite)
+                                                .clickable {
+                                                    sentRequestUids = sentRequestUids + user.uid
+                                                    onSendRequest(user.uid)
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text("+ Add", color = BellInkDark, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                        }
                                     }
                                 }
                             }
@@ -2375,10 +2347,9 @@ private fun AddFriendDialog(
         }
     }
 }
-}
 
 // =====================================================================
-// DIALOG 2: BUAT VOICE ROOM (2-Kolom Landscape, Tombol SELALU Terlihat!)
+// DIALOG 2: CREATE VOICE ROOM
 // =====================================================================
 @Composable
 private fun CreateVoiceRoomDialog(
@@ -2397,60 +2368,59 @@ private fun CreateVoiceRoomDialog(
             modifier = Modifier
                 .width(450.dp)
                 .wrapContentHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(NuxColors.SurfaceElevated, RoundedCornerShape(8.dp))
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
-                .padding(12.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(BellGlassElevated)
+                .border(1.dp, BellBorder, RoundedCornerShape(14.dp))
+                .padding(14.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "CREATE NEW VOICE ROOM", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(text = "CREATE NEW VOICE ROOM", fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, color = BellTextPrimary)
                 Box(
                     modifier = Modifier
-                        .size(22.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceInput)
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(BellGlassInput)
+                        .border(1.dp, BellBorder, CircleShape)
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 2-Kolom Layout
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Kolom Kiri: Input Nama & Password
                 Column(modifier = Modifier.weight(1.1f)) {
-                    Text("ROOM NAME:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Text("ROOM NAME", fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = BellTextMuted)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(32.dp)
-                            .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp),
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(BellGlassInput)
+                            .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 9.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                             if (roomName.isEmpty()) {
-                                Text("e.g. Survival Session", fontSize = 10.5.sp, color = NuxColors.GrayNeutral)
+                                Text("e.g. Survival Session", fontSize = 10.5.sp, color = BellTextMuted)
                             }
                             BasicTextField(
                                 value = roomName,
                                 onValueChange = { roomName = it },
                                 singleLine = true,
-                                textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                                textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary),
+                                cursorBrush = SolidColor(BellPillWhite),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -2458,33 +2428,34 @@ private fun CreateVoiceRoomDialog(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text("PASSWORD (OPTIONAL):", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Text("PASSWORD (OPTIONAL)", fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = BellTextMuted)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(32.dp)
-                            .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp),
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(BellGlassInput)
+                            .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 9.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                             if (roomPassword.isEmpty()) {
-                                Text("Leave blank if public", fontSize = 10.5.sp, color = NuxColors.GrayNeutral)
+                                Text("Leave blank if public", fontSize = 10.5.sp, color = BellTextMuted)
                             }
                             BasicTextField(
                                 value = roomPassword,
                                 onValueChange = { roomPassword = it },
                                 singleLine = true,
-                                textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                                textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary),
+                                cursorBrush = SolidColor(BellPillWhite),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
                 }
 
-                // Kolom Kanan: Kapasitas Slider & Tombol Aksi
                 Column(
                     modifier = Modifier.weight(0.9f),
                     verticalArrangement = Arrangement.SpaceBetween
@@ -2494,8 +2465,8 @@ private fun CreateVoiceRoomDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("PARTICIPANT CAPACITY:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
-                            Text("$maxUsers Players", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = NuxColors.MintGreen)
+                            Text("CAPACITY", fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = BellTextMuted)
+                            Text("$maxUsers Players", fontSize = 9.5.sp, fontWeight = FontWeight.Black, color = BellTextPrimary)
                         }
                         Slider(
                             value = maxUsers.toFloat(),
@@ -2503,16 +2474,15 @@ private fun CreateVoiceRoomDialog(
                             valueRange = 2f..10f,
                             steps = 7,
                             colors = SliderDefaults.colors(
-                                thumbColor = NuxColors.ForestGreen,
-                                activeTrackColor = NuxColors.ForestGreen,
-                                inactiveTrackColor = NuxColors.SurfaceInput
+                                thumbColor = BellPillWhite,
+                                activeTrackColor = BellPillWhite,
+                                inactiveTrackColor = Color(0x26FFFFFF)
                             )
                         )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Tombol Aksi: Batal & Buat Sekarang
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -2520,23 +2490,22 @@ private fun CreateVoiceRoomDialog(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(32.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                                 .clickable { onDismiss() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("CANCEL", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                            Text("CANCEL", color = BellTextPrimary, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
                         }
 
                         Box(
                             modifier = Modifier
                                 .weight(1.3f)
-                                .height(32.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(NuxColors.ForestGreen, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(BellPillWhite)
                                 .clickable {
                                     if (roomName.isNotBlank()) {
                                         onCreate(roomName.trim(), roomPassword.trim(), maxUsers)
@@ -2546,7 +2515,7 @@ private fun CreateVoiceRoomDialog(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("CREATE ROOM", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                            Text("CREATE ROOM", color = BellInkDark, fontWeight = FontWeight.Black, fontSize = 9.5.sp)
                         }
                     }
                 }
@@ -2556,7 +2525,7 @@ private fun CreateVoiceRoomDialog(
 }
 
 // =====================================================================
-// DIALOG 3: INPUT PASSWORD ROOM
+// DIALOG 3: JOIN PASSWORD ROOM
 // =====================================================================
 @Composable
 private fun JoinPasswordDialog(
@@ -2574,35 +2543,37 @@ private fun JoinPasswordDialog(
             modifier = Modifier
                 .width(340.dp)
                 .wrapContentHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(NuxColors.SurfaceElevated, RoundedCornerShape(8.dp))
-                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
-                .padding(14.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(BellGlassElevated)
+                .border(1.dp, BellBorder, RoundedCornerShape(14.dp))
+                .padding(16.dp)
         ) {
-            Text(text = "PASSWORD PROTECTED ROOM", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(text = "PASSWORD PROTECTED ROOM", fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, color = BellTextPrimary)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Enter password to join \"${room.name}\".", fontSize = 9.5.sp, color = NuxColors.GrayNeutral)
+            Text(text = "Enter password to join \"${room.name}\".", fontSize = 10.sp, color = BellTextSecondary)
 
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(32.dp)
-                    .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 8.dp),
+                    .height(34.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BellGlassInput)
+                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (passInput.isEmpty()) {
-                        Text("Password...", fontSize = 10.5.sp, color = NuxColors.GrayNeutral)
+                        Text("Password...", fontSize = 10.5.sp, color = BellTextMuted)
                     }
                     BasicTextField(
                         value = passInput,
                         onValueChange = { passInput = it },
                         singleLine = true,
-                        textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        textStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary),
+                        cursorBrush = SolidColor(BellPillWhite),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -2617,27 +2588,26 @@ private fun JoinPasswordDialog(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellGlassInput)
+                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("CANCEL", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                    Text("CANCEL", color = BellTextPrimary, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
                 }
 
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.ForestGreen, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellPillWhite)
                         .clickable { onJoin(passInput) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("JOIN", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
+                    Text("JOIN", color = BellInkDark, fontWeight = FontWeight.Black, fontSize = 9.5.sp)
                 }
             }
         }
