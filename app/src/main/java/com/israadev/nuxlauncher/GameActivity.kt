@@ -1,18 +1,11 @@
 package com.israadev.nuxlauncher
 
+import android.Manifest
+import android.app.ActivityManager
 import android.content.Context
-import android.util.Log
-import com.israadev.nuxlauncher.core.crash.CrashManager
-import com.israadev.nuxlauncher.core.renderer.MobileGluesConfigManager
-import com.israadev.nuxlauncher.core.renderer.NuxRendererRegistry
-import com.israadev.nuxlauncher.ui.activities.ErrorActivity
-import com.israadev.nuxlauncher.ui.components.GameLoadingOverlay
-import com.israadev.nuxlauncher.ui.dialogs.InGameSettingsDialog
-import com.israadev.nuxlauncher.ui.screens.CustomGuiEditorScreen
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.system.Os
@@ -24,15 +17,14 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,13 +34,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -63,33 +48,42 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.pointerInteropFilter
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.israadev.nuxlauncher.core.controls.ControlLayoutManager
 import com.israadev.nuxlauncher.core.controls.models.CustomControlButton
+import com.israadev.nuxlauncher.core.crash.CrashManager
+import com.israadev.nuxlauncher.core.device.PhysicalMouseChecker
 import com.israadev.nuxlauncher.core.game.MCOptions
-import com.israadev.nuxlauncher.core.settings.SettingsManager
 import com.israadev.nuxlauncher.core.game.input.EfficientAndroidLWJGLKeycode
 import com.israadev.nuxlauncher.core.game.input.HidableInputLayout
 import com.israadev.nuxlauncher.core.game.input.TouchCharInput
+import com.israadev.nuxlauncher.core.recorder.ScreenRecordConfig
+import com.israadev.nuxlauncher.core.recorder.ScreenRecordManager
+import com.israadev.nuxlauncher.core.renderer.NuxRendererRegistry
+import com.israadev.nuxlauncher.core.settings.SettingsManager
+import com.israadev.nuxlauncher.ui.activities.ErrorActivity
+import com.israadev.nuxlauncher.ui.components.GameLoadingOverlay
 import com.israadev.nuxlauncher.ui.components.NuxBadge
 import com.israadev.nuxlauncher.ui.components.NuxButton
 import com.israadev.nuxlauncher.ui.components.NuxCard
-import com.israadev.nuxlauncher.core.device.PhysicalMouseChecker
 import com.israadev.nuxlauncher.ui.control.MouseControlMode
 import com.israadev.nuxlauncher.ui.control.SwitchableMouseLayout
+import com.israadev.nuxlauncher.ui.dialogs.InGameSettingsDialog
+import com.israadev.nuxlauncher.ui.dialogs.NuxPremiumDialog
+import com.israadev.nuxlauncher.ui.screens.CustomGuiEditorScreen
 import com.israadev.nuxlauncher.ui.theme.NuxColors
 import com.israadev.nuxlauncher.ui.theme.NuxSizes
 import com.movtery.inputmap.keycodes.LwjglGlfwKeycode
@@ -99,16 +93,15 @@ import com.movtery.zalithlauncher.bridge.LoggerBridge
 import com.movtery.zalithlauncher.bridge.ZLBridge
 import com.movtery.zalithlauncher.bridge.ZLBridgeStates
 import com.movtery.zalithlauncher.bridge.ZLNativeInvoker
-import com.oracle.dalvik.VMLauncher
 import com.movtery.zalithlauncher.game.sdl.SdlBridge
-import android.Manifest
-import android.content.pm.PackageManager
-import android.media.projection.MediaProjectionManager
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import com.israadev.nuxlauncher.core.recorder.ScreenRecordConfig
-import com.israadev.nuxlauncher.core.recorder.ScreenRecordManager
-import com.israadev.nuxlauncher.ui.dialogs.NuxPremiumDialog
+import com.oracle.dalvik.VMLauncher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLSurface
 import org.lwjgl.glfw.CallbackBridge
@@ -143,6 +136,8 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         const val EXTRA_LOADER_VERSION = "extra_loader_version"
         const val EXTRA_INSTALLED_MODS = "extra_installed_mods"
         const val EXTRA_LAUNCHER_UID = "extra_launcher_uid"
+
+        private const val MAX_LIVE_LOG_LINES = 80
     }
 
     private var pendingRecordConfig: ScreenRecordConfig = ScreenRecordConfig()
@@ -197,6 +192,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private val liveLogs = mutableStateListOf<String>()
+    private val latestLogState = mutableStateOf("")
     private var isGameStarted = false
     private var surfaceHolderRef: SurfaceHolder? = null
     private val isControlVisibleState = mutableStateOf(true)
@@ -209,11 +205,9 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         if (ScreenRecordManager.recordState.value.isRecording) {
             ScreenRecordManager.stopRecording(this)
         }
-        // Cek apakah game keluar bersih secara normal atas instruksi user (klik quit game / pause exit)
         val isNormalExit = isManualExit || (exitCode == 0 && !isSignal)
 
         if (!isNormalExit) {
-            // Ini adalah CRASH (JVM Exit code != 0, fatal signal, OOM, atau exception)
             val crashReportsDir = File(gameDirPath, "crash-reports")
             val latestCrashReport = if (crashReportsDir.exists() && crashReportsDir.isDirectory) {
                 crashReportsDir.listFiles { f -> f.isFile && f.name.startsWith("crash-") && f.name.endsWith(".txt") }
@@ -226,7 +220,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
             val finalExitCode = if (exitCode != 0) exitCode else 1
 
-            // 1. Rekam di CrashManager agar MainActivity juga tahu jika dibuka kembali
             CrashManager.recordCrash(
                 context = this,
                 instanceName = instanceName,
@@ -241,7 +234,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 installedMods = installedMods
             )
 
-            // 2. Langsung luncurkan ErrorActivity mandiri (persis seperti Zalith Launcher)
             try {
                 ErrorActivity.showGameCrash(
                     context = this,
@@ -260,7 +252,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 } catch (_: Throwable) {}
             }
         } else {
-            // Normal Exit
             CrashManager.onGameSessionEnded(this)
             try {
                 val launcherIntent = Intent(this, MainActivity::class.java).apply {
@@ -291,7 +282,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     }
                     com.israadev.nuxlauncher.core.auth.AuthService.postApiSync("/api/presence", payload.toString(), timeoutSec = 2)
                 } catch (_: Throwable) {}
-                delay(18_000L)
+                delay(25_000L) // Interval lebih hemat baterai & network di low-end
             }
         }
     }
@@ -362,9 +353,73 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var loaderVersion: String? = null
     private var installedMods: List<String> = emptyList()
 
+    private fun isLowEndDevice(): Boolean {
+        return try {
+            val am = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            val memInfo = ActivityManager.MemoryInfo()
+            am?.getMemoryInfo(memInfo)
+            val totalRamMb = memInfo.totalMem / (1024L * 1024L)
+            totalRamMb in 1..4600 || (am?.isLowRamDevice == true)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Menghitung batas aman Xms & Xmx berdasarkan kapasitas dan sisa RAM fisik HP.
+     * Mencegah Low Memory Killer (LMK) Android mematikan proses :game saat RAM penuh.
+     */
+    private fun calculateSafeHeapAllocation(requestedInitialMb: Int, requestedMaxMb: Int): Pair<Int, Int> {
+        return try {
+            val am = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            val memInfo = ActivityManager.MemoryInfo()
+            am?.getMemoryInfo(memInfo)
+
+            val totalRamMb = (memInfo.totalMem / (1024L * 1024L)).toInt()
+            val availRamMb = (memInfo.availMem / (1024L * 1024L)).toInt()
+
+            if (totalRamMb <= 0) {
+                return Pair(requestedInitialMb.coerceAtLeast(256), requestedMaxMb.coerceAtLeast(512))
+            }
+
+            // Batas plafon aman sesuai total RAM fisik (menyisakan ruang untuk OS, SurfaceFlinger, & GPU driver)
+            val deviceSafeCeilingMb = when {
+                totalRamMb <= 2200 -> 768    // HP RAM 2 GB
+                totalRamMb <= 3300 -> 1150   // HP RAM 3 GB
+                totalRamMb <= 4400 -> 1550   // HP RAM 4 GB
+                totalRamMb <= 6400 -> 2400   // HP RAM 6 GB
+                else -> 4096                 // HP RAM 8 GB+
+            }
+
+            // Jangan pernah melebihi 75% dari sisa RAM yang benar-benar tersedia saat ini
+            val dynamicAvailCapMb = if (availRamMb > 900) {
+                (availRamMb * 0.72f).toInt()
+            } else {
+                deviceSafeCeilingMb
+            }
+
+            val safeMaxMb = minOf(requestedMaxMb, deviceSafeCeilingMb, maxOf(deviceSafeCeilingMb, dynamicAvailCapMb))
+                .coerceAtLeast(512)
+
+            // Xms kecil (256MB - 512MB) agar startup instan dan memori tidak langsung dikunci penuh di awal
+            val safeInitialMb = minOf(requestedInitialMb, safeMaxMb / 2, 512)
+                .coerceAtLeast(256)
+
+            Pair(safeInitialMb, safeMaxMb)
+        } catch (_: Throwable) {
+            Pair(requestedInitialMb.coerceAtLeast(256), requestedMaxMb.coerceAtLeast(512))
+        }
+    }
+
     private fun getScaledDisplayDimensions(): Pair<Int, Int> {
         val settings = SettingsManager.settings.value
-        val ratio = (settings.resolutionRatio / 100f).coerceIn(0.35f, 1.5f)
+        val effectiveRatio = if (settings.resolutionRatio == 100 && settings.autoOptimizeMinecraft && isLowEndDevice()) {
+            // Turunkan ke 72% otomatis di HP RAM <= 4GB jika masih default 100% -> GPU load turun ~48%
+            72
+        } else {
+            settings.resolutionRatio
+        }
+        val ratio = (effectiveRatio / 100f).coerceIn(0.35f, 1.5f)
         val (rawW, rawH) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val bounds = windowManager.currentWindowMetrics.bounds
             Pair(bounds.width(), bounds.height())
@@ -374,12 +429,12 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
             windowManager.defaultDisplay.getRealMetrics(dm)
             Pair(dm.widthPixels, dm.heightPixels)
         }
-        // GameActivity adalah sensorLandscape, pastikan lebar horizontal selalu lebih besar dari tinggi vertikal
         val screenW = maxOf(rawW, rawH)
         val screenH = minOf(rawW, rawH)
-        val width = (screenW * ratio).roundToInt()
-        val height = (screenH * ratio).roundToInt()
-        return Pair(width, height)
+        // Bulatkan ke kelipatan 2 agar encoder/SurfaceView tidak melakukan scaling tambahan
+        val width = ((screenW * ratio).roundToInt() / 2) * 2
+        val height = ((screenH * ratio).roundToInt() / 2) * 2
+        return Pair(width.coerceAtLeast(480), height.coerceAtLeast(270))
     }
 
     private fun applyDynamicResolution(newRatio: Int) {
@@ -481,22 +536,19 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         launcherUid = intent.getStringExtra(EXTRA_LAUNCHER_UID) ?: ""
         startInGamePresenceHeartbeat()
 
-        // Setup real-time native LoggerBridge
         setupLogger()
 
-        // Setup exit callback
         ZLNativeInvoker.onExitCallback = { exitCode, isSignal ->
             runOnUiThread {
-                liveLogs.add("[NUX Engine] Game process ended (code: $exitCode, signal: $isSignal)")
+                appendLiveLog("[NUX Engine] Game process ended (code: $exitCode, signal: $isSignal)")
                 handleGameExit(exitCode, isSignal)
             }
         }
 
-        // Setup Graphic Output Listener (Mendeteksi Logo Mojang mulai dirender)
         CallbackBridge.setGraphicOutputListener {
             runOnUiThread {
                 isGameRenderingState.value = true
-                liveLogs.add("🎨 [Render Engine] First graphical frame rendered on Surface!")
+                appendLiveLog("🎨 [Render Engine] First graphical frame rendered on Surface!")
                 val midX = (CallbackBridge.windowWidth.takeIf { it > 0 } ?: 1280) / 2f
                 val midY = (CallbackBridge.windowHeight.takeIf { it > 0 } ?: 720) / 2f
                 CallbackBridge.sendCursorPos(midX, midY)
@@ -512,6 +564,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     mainClass = mainClass,
                     runtimeName = runtimeName,
                     liveLogs = liveLogs,
+                    latestLogState = latestLogState,
                     isControlVisibleState = isControlVisibleState,
                     isGameRenderingState = isGameRenderingState,
                     onSurfaceReady = { surfaceHolder ->
@@ -541,6 +594,14 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         applyImmersiveFullscreen()
     }
 
+    private fun appendLiveLog(line: String) {
+        latestLogState.value = line
+        liveLogs.add(line)
+        if (liveLogs.size > MAX_LIVE_LOG_LINES) {
+            liveLogs.removeAt(0)
+        }
+    }
+
     private fun setupLogger() {
         val logFile = File(filesDir, "latestlog.txt")
         if (logFile.exists()) logFile.delete()
@@ -548,14 +609,10 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
         LoggerBridge.setListener { text ->
             runOnUiThread {
-                liveLogs.add(text)
-                if (liveLogs.size > 200) {
-                    liveLogs.removeAt(0)
-                }
-                // Deteksi sekunder jika frame grafik atau sistem audio game mulai aktif
+                appendLiveLog(text)
                 if (!isGameRenderingState.value) {
-                    if (text.contains("OpenAL initialized") || 
-                        text.contains("Reloading ResourceManager") || 
+                    if (text.contains("OpenAL initialized") ||
+                        text.contains("Reloading ResourceManager") ||
                         text.contains("Sound engine started") ||
                         text.contains("Setting user: ")) {
                         isGameRenderingState.value = true
@@ -569,7 +626,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
             LoggerBridge.appendTitle("NUX Launcher Game Session")
             LoggerBridge.append("▷ Starting $instanceName ($mcVersion) on $runtimeName")
         } catch (e: Throwable) {
-            liveLogs.add("[LoggerBridge Init] ${e.message}")
+            appendLiveLog("[LoggerBridge Init] ${e.message}")
         }
     }
 
@@ -581,9 +638,9 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         SdlBridge.prepareSurface(this, surface, rootLayout, holder)
         try {
             ZLBridge.setupBridgeWindow(surface)
-            liveLogs.add("[Render Bridge] Native window bound to SurfaceView (${targetWidth}x${targetHeight}).")
+            appendLiveLog("[Render Bridge] Native window bound to SurfaceView (${targetWidth}x${targetHeight}).")
         } catch (e: Throwable) {
-            liveLogs.add("[Render Bridge Error] ${e.message}")
+            appendLiveLog("[Render Bridge Error] ${e.message}")
         }
 
         if (!isGameStarted) {
@@ -613,12 +670,10 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        // If soft keyboard IME input view is active, allow standard handling
         if (TouchCharInput.isActive()) {
             return super.dispatchKeyEvent(event)
         }
 
-        // Intercept right click from mouse being treated as KEYCODE_BACK
         val source = event.source
         if (source and InputDevice.SOURCE_MOUSE == InputDevice.SOURCE_MOUSE ||
             source and InputDevice.SOURCE_MOUSE_RELATIVE == InputDevice.SOURCE_MOUSE_RELATIVE) {
@@ -629,7 +684,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
             }
         }
 
-        // Physical keyboard key pressed -> automatically hide touch controls
         if (event.action == KeyEvent.ACTION_DOWN) {
             isControlVisibleState.value = false
         }
@@ -645,7 +699,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (event.isFromSource(InputDevice.SOURCE_MOUSE) || event.isFromSource(InputDevice.SOURCE_MOUSE_RELATIVE)) {
-            // Physical mouse action detected -> hide touch controls
             isControlVisibleState.value = false
         }
         return super.dispatchGenericMotionEvent(event)
@@ -665,13 +718,14 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 val runtimeHome = File(runtimeHomePath)
                 val gameDir = File(gameDirPath)
                 val assetsDir = File(assetsDirPath)
+                val lowEnd = isLowEndDevice()
 
-                liveLogs.add("[NUX Launcher] Menyiapkan environment JVM...")
+                runOnUiThread { appendLiveLog("[NUX Launcher] Menyiapkan environment JVM (LowEnd=$lowEnd)...") }
 
                 val activeSettings = SettingsManager.settings.value
                 val (targetWidth, targetHeight) = getScaledDisplayDimensions()
 
-                // Setup & Optimize Minecraft options.txt (Zalith pure behavior)
+                // Setup & Optimize Minecraft options.txt untuk HP Kentang
                 MCOptions.setup(this@GameActivity, gameDir)
                 MCOptions.apply {
                     set("fullscreen", "false")
@@ -679,50 +733,49 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     set("options.narrator", "0")
                     set("narrator", "0")
 
-                    // Ensure default low-end mobile performance options if enabled in settings
-                    if (activeSettings.autoOptimizeMinecraft) {
-                        if (!containsKey("clouds")) set("clouds", "false")
-                        if (!containsKey("renderClouds")) set("renderClouds", "false")
-                        if (!containsKey("entityShadows")) set("entityShadows", "false")
-                        if (!containsKey("renderDistance")) set("renderDistance", "2")
-                        if (!containsKey("simulationDistance")) set("simulationDistance", "5")
+                    if (activeSettings.autoOptimizeMinecraft || lowEnd) {
+                        set("clouds", "false")
+                        set("renderClouds", "\"false\"")
+                        set("entityShadows", "false")
+                        set("enableVsync", "false")
+                        set("ao", "false")
+                        set("graphicsMode", "0")
+                        set("particles", "2")
+                        set("mipmapLevels", "1")
+                        set("biomeBlendRadius", "1")
+                        if (!containsKey("renderDistance")) {
+                            set("renderDistance", if (lowEnd) "4" else "6")
+                        }
+                        if (!containsKey("simulationDistance")) {
+                            set("simulationDistance", "5")
+                        }
                     }
 
                     set("overrideWidth", "$targetWidth")
                     set("overrideHeight", "$targetHeight")
                     save()
                 }
-                LoggerBridge.append("▷ [MCOptions] Minecraft options verified (res=${targetWidth}x${targetHeight}, autoOptimize=${activeSettings.autoOptimizeMinecraft})")
+                LoggerBridge.append("▷ [MCOptions] Minecraft options verified (res=${targetWidth}x${targetHeight}, lowEnd=$lowEnd)")
 
-                // Verify & Ensure OpenJDK Runtime is fully installed
                 if (!com.israadev.nuxlauncher.core.runtime.JavaRuntimeManager.isRuntimeInstalled(this@GameActivity, runtimeName)) {
-                    liveLogs.add("[NUX Runtime] Mempersiapkan OpenJDK ($runtimeName)...")
+                    runOnUiThread { appendLiveLog("[NUX Runtime] Mempersiapkan OpenJDK ($runtimeName)...") }
                     LoggerBridge.append("▷ [NUX Runtime] Runtime $runtimeName missing or incomplete, extracting from assets...")
                     val extRes = kotlinx.coroutines.runBlocking {
                         com.israadev.nuxlauncher.core.runtime.JavaRuntimeManager.extractRuntime(this@GameActivity, runtimeName) { msg ->
-                            liveLogs.add("[NUX Runtime] $msg")
+                            runOnUiThread { appendLiveLog("[NUX Runtime] $msg") }
                             LoggerBridge.append("▷ [NUX Runtime] $msg")
                         }
                     }
                     if (extRes.isFailure) {
                         val errMsg = extRes.exceptionOrNull()?.message ?: "Extraction failed"
-                        liveLogs.add("[ERROR] Failed to extract OpenJDK $runtimeName: $errMsg")
+                        runOnUiThread { appendLiveLog("[ERROR] Failed to extract OpenJDK $runtimeName: $errMsg") }
                         LoggerBridge.append("[ERROR] Failed to extract OpenJDK: $errMsg")
                         throw Exception("Failed to prepare OpenJDK ($runtimeName): $errMsg")
                     }
-                    liveLogs.add("[NUX Runtime] OpenJDK ($runtimeName) is ready for use!")
+                    runOnUiThread { appendLiveLog("[NUX Runtime] OpenJDK ($runtimeName) is ready for use!") }
                 }
 
-                // Combined Library Path (Include Java runtime libraries for pojavexec dlopen)
                 val javaLibDir = File(runtimeHome, "lib")
-                val javaServerDir = File(runtimeHome, "lib/server")
-                val javaJliDir = File(runtimeHome, "lib/jli")
-
-                val javaLibPaths = listOf(javaLibDir, javaServerDir, javaJliDir)
-                    .filter { it.exists() }
-                    .map { it.absolutePath }
-
-                // Ensure native libraries have executable permissions
                 try {
                     javaLibDir.walkTopDown().filter { it.extension == "so" }.forEach {
                         it.setReadable(true, false)
@@ -734,7 +787,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     }
                 } catch (_: Throwable) {}
 
-                // Resolve Selected Graphics Renderer
                 try {
                     com.israadev.nuxlauncher.core.renderer.NuxRendererPluginManager.scanPlugins(this)
                 } catch (e: Throwable) {
@@ -751,17 +803,14 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 val rendererSoName = targetRenderer.libraryName
 
                 LoggerBridge.append("▷ [Renderer] Active Backend: ${targetRenderer.displayName} ($rendererId)")
-                LoggerBridge.append("▷ [Renderer] Library: $rendererSoName, Selection: ${activeSettings.selectedRenderer}, IsPlugin: ${targetRenderer.isPlugin}")
 
                 val runtimeHomeStr = runtimeHome.absolutePath
                 val libDirName = if (Build.SUPPORTED_ABIS.any { it.contains("64") }) "lib64" else "lib"
 
-                // 1. Runtime linker library path (Dipakai oleh ZLBridge.setLdLibraryPath untuk memperbarui Android Bionic Linker)
                 val runtimeLdPaths = mutableListOf<String>()
                 if (targetRenderer.isPlugin && !targetRenderer.pluginNativePath.isNullOrBlank()) {
                     runtimeLdPaths.add(targetRenderer.pluginNativePath!!)
                 }
-                // Deteksi subdirektori arsitektur Java 8 (misal lib/aarch64/)
                 val archSubDir = listOf("aarch64", "aarch32", "arm", "i386", "amd64", "x86_64")
                     .map { File("$runtimeHomeStr/lib", it) }
                     .firstOrNull { it.exists() && it.isDirectory }
@@ -791,9 +840,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 val runtimeLdLibraryPath = runtimeLdPaths.distinct().joinToString(":")
                 ZLBridge.setLdLibraryPath(runtimeLdLibraryPath)
 
-                // 2. Game LD_LIBRARY_PATH (Identik dengan ZalithLauncher2 getLibraryPath() - JANGAN SAMPAI ADA FOLDER JRE lib/server / lib/jli!)
-                // Jika LD_LIBRARY_PATH mengandung 'lib/server' atau 'lib/client', OpenJDK libjli.so akan mengira perlu re-exec
-                // dan memanggil execve(bin/java) yang otomatis ditolak Android kernel (Permission denied)!
                 val gameLdPaths = mutableListOf<String>()
                 if (lwjglNativesDirPath.isNotBlank()) gameLdPaths.add(lwjglNativesDirPath)
                 gameLdPaths.add("/system/$libDirName")
@@ -813,30 +859,35 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 }
 
                 val isPlugin = targetRenderer.isPlugin
-                val isMobileGlues = targetRenderer.id == "mobileglues" || 
+                val isMobileGlues = targetRenderer.id == "mobileglues" ||
                         targetRenderer.rendererId.contains("mobileglue", ignoreCase = true) ||
                         (targetRenderer.pluginPackageName?.contains("mobileglue", ignoreCase = true) == true)
 
-                // POJAV_RENDERER: Persis Zalith Launcher, gunakan rendererId asli tanpa dipaksa ke opengles3!
                 Os.setenv("POJAV_NATIVEDIR", nativeLibDir, true)
                 Os.setenv("POJAV_RENDERER", rendererId, true)
                 Os.setenv("POJAV_SDL_REUSE_WINDOW", "1", true)
                 Os.setenv("SDL_OPENGL_LIBRARY", rendererId, true)
 
-                if (rendererId.startsWith("opengles2")) {
+                // Optimasi GL4ES / OpenGLES untuk HP menengah ke bawah:
+                // - LIBGL_NOERROR=1: Lewati glGetError() setiap frame (mengurangi CPU-GPU sync stall)
+                // - LIBGL_FASTEX=1: Percepat upload tekstur ke GPU Mali/Adreno
+                // - LIBGL_SHRINK=2: Kompres tekstur mipmap besar pada perangkat RAM terbatas
+                if (rendererId.startsWith("opengles2") || targetRenderer.id == "gl4es") {
                     Os.setenv("LIBGL_ES", "2", true)
                     Os.setenv("LIBGL_MIPMAP", "3", true)
                     Os.setenv("LIBGL_NOERROR", "1", true)
                     Os.setenv("LIBGL_NOINTOVLHACK", "1", true)
                     Os.setenv("LIBGL_NORMALIZE", "1", true)
+                    Os.setenv("LIBGL_FASTEX", "1", true)
+                    if (lowEnd) {
+                        Os.setenv("LIBGL_SHRINK", "2", true)
+                    }
                 }
 
-                // Apply renderer specific environment variables
                 targetRenderer.envVariables.forEach { (k, v) ->
                     Os.setenv(k, v, true)
                 }
 
-                // Apply Renderer V2 Environment Variables (persis Zalith fclPlugin_V2 & MobileGlues)
                 try {
                     val v2Envs = com.israadev.nuxlauncher.core.renderer.v2.NuxRendererV2Manager.getEffectiveEnv(targetRenderer)
                     v2Envs.forEach { (k, v) ->
@@ -847,7 +898,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     LoggerBridge.append("▷ [Renderer V2 Env Warning] Failed to inject V2 env: ${e.message}")
                 }
 
-                // Apply EGL specific library path if specified
                 val eglPath = if (!targetRenderer.eglName.isNullOrBlank()) {
                     val rawEgl = targetRenderer.eglName!!
                     if (rawEgl.startsWith("/")) rawEgl
@@ -860,7 +910,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     Os.setenv("SDL_EGL_LIBRARY", eglPath, true)
                 }
 
-                // Standar Zalith: Jika renderer adalah plugin atau MobileGlues atau GL4ES, JANGAN override Mesa/Zink desktop!
                 val skipMesaOverrides = isPlugin || isMobileGlues || targetRenderer.id == "krypton" || targetRenderer.id == "gl4es" || rendererId.startsWith("opengles")
                 if (!skipMesaOverrides) {
                     Os.setenv("MESA_LOADER_DRIVER_OVERRIDE", "zink", true)
@@ -869,28 +918,21 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     Os.setenv("allow_higher_compat_version", "true", true)
                     Os.setenv("allow_glsl_extension_directive_midshader", "true", true)
                     Os.setenv("force_glsl_extensions_warn", "true", true)
-                    LoggerBridge.append("▷ [Mesa Overrides] Applied Zink 4.6 desktop overrides")
                 }
 
-                // Apply Vulkan / Zink / Graphics API settings
                 if (activeSettings.zinkPreferSystemDriver) {
                     Os.setenv("POJAV_ZINK_PREFER_SYSTEM_DRIVER", "1", true)
-                    LoggerBridge.append("▷ [Renderer Config] POJAV_ZINK_PREFER_SYSTEM_DRIVER=1")
                 }
                 if (activeSettings.vsyncInZink) {
                     Os.setenv("POJAV_VSYNC_IN_ZINK", "1", true)
-                    LoggerBridge.append("▷ [Renderer Config] POJAV_VSYNC_IN_ZINK=1")
                 }
                 if (activeSettings.graphicsApi != "DEFAULT") {
                     Os.setenv("POJAV_GRAPHICS_API", activeSettings.graphicsApi, true)
-                    LoggerBridge.append("▷ [Renderer Config] POJAV_GRAPHICS_API=${activeSettings.graphicsApi}")
                 }
                 if (activeSettings.vulkanDriver != "auto" && activeSettings.vulkanDriver.isNotBlank()) {
                     Os.setenv("POJAV_VULKAN_DRIVER", activeSettings.vulkanDriver, true)
-                    LoggerBridge.append("▷ [Renderer Config] POJAV_VULKAN_DRIVER=${activeSettings.vulkanDriver}")
                 }
 
-                // Pre-dlopen plugin libraries from the plugin's own directory ONLY
                 if (targetRenderer.isPlugin && !targetRenderer.pluginNativePath.isNullOrBlank()) {
                     val pluginDir = File(targetRenderer.pluginNativePath)
                     targetRenderer.dlopenLibs.forEach { dlName ->
@@ -898,42 +940,32 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                         if (dlFile.exists()) {
                             try {
                                 ZLBridge.dlopen(dlFile.absolutePath)
-                                LoggerBridge.append("▷ [Plugin DLOPEN] $dlName")
-                            } catch (e: Throwable) {
-                                LoggerBridge.append("▷ [Plugin DLOPEN Warning] $dlName: ${e.message}")
-                            }
+                            } catch (_: Throwable) {}
                         }
                     }
                     val targetSo = File(glLibPath)
                     if (targetSo.exists()) {
                         try {
                             ZLBridge.dlopen(targetSo.absolutePath)
-                            LoggerBridge.append("▷ [Plugin GL Loaded] ${targetSo.absolutePath}")
-                        } catch (e: Throwable) {
-                            LoggerBridge.append("▷ [Plugin GL Warning] ${targetRenderer.libraryName}: ${e.message}")
-                        }
+                        } catch (_: Throwable) {}
                     }
                     if (!eglPath.isNullOrBlank() && eglPath != glLibPath) {
                         val eglFile = File(eglPath)
                         if (eglFile.exists()) {
                             try {
                                 ZLBridge.dlopen(eglFile.absolutePath)
-                                LoggerBridge.append("▷ [Plugin EGL Loaded] ${eglFile.absolutePath}")
-                            } catch (e: Throwable) {
-                                LoggerBridge.append("▷ [Plugin EGL Warning]: ${e.message}")
-                            }
+                            } catch (_: Throwable) {}
                         }
                     }
                 }
 
-                // VirGL socket path
                 if (rendererId == "gallium_virgl") {
                     Os.setenv("VTEST_SOCKET_NAME", File(cacheDir, ".virgl_test").absolutePath, true)
                 }
 
-                // Mesa GLSL Cache Directory
                 if (rendererId.startsWith("gallium") || rendererId.contains("zink")) {
                     Os.setenv("MESA_GLSL_CACHE_DIR", cacheDir.absolutePath, true)
+                    Os.setenv("MESA_GLSL_CACHE_MAX_SIZE", if (lowEnd) "32M" else "128M", true)
                 }
                 Os.setenv("JAVA_HOME", runtimeHome.absolutePath, true)
                 Os.setenv("HOME", gameDir.absolutePath, true)
@@ -943,8 +975,12 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 Os.setenv("AWTSTUB_WIDTH", "$targetWidth", true)
                 Os.setenv("AWTSTUB_HEIGHT", "$targetHeight", true)
                 Os.setenv("ALSOFT_DRIVERS", "opensl", true)
+                // Kurangi buffer audio OpenAL pada HP low-end agar lebih responsif & hemat RAM
+                if (lowEnd) {
+                    Os.setenv("ALSOFT_PERIODS", "3", true)
+                    Os.setenv("ALSOFT_PERIOD_SIZE", "512", true)
+                }
 
-                // Android DNS Resolver Setup (Direct match with Zalith Launcher 2 & Pojav)
                 val resolvConf = File(gameDir, "resolv.conf")
                 val dnsServers = buildSet {
                     try {
@@ -975,7 +1011,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     Os.setenv("RESOLV_CONF", resolvConf.absolutePath, true)
                 } catch (_: Throwable) {}
 
-                // Pre-dlopen Java Runtime core libraries (Identical to Zalith Launcher 2 dlopenJavaRuntime)
                 val isJava8 = File(runtimeHome, "jre").exists() || File(runtimeHome, "lib/rt.jar").exists() || File(runtimeHome, "lib/rt.jar.pack").exists()
                 val rtLibDir = if (File(runtimeHome, "jre/lib").exists()) File(runtimeHome, "jre/lib") else File(runtimeHome, "lib")
                 val archLibDir = listOf("aarch64", "aarch32", "arm", "i386", "amd64", "x86_64")
@@ -1019,66 +1054,48 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     if (so.exists()) {
                         try {
                             ZLBridge.dlopen(so.absolutePath)
-                            LoggerBridge.append("▷ [Pre-dlopen] Loaded ${so.name}")
-                        } catch (e: Throwable) {
-                            LoggerBridge.append("▷ [Pre-dlopen Warning] ${so.name}: ${e.message}")
-                        }
+                        } catch (_: Throwable) {}
                     }
                 }
 
-                // Pre-dlopen all remaining runtime shared libraries (.so) as Zalith does
                 runtimeHome.walkTopDown().filter { it.isFile && it.name.endsWith(".so") }.forEach { so ->
                     try {
                         ZLBridge.dlopen(so.absolutePath)
                     } catch (_: Throwable) {}
                 }
 
-                // Pre-dlopen OpenAL engine (Matches Zalith dlopenEngine)
                 val openalFile = File(nativeLibDir, "libopenal.so")
                 if (openalFile.exists()) {
                     try {
                         ZLBridge.dlopen(openalFile.absolutePath)
-                        LoggerBridge.append("▷ [Pre-dlopen] Loaded libopenal.so")
                     } catch (_: Throwable) {}
                 }
 
-                // Pre-dlopen internal renderer ONLY if NOT a plugin (prevents overriding plugin libraries with internal ones)
                 if (!targetRenderer.isPlugin) {
                     try {
                         val rendererFile = File(nativeLibDir, rendererSoName)
                         if (rendererFile.exists()) {
                             ZLBridge.dlopen(rendererFile.absolutePath)
-                            LoggerBridge.append("▷ [Pre-dlopen] Loaded internal renderer: $rendererSoName")
-                        } else {
-                            LoggerBridge.append("▷ [Pre-dlopen Warning] Renderer file not found: $rendererSoName")
                         }
-                    } catch (e: Throwable) {
-                        LoggerBridge.append("▷ [Pre-dlopen Warning] Renderer $rendererSoName: ${e.message}")
-                    }
+                    } catch (_: Throwable) {}
 
                     if (!eglPath.isNullOrBlank() && eglPath != glLibPath) {
                         val eglFile = File(eglPath)
                         if (eglFile.exists()) {
                             try {
                                 ZLBridge.dlopen(eglFile.absolutePath)
-                                LoggerBridge.append("▷ [Pre-dlopen] Loaded internal EGL: ${eglFile.name}")
                             } catch (_: Throwable) {}
                         }
                     }
                 }
 
-                // Pre-dlopen SPIRV-Cross if available
                 val spirvLibFile = File(nativeLibDir, "libspirv-cross-c-shared.so")
                 if (spirvLibFile.exists()) {
                     try {
                         ZLBridge.dlopen(spirvLibFile.absolutePath)
-                        LoggerBridge.append("▷ [Pre-dlopen] Loaded libspirv-cross-c-shared.so")
-                    } catch (e: Throwable) {
-                        LoggerBridge.append("▷ [Pre-dlopen Warning] spirv: ${e.message}")
-                    }
+                    } catch (_: Throwable) {}
                 }
 
-                // Pre-dlopen LWJGL natives
                 if (lwjglNativesDirPath.isNotBlank()) {
                     val lwjglDir = File(lwjglNativesDirPath)
                     listOf("liblwjgl.so", "liblwjgl_opengl.so", "liblwjgl_stb.so", "liblwjgl_tinyfd.so", "libfreetype.so", "libshaderc.so", "liblwjgl_vma.so", "libspirv-cross.so").forEach { libName ->
@@ -1086,10 +1103,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                         if (so.exists()) {
                             try {
                                 ZLBridge.dlopen(so.absolutePath)
-                                LoggerBridge.append("▷ [Pre-dlopen] Loaded ${so.name}")
-                            } catch (e: Throwable) {
-                                LoggerBridge.append("▷ [Pre-dlopen Warning] ${so.name}: ${e.message}")
-                            }
+                            } catch (_: Throwable) {}
                         }
                     }
                 }
@@ -1098,7 +1112,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 ZLBridge.initializeGameExitHook()
                 ZLBridge.chdir(gameDir.absolutePath)
 
-                // Build JVM Launch Arguments
                 val effectiveLwjglDir = if (lwjglNativesDirPath.isNotBlank()) lwjglNativesDirPath else nativeLibDir
                 val freetypeLib = if (lwjglNativesDirPath.isNotBlank() && File(lwjglNativesDirPath, "libfreetype.so").exists()) {
                     File(lwjglNativesDirPath, "libfreetype.so").absolutePath
@@ -1114,8 +1127,16 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     "libspirv-cross-c-shared.so"
                 }
 
-                // Pastikan permission executable (0755) pada bin/java dan runtime native libraries
                 com.israadev.nuxlauncher.core.runtime.JavaRuntimeManager.ensureExecutablePermissions(runtimeHome)
+
+                // Hitung alokasi Heap RAM yang aman untuk perangkat ini
+                val (safeXmsMb, safeXmxMb) = calculateSafeHeapAllocation(
+                    requestedInitialMb = activeSettings.initialHeapMb,
+                    requestedMaxMb = activeSettings.ramMb
+                )
+                LoggerBridge.append("▷ [Memory Optimizer] Safe Heap: Xms=${safeXmsMb}MB, Xmx=${safeXmxMb}MB (Requested: ${activeSettings.ramMb}MB)")
+
+                val cpuCores = Runtime.getRuntime().availableProcessors().coerceIn(2, 8)
 
                 val jvmArgs = mutableListOf<String>()
                 jvmArgs.add("${runtimeHome.absolutePath}/bin/java")
@@ -1137,7 +1158,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 jvmArgs.add("-Dos.name=Linux")
                 jvmArgs.add("-Dos.version=Android-${Build.VERSION.RELEASE}")
                 jvmArgs.add("-Duser.home=${gameDir.parentFile?.absolutePath ?: gameDir.absolutePath}")
-                jvmArgs.add("-Dnet.minecraft.clientmodname=NUX-Launcher")
+                jvmArgs.add("-Dnet.minecraft.clientmodname=BELL-Launcher")
                 jvmArgs.add("-Dlog4j2.formatMsgNoLookups=true")
                 jvmArgs.add("-Djava.rmi.server.useCodebaseOnly=true")
                 jvmArgs.add("-Dcom.sun.jndi.rmi.object.trustURLCodebase=false")
@@ -1152,7 +1173,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 jvmArgs.add("-Dsun.stdout.encoding=UTF-8")
                 jvmArgs.add("-Dsun.stderr.encoding=UTF-8")
 
-                // High-performance Android Network & Netty Socket stabilization (Direct match with Zalith)
+                // Android Network & Netty Socket stabilization
                 jvmArgs.add("-Dext.net.resolvPath=${resolvConf.absolutePath}")
                 jvmArgs.add("-Djava.net.preferIPv4Stack=true")
                 jvmArgs.add("-Djava.net.preferIPv6Addresses=false")
@@ -1161,13 +1182,35 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 jvmArgs.add("-Dorg.lwjgl.system.SharedLibraryExtractPath=${cacheDir.absolutePath}")
                 jvmArgs.add("-Dio.netty.tryReflectionSetAccessible=true")
 
-                jvmArgs.add("-XX:ActiveProcessorCount=${Runtime.getRuntime().availableProcessors()}")
-                jvmArgs.add("-Xms${activeSettings.initialHeapMb}M")
-                jvmArgs.add("-Xmx${activeSettings.ramMb}M")
-                if (activeSettings.customJvmArgs.isNotBlank()) {
-                    activeSettings.customJvmArgs.split(" ")
+                // =============================================================
+                // POTATO / LOW-END ARM64 JVM PERFORMANCE FLAGS
+                // =============================================================
+                jvmArgs.add("-XX:ActiveProcessorCount=$cpuCores")
+                jvmArgs.add("-Xms${safeXmsMb}M")
+                jvmArgs.add("-Xmx${safeXmxMb}M")
+
+                val userCustomArgs = activeSettings.customJvmArgs
+                val hasCustomGc = userCustomArgs.contains("-XX:+Use") && userCustomArgs.contains("GC")
+                if (!hasCustomGc) {
+                    jvmArgs.add("-XX:+UseG1GC")
+                    jvmArgs.add("-XX:MaxGCPauseMillis=28")
+                    jvmArgs.add("-XX:G1ReservePercent=15")
+                    jvmArgs.add("-XX:G1HeapRegionSize=4M")
+                    jvmArgs.add("-XX:+UnlockExperimentalVMOptions")
+                    jvmArgs.add("-XX:G1NewSizePercent=20")
+                    jvmArgs.add("-XX:G1MaxNewSizePercent=35")
+                    jvmArgs.add("-XX:SurvivorRatio=32")
+                    jvmArgs.add("-XX:+ParallelRefProcEnabled")
+                }
+                jvmArgs.add("-XX:+DisableExplicitGC")
+                jvmArgs.add("-XX:+PerfDisableSharedMem")
+                jvmArgs.add("-XX:ReservedCodeCacheSize=${if (lowEnd) "96M" else "160M"}")
+                jvmArgs.add("-XX:+UseStringDeduplication")
+
+                if (userCustomArgs.isNotBlank()) {
+                    userCustomArgs.split(" ")
                         .map { it.trim() }
-                        .filter { it.isNotEmpty() }
+                        .filter { it.isNotEmpty() && !it.startsWith("-Xmx") && !it.startsWith("-Xms") }
                         .forEach { jvmArgs.add(it) }
                 }
 
@@ -1178,17 +1221,14 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     LoggerBridge.append("▷ Enabled MioLibPatcher bytecode agent")
                 }
 
-                // Enable authlib-injector if using Ely.by, custom auth server, or offline custom skin/cape
                 if (!authlibInjectorPath.isNullOrBlank()) {
                     val authlibJar = File(authlibInjectorPath!!)
                     if (authlibJar.exists()) {
                         var effectiveAuthlibUrl: String? = null
 
-                        // 1. External auth server (e.g., Ely.by)
                         if (!authlibUrl.isNullOrBlank() && !authlibUrl!!.contains("127.0.0.1") && !authlibUrl!!.contains("localhost")) {
                             effectiveAuthlibUrl = authlibUrl
                         } else {
-                            // 2. Offline custom skin/cape: Run local server directly inside :game process
                             val skinFile = skinPath?.let { File(it) }?.takeIf { it.exists() }
                             val capeFile = capePath?.let { File(it) }?.takeIf { it.exists() }
 
@@ -1208,11 +1248,10 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                                         effectiveAuthlibUrl = "http://127.0.0.1:$port"
                                         LoggerBridge.append("▷ Offline Yggdrasil skin server running on port $port")
                                     } else {
-                                        LoggerBridge.append("⚠️ Offline skin server failed to start, skipping authlib-injector")
                                         server.stop()
                                     }
                                 } catch (e: Exception) {
-                                    LoggerBridge.append("⚠️ Offline skin server error: ${e.message}, skipping authlib-injector")
+                                    LoggerBridge.append("⚠️ Offline skin server error: ${e.message}")
                                 }
                             }
                         }
@@ -1220,7 +1259,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                         if (!effectiveAuthlibUrl.isNullOrBlank()) {
                             jvmArgs.add("-javaagent:${authlibJar.absolutePath}=$effectiveAuthlibUrl")
                             jvmArgs.add("-Dauthlibinjector.side=client")
-                            LoggerBridge.append("▷ Enabled authlib-injector for auth ($effectiveAuthlibUrl)")
                         }
                     }
                 }
@@ -1245,7 +1283,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     }
                 }
 
-                // Sanitasi classpath: buang duplikat dan pastikan tidak ada bentrok versi ASM jika menjalankan Fabric/Knot
                 val effectiveClasspath = if (mainClass.contains("knot") || mainClass.contains("fabric")) {
                     val entries = classpath.split(File.pathSeparator).filter { it.isNotBlank() }
                     val hasModernAsm = entries.any { it.contains("org/ow2/asm") && !it.contains("/9.6/") }
@@ -1296,10 +1333,10 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     loaderVersion = loaderVersion,
                     installedMods = installedMods
                 )
-                liveLogs.add("[NUX Engine] Memulai eksekusi VMLauncher.launchJVM()...")
+                runOnUiThread { appendLiveLog("[NUX Engine] Memulai eksekusi VMLauncher.launchJVM()...") }
                 val exitCode = VMLauncher.launchJVM(jvmArgs.toTypedArray())
-                liveLogs.add("[NUX Engine] JVM terminated with exit code: $exitCode")
                 runOnUiThread {
+                    appendLiveLog("[NUX Engine] JVM terminated with exit code: $exitCode")
                     handleGameExit(exitCode, false)
                 }
             } catch (e: Throwable) {
@@ -1314,9 +1351,9 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 }
 
 enum class FpsMode {
-    NORMAL,    // Siklus 3 / Awal: Mengikuti visibilitas GUI (isControlVisible), log tertutup
-    PINNED,    // Siklus 1: FPS di-pin, tetap tampil meski GUI di-hide, log tertutup
-    SHOW_LOG   // Siklus 2: Memunculkan log in-game (isConsoleVisible = true)
+    NORMAL,
+    PINNED,
+    SHOW_LOG
 }
 
 @Composable
@@ -1327,6 +1364,7 @@ fun GameScreen(
     mainClass: String,
     runtimeName: String,
     liveLogs: List<String>,
+    latestLogState: State<String>,
     isControlVisibleState: MutableState<Boolean>,
     isGameRenderingState: MutableState<Boolean>,
     onSurfaceReady: (SurfaceHolder) -> Unit,
@@ -1336,7 +1374,7 @@ fun GameScreen(
     onRequestStopRecord: () -> Unit = {}
 ) {
     var isControlVisible by isControlVisibleState
-    var isGameRendering by isGameRenderingState
+    val isGameRendering by isGameRenderingState
     var isManualLoadingDismissed by remember { mutableStateOf(false) }
     val showLoadingOverlay = !isGameRendering && !isManualLoadingDismissed
 
@@ -1353,37 +1391,15 @@ fun GameScreen(
     var fpsMode by remember { mutableStateOf(FpsMode.NORMAL) }
     val listState = rememberLazyListState()
     val context = LocalContext.current
-    val gameActivity = context as? GameActivity
 
-    // Handler siklus 3-klik tombol FPS
-    val cycleFpsMode: () -> Unit = {
-        when (fpsMode) {
-            FpsMode.NORMAL -> {
-                fpsMode = FpsMode.PINNED
-                isConsoleVisible = false
-                Toast.makeText(context, "📌 FPS Pinned (Visible even when GUI is hidden)", Toast.LENGTH_SHORT).show()
-            }
-            FpsMode.PINNED -> {
-                fpsMode = FpsMode.SHOW_LOG
-                isConsoleVisible = true
-                Toast.makeText(context, "📜 Showing Minecraft Live Logs", Toast.LENGTH_SHORT).show()
-            }
-            FpsMode.SHOW_LOG -> {
-                fpsMode = FpsMode.NORMAL
-                isConsoleVisible = false
-                Toast.makeText(context, "FPS Normal Mode (Follows GUI visibility)", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    // Periodically update FPS counter from native engine
-    LaunchedEffect(Unit) {
-        while (isActive) {
+    // Polling FPS hanya setiap 750ms dan berhenti saat dialog pengaturan terbuka (hemat CPU)
+    LaunchedEffect(showInGameSettingsDialog) {
+        while (isActive && !showInGameSettingsDialog) {
             try {
                 currentFps = CallbackBridge.getCurrentFps()
             } catch (_: Throwable) {
             }
-            delay(500)
+            delay(750)
         }
     }
 
@@ -1392,9 +1408,9 @@ fun GameScreen(
     val customButtons by ControlLayoutManager.buttons.collectAsState()
     val mouseControlMode = if (launcherSettings.mouseControlMode == "CLICK") MouseControlMode.CLICK else MouseControlMode.SLIDE
 
-    LaunchedEffect(liveLogs.size) {
-        if (liveLogs.isNotEmpty()) {
-            listState.animateScrollToItem(liveLogs.size - 1)
+    LaunchedEffect(liveLogs.size, isConsoleVisible, isConsoleExpanded) {
+        if (isConsoleVisible && isConsoleExpanded && liveLogs.isNotEmpty()) {
+            listState.scrollToItem(liveLogs.size - 1)
         }
     }
 
@@ -1412,7 +1428,6 @@ fun GameScreen(
 
         var previousCursorMode by remember { mutableIntStateOf(gameCursorMode) }
 
-        // Otomatis kembalikan kursor ke tengah saat baru mulai & saat buka inventory/chest (setelah kursor hilang in-game)
         LaunchedEffect(gameCursorMode, screenWidth, screenHeight) {
             if (screenWidth > 0f && screenHeight > 0f) {
                 val isInitial = (cursorX == 0f && cursorY == 0f)
@@ -1430,7 +1445,7 @@ fun GameScreen(
             previousCursorMode = gameCursorMode
         }
 
-        // 1. OpenGL/Vulkan Surface View (Pure rendering surface)
+        // 1. OpenGL/Vulkan Surface View
         AndroidView(
             factory = { ctx ->
                 SurfaceView(ctx).apply {
@@ -1441,7 +1456,6 @@ fun GameScreen(
         )
 
         if (isCustomGuiEditorActive) {
-            // Live In-Game Custom GUI Editor (Overlay di atas SurfaceView game dengan latar transparan blur)
             CustomGuiEditorScreen(
                 isIngame = true,
                 onNavigateBack = {
@@ -1449,443 +1463,352 @@ fun GameScreen(
                 }
             )
         } else {
-            // Physical Mouse Mode State (Zalith-style: auto-hide virtual pointer when physical mouse is used)
             var isPhysicalMouseMode by remember {
-            mutableStateOf(
-                if (PhysicalMouseChecker.physicalMouseConnected) {
-                    launcherSettings.physicalMouseMode
-                } else {
-                    false
-                }
-            )
-        }
-
-        // 2. Zalith-Style Touchpad & Input Controller Layer
-        SwitchableMouseLayout(
-            modifier = Modifier.fillMaxSize(),
-            screenWidth = screenWidth,
-            screenHeight = screenHeight,
-            cursorMode = gameCursorMode,
-            controlMode = mouseControlMode,
-            cursorPosition = Offset(cursorX, cursorY),
-            cursorSensitivity = launcherSettings.cursorSensitivity / 100f,
-            requestPointerCapture = !launcherSettings.physicalMouseMode,
-            onCursorPositionChange = { newPos ->
-                cursorX = newPos.x
-                cursorY = newPos.y
-            },
-            onPhysicalMouseModeChange = { isPhysical ->
-                isPhysicalMouseMode = isPhysical
-            },
-            onMouse = {
-                isPhysicalMouseMode = true
-                isControlVisible = false
-            },
-            onTouch = {
-                isPhysicalMouseMode = false
-            },
-            onTap = { pos ->
-                val winW = CallbackBridge.windowWidth
-                val winH = CallbackBridge.windowHeight
-                val targetX = if (screenWidth > 0 && winW > 0) pos.x * (winW.toFloat() / screenWidth) else pos.x
-                val targetY = if (screenHeight > 0 && winH > 0) pos.y * (winH.toFloat() / screenHeight) else pos.y
-                CallbackBridge.putMouseEventWithCoords(
-                    LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT,
-                    targetX,
-                    targetY
+                mutableStateOf(
+                    if (PhysicalMouseChecker.physicalMouseConnected) {
+                        launcherSettings.physicalMouseMode
+                    } else {
+                        false
+                    }
                 )
-            },
-            onLongPress = {
-                isMousePressed = true
-                CallbackBridge.putMouseEvent(LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT, true)
-            },
-            onLongPressEnd = {
-                isMousePressed = false
-                CallbackBridge.putMouseEvent(LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT, false)
-            },
-            onCapturedMove = { delta ->
-                val sens = launcherSettings.captureSensitivity / 100f
-                CallbackBridge.sendCursorDelta(delta.x * sens, delta.y * sens)
             }
-        )
 
-        // 2b. Game Loading Screen Overlay with Launcher Tips (Muncul sebelum logo Mojang)
-        GameLoadingOverlay(
-            visible = showLoadingOverlay,
-            instanceName = instanceName,
-            mcVersion = mcVersion,
-            latestLog = liveLogs.lastOrNull() ?: "",
-            onClose = { isManualLoadingDismissed = true },
-            onViewLog = {
-                fpsMode = FpsMode.SHOW_LOG
-                isConsoleVisible = true
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        // Hidden IME soft keyboard layer
-        if (isKeyboardRequested) {
-            HidableInputLayout(
-                onClose = {
-                    isKeyboardRequested = false
+            // 2. Touchpad & Input Controller Layer
+            SwitchableMouseLayout(
+                modifier = Modifier.fillMaxSize(),
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                cursorMode = gameCursorMode,
+                controlMode = mouseControlMode,
+                cursorPosition = Offset(cursorX, cursorY),
+                cursorSensitivity = launcherSettings.cursorSensitivity / 100f,
+                requestPointerCapture = !launcherSettings.physicalMouseMode,
+                onCursorPositionChange = { newPos ->
+                    cursorX = newPos.x
+                    cursorY = newPos.y
+                },
+                onPhysicalMouseModeChange = { isPhysical ->
+                    isPhysicalMouseMode = isPhysical
+                },
+                onMouse = {
+                    isPhysicalMouseMode = true
+                    isControlVisible = false
+                },
+                onTouch = {
+                    isPhysicalMouseMode = false
+                },
+                onTap = { pos ->
+                    val winW = CallbackBridge.windowWidth
+                    val winH = CallbackBridge.windowHeight
+                    val targetX = if (screenWidth > 0 && winW > 0) pos.x * (winW.toFloat() / screenWidth) else pos.x
+                    val targetY = if (screenHeight > 0 && winH > 0) pos.y * (winH.toFloat() / screenHeight) else pos.y
+                    CallbackBridge.putMouseEventWithCoords(
+                        LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT,
+                        targetX,
+                        targetY
+                    )
+                },
+                onLongPress = {
+                    isMousePressed = true
+                    CallbackBridge.putMouseEvent(LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT, true)
+                },
+                onLongPressEnd = {
+                    isMousePressed = false
+                    CallbackBridge.putMouseEvent(LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT, false)
+                },
+                onCapturedMove = { delta ->
+                    val sens = launcherSettings.captureSensitivity / 100f
+                    CallbackBridge.sendCursorDelta(delta.x * sens, delta.y * sens)
                 }
             )
-        }
 
-        // 3. Visible Desktop Virtual Cursor Pointer (Zalith Style - automatically visible ONLY in menus, hidden when external mouse is active)
-        val shouldShowPointer = if (mouseControlMode == MouseControlMode.CLICK && launcherSettings.hideMouseInClickMode) {
-            false
-        } else if (PhysicalMouseChecker.physicalMouseConnected && isPhysicalMouseMode && launcherSettings.physicalMouseMode) {
-            // Sembunyikan mouse virtual jika mouse fisik eksternal terhubung & sedang digunakan
-            false
-        } else {
-            gameCursorMode == CURSOR_ENABLED && cursorX > 0f && cursorY > 0f
-        }
+            // 2b. Game Loading Screen Overlay (Hanya membaca latestLogState saat masih loading)
+            if (showLoadingOverlay) {
+                GameLoadingOverlay(
+                    visible = true,
+                    instanceName = instanceName,
+                    mcVersion = mcVersion,
+                    latestLog = latestLogState.value,
+                    onClose = { isManualLoadingDismissed = true },
+                    onViewLog = {
+                        fpsMode = FpsMode.SHOW_LOG
+                        isConsoleVisible = true
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
-        if (shouldShowPointer) {
-            VirtualCursorPointer(
-                x = cursorX,
-                y = cursorY,
-                isPressed = isMousePressed,
-                cursorSizeDp = launcherSettings.mouseSizeDp
-            )
-        }
-
-        // Floating Cyber REC Indicator (Tap to stop recording)
-        if (recordState.isRecording) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 10.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xD9180808))
-                    .border(1.2.dp, Color(0xFFEF4444), RoundedCornerShape(20.dp))
-                    .clickable {
-                        onRequestStopRecord()
+            if (isKeyboardRequested) {
+                HidableInputLayout(
+                    onClose = {
+                        isKeyboardRequested = false
                     }
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(9.dp)
-                            .background(Color(0xFFEF4444), CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "REC ${recordState.formattedDuration}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "TAP TO STOP",
-                        color = Color(0xFFFCA5A5),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp
-                    )
-                }
+                )
             }
-        }
 
-        // 3. HUD / Live Debug Console Layer (Obsidian Cyber-Glass)
-        if (isConsoleVisible) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .width(if (isConsoleExpanded) 420.dp else 300.dp)
-                    .background(Color(0xF2090D14), RoundedCornerShape(12.dp))
-                    .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Clickable FPS badge in console (Klik untuk membuka menu in-game)
-                    Box(
-                        modifier = Modifier.clickable {
-                            inGameSettingsInitialTab = 0
-                            showInGameSettingsDialog = true
+            // 3. Visible Desktop Virtual Cursor Pointer
+            val shouldShowPointer = if (mouseControlMode == MouseControlMode.CLICK && launcherSettings.hideMouseInClickMode) {
+                false
+            } else if (PhysicalMouseChecker.physicalMouseConnected && isPhysicalMouseMode && launcherSettings.physicalMouseMode) {
+                false
+            } else {
+                gameCursorMode == CURSOR_ENABLED && cursorX > 0f && cursorY > 0f
+            }
+
+            if (shouldShowPointer) {
+                VirtualCursorPointer(
+                    x = cursorX,
+                    y = cursorY,
+                    isPressed = isMousePressed,
+                    cursorSizeDp = launcherSettings.mouseSizeDp
+                )
+            }
+
+            // Floating REC Indicator
+            if (recordState.isRecording) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 10.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xD9180808))
+                        .border(1.2.dp, Color(0xFFEF4444), RoundedCornerShape(20.dp))
+                        .clickable {
+                            onRequestStopRecord()
                         }
-                    ) {
-                        NuxBadge(
-                            text = if (currentFps > 0) "$currentFps FPS" else "FPS: --",
-                            backgroundColor = when {
-                                currentFps >= 50 -> Color(0xFF10B981)
-                                currentFps >= 25 -> Color(0xFFF59E0B)
-                                currentFps > 0 -> Color(0xFFEF4444)
-                                else -> Color(0xFF4B5563)
-                            },
-                            textColor = Color.White
-                        )
-                    }
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .clickable { isConsoleExpanded = !isConsoleExpanded }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = if (isConsoleExpanded) "▲ KECILKAN" else "▼ LOG LENGKAP",
-                                color = Color(0xFF34D399),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp
-                            )
-                        }
+                                .size(9.dp)
+                                .background(Color(0xFFEF4444), CircleShape)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .clickable {
-                                    isConsoleVisible = false
-                                    fpsMode = FpsMode.NORMAL
-                                }
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "✕",
-                                color = Color(0xFFA1A1AA),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                        }
+                        Text(
+                            text = "REC ${recordState.formattedDuration}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "TAP TO STOP",
+                            color = Color(0xFFFCA5A5),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 9.sp
+                        )
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                if (isConsoleExpanded) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
+            // 3. HUD / Live Debug Console Layer (Hanya di-compose jika user membukanya)
+            if (isConsoleVisible) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .width(if (isConsoleExpanded) 420.dp else 300.dp)
+                        .background(Color(0xF2090D14), RoundedCornerShape(12.dp))
+                        .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        items(liveLogs) { log ->
+                        Box(
+                            modifier = Modifier.clickable {
+                                inGameSettingsInitialTab = 0
+                                showInGameSettingsDialog = true
+                            }
+                        ) {
+                            NuxBadge(
+                                text = if (currentFps > 0) "$currentFps FPS" else "FPS: --",
+                                backgroundColor = when {
+                                    currentFps >= 50 -> Color(0xFF10B981)
+                                    currentFps >= 25 -> Color(0xFFF59E0B)
+                                    currentFps > 0 -> Color(0xFFEF4444)
+                                    else -> Color(0xFF4B5563)
+                                },
+                                textColor = Color.White
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .clickable { isConsoleExpanded = !isConsoleExpanded }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = if (isConsoleExpanded) "▲ KECILKAN" else "▼ LOG LENGKAP",
+                                    color = Color(0xFF34D399),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clickable {
+                                        isConsoleVisible = false
+                                        fpsMode = FpsMode.NORMAL
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "✕",
+                                    color = Color(0xFFA1A1AA),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (isConsoleExpanded) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                        ) {
+                            items(liveLogs) { log ->
+                                Text(
+                                    text = log,
+                                    color = Color(0xFFA7F3D0),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 9.sp,
+                                    lineHeight = 12.sp
+                                )
+                            }
+                        }
+                    } else {
+                        liveLogs.takeLast(4).forEach { log ->
                             Text(
                                 text = log,
                                 color = Color(0xFFA7F3D0),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 9.sp,
+                                maxLines = 1,
                                 lineHeight = 12.sp
                             )
                         }
                     }
-                } else {
-                    liveLogs.takeLast(4).forEach { log ->
-                        Text(
-                            text = log,
-                            color = Color(0xFFA7F3D0),
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 9.sp,
-                            maxLines = 1,
-                            lineHeight = 12.sp
-                        )
-                    }
                 }
             }
-        }
 
-        // 4. Virtual Controls & Customizable System Controls (FPS, Keyboard, Hide/Show GUI, Close)
-        val density = LocalDensity.current
-        customButtons.forEach { btn ->
-            val btnWidthPx = with(density) { btn.widthDp.dp.toPx() }
-            val btnHeightPx = with(density) { btn.heightDp.dp.toPx() }
+            // 4. Virtual Controls & System Controls
+            val density = LocalDensity.current
+            customButtons.forEach { btn ->
+                val btnWidthPx = with(density) { btn.widthDp.dp.toPx() }
+                val btnHeightPx = with(density) { btn.heightDp.dp.toPx() }
 
-            val centerX = screenWidth * (btn.xPercent / 100f)
-            val centerY = screenHeight * (btn.yPercent / 100f)
+                val centerX = screenWidth * (btn.xPercent / 100f)
+                val centerY = screenHeight * (btn.yPercent / 100f)
 
-            val leftPx = (centerX - btnWidthPx / 2f).coerceIn(0f, (screenWidth - btnWidthPx).coerceAtLeast(0f))
-            val topPx = (centerY - btnHeightPx / 2f).coerceIn(0f, (screenHeight - btnHeightPx).coerceAtLeast(0f))
+                val leftPx = (centerX - btnWidthPx / 2f).coerceIn(0f, (screenWidth - btnWidthPx).coerceAtLeast(0f))
+                val topPx = (centerY - btnHeightPx / 2f).coerceIn(0f, (screenHeight - btnHeightPx).coerceAtLeast(0f))
 
-            val leftDp = with(density) { leftPx.toDp() }
-            val topDp = with(density) { topPx.toDp() }
+                val leftDp = with(density) { leftPx.toDp() }
+                val topDp = with(density) { topPx.toDp() }
 
-            val buttonModifier = Modifier.offset(x = leftDp, y = topDp)
+                val buttonModifier = Modifier.offset(x = leftDp, y = topDp)
 
-            if (btn.isSystem) {
-                when (btn.systemAction) {
-                    "FPS" -> {
-                        // FPS Indicator Pill (3-Mode Cycle: 1=Pin FPS, 2=Show Log, 3=Normal)
-                        val shouldShowFps = when (fpsMode) {
-                            FpsMode.NORMAL -> isControlVisible && !isConsoleVisible
-                            FpsMode.PINNED -> !isConsoleVisible // Tetap tampil meski isControlVisible == false (GUI di-hide)!
-                            FpsMode.SHOW_LOG -> false // Log console aktif (badge FPS ada di header console)
-                        }
+                if (btn.isSystem) {
+                    when (btn.systemAction) {
+                        "FPS" -> {
+                            val shouldShowFps = when (fpsMode) {
+                                FpsMode.NORMAL -> isControlVisible && !isConsoleVisible
+                                FpsMode.PINNED -> !isConsoleVisible
+                                FpsMode.SHOW_LOG -> false
+                            }
 
-                        if (shouldShowFps) {
-                            val isPinned = fpsMode == FpsMode.PINNED
-                            Box(
-                                modifier = buttonModifier
-                                    .wrapContentWidth()
-                                    .defaultMinSize(minWidth = btn.widthDp.dp, minHeight = btn.heightDp.dp)
-                                    .alpha(btn.opacity)
-                                    .background(
-                                        if (isPinned) Color(0xCC091E2A) else Color(0x800A0E17),
-                                        RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                    )
-                                    .border(
-                                        1.5.dp,
-                                        if (isPinned) Color(0xFF38BDF8) else Color(0x3834D399),
-                                        RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                    )
-                                    .clickable {
-                                        inGameSettingsInitialTab = 0
-                                        showInGameSettingsDialog = true
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            if (shouldShowFps) {
+                                val isPinned = fpsMode == FpsMode.PINNED
+                                Box(
+                                    modifier = buttonModifier
+                                        .wrapContentWidth()
+                                        .defaultMinSize(minWidth = btn.widthDp.dp, minHeight = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(
+                                            if (isPinned) Color(0xCC091E2A) else Color(0x800A0E17),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            if (isPinned) Color(0xFF38BDF8) else Color(0x3834D399),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .clickable {
+                                            inGameSettingsInitialTab = 0
+                                            showInGameSettingsDialog = true
+                                        },
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    if (isPinned) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        if (isPinned) {
+                                            Text(
+                                                text = "📌",
+                                                fontSize = 9.sp,
+                                                modifier = Modifier.padding(end = 4.dp)
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(
+                                                    when {
+                                                        currentFps >= 50 -> Color(0xFF10B981)
+                                                        currentFps >= 25 -> Color(0xFFF59E0B)
+                                                        currentFps > 0 -> Color(0xFFEF4444)
+                                                        else -> Color(0xFF6B7280)
+                                                    },
+                                                    CircleShape
+                                                )
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
                                         Text(
-                                            text = "📌",
-                                            fontSize = 9.sp,
-                                            modifier = Modifier.padding(end = 4.dp)
+                                            text = if (currentFps > 0) "$currentFps FPS" else "FPS: --",
+                                            color = if (isPinned) Color(0xFFBAE6FD) else Color.White,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 11.sp,
+                                            maxLines = 1
                                         )
                                     }
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .background(
-                                                when {
-                                                    currentFps >= 50 -> Color(0xFF10B981)
-                                                    currentFps >= 25 -> Color(0xFFF59E0B)
-                                                    currentFps > 0 -> Color(0xFFEF4444)
-                                                    else -> Color(0xFF6B7280)
-                                                },
-                                                CircleShape
-                                            )
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text(
-                                        text = if (currentFps > 0) "$currentFps FPS" else "FPS: --",
-                                        color = if (isPinned) Color(0xFFBAE6FD) else Color.White,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 11.sp,
-                                        maxLines = 1
-                                    )
                                 }
                             }
                         }
-                    }
-                    "KEYBOARD" -> {
-                        // Keyboard Toggle Button
-                        if (isControlVisible) {
-                            val active = isKeyboardRequested
-                            Box(
-                                modifier = buttonModifier
-                                    .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
-                                    .alpha(btn.opacity)
-                                    .background(
-                                        if (active) Color(0xCC10B981) else Color(0x730A0E17),
-                                        RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                    )
-                                    .border(
-                                        1.5.dp,
-                                        if (active) Color(0xFF34D399) else Color(0x3834D399),
-                                        RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                    )
-                                    .clickable { isKeyboardRequested = !isKeyboardRequested },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "KEYBOARD",
-                                    color = if (active) Color(0xFF022C22) else Color.White,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                    }
-                    "HIDE_GUI" -> {
-                        // Hide/Show GUI Button: ALWAYS VISIBLE so user can restore touch controls!
-                        Box(
-                            modifier = buttonModifier
-                                .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
-                                .alpha(btn.opacity)
-                                .background(Color(0x730A0E17), RoundedCornerShape(btn.cornerRadiusDp.dp))
-                                .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(btn.cornerRadiusDp.dp))
-                                .clickable { isControlVisible = !isControlVisible },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (isControlVisible) "HIDE GUI" else "SHOW GUI",
-                                color = Color(0xFF34D399),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 10.sp,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                    "CLOSE" -> {
-                        // Exit Game Button
-                        if (isControlVisible) {
-                            Box(
-                                modifier = buttonModifier
-                                    .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
-                                    .alpha(btn.opacity)
-                                    .background(Color(0x80EF4444).copy(alpha = 0.35f), RoundedCornerShape(btn.cornerRadiusDp.dp))
-                                    .border(1.5.dp, Color(0x80EF4444), RoundedCornerShape(btn.cornerRadiusDp.dp))
-                                    .clickable { showExitConfirmDialog = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "✕",
-                                    color = Color(0xFFFCA5A5),
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp
-                                )
-                            }
-                        }
-                    }
-                    "RECORD" -> {
-                        // Virtual On-Screen Screen Recorder Button
-                        if (isControlVisible) {
-                            val isRec = recordState.isRecording
-                            Box(
-                                modifier = buttonModifier
-                                    .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
-                                    .alpha(btn.opacity)
-                                    .background(
-                                        if (isRec) Color(0xCCEF4444) else Color(0x730A0E17),
-                                        RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                    )
-                                    .border(
-                                        1.5.dp,
-                                        if (isRec) Color(0xFFEF4444) else Color(0xFFF59E0B),
-                                        RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                    )
-                                    .clickable {
-                                        inGameSettingsInitialTab = 3
-                                        showInGameSettingsDialog = true
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                        "KEYBOARD" -> {
+                            if (isControlVisible) {
+                                val active = isKeyboardRequested
+                                Box(
+                                    modifier = buttonModifier
+                                        .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(
+                                            if (active) Color(0xCC10B981) else Color(0x730A0E17),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            if (active) Color(0xFF34D399) else Color(0x3834D399),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .clickable { isKeyboardRequested = !isKeyboardRequested },
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .background(
-                                                if (isRec) Color.White else Color(0xFFEF4444),
-                                                CircleShape
-                                            )
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = if (isRec) recordState.formattedDuration else "REC",
-                                        color = Color.White,
+                                        text = "KEYBOARD",
+                                        color = if (active) Color(0xFF022C22) else Color.White,
                                         fontWeight = FontWeight.Black,
                                         fontSize = 10.sp,
                                         maxLines = 1
@@ -1893,180 +1816,260 @@ fun GameScreen(
                                 }
                             }
                         }
+                        "HIDE_GUI" -> {
+                            Box(
+                                modifier = buttonModifier
+                                    .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                    .alpha(btn.opacity)
+                                    .background(Color(0x730A0E17), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                    .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                    .clickable { isControlVisible = !isControlVisible },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isControlVisible) "HIDE GUI" else "SHOW GUI",
+                                    color = Color(0xFF34D399),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        "CLOSE" -> {
+                            if (isControlVisible) {
+                                Box(
+                                    modifier = buttonModifier
+                                        .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(Color(0x80EF4444).copy(alpha = 0.35f), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .border(1.5.dp, Color(0x80EF4444), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .clickable { showExitConfirmDialog = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "✕",
+                                        color = Color(0xFFFCA5A5),
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                        "RECORD" -> {
+                            if (isControlVisible) {
+                                val isRec = recordState.isRecording
+                                Box(
+                                    modifier = buttonModifier
+                                        .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(
+                                            if (isRec) Color(0xCCEF4444) else Color(0x730A0E17),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            if (isRec) Color(0xFFEF4444) else Color(0xFFF59E0B),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .clickable {
+                                            inGameSettingsInitialTab = 3
+                                            showInGameSettingsDialog = true
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(
+                                                    if (isRec) Color.White else Color(0xFFEF4444),
+                                                    CircleShape
+                                                )
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = if (isRec) recordState.formattedDuration else "REC",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 10.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            } else {
-                // Regular Minecraft Touch Control Button or Joystick
-                if (isControlVisible) {
-                    if (btn.isJoystick) {
-                        CustomVirtualJoystick(
-                            button = btn,
-                            modifier = buttonModifier
-                        )
-                    } else {
-                        CustomVirtualButton(
-                            button = btn,
-                            modifier = buttonModifier
-                        )
+                } else {
+                    if (isControlVisible) {
+                        if (btn.isJoystick) {
+                            CustomVirtualJoystick(
+                                button = btn,
+                                modifier = buttonModifier
+                            )
+                        } else {
+                            CustomVirtualButton(
+                                button = btn,
+                                modifier = buttonModifier
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Exit Confirmation Dialog
-        if (showExitConfirmDialog) {
-            Dialog(
-                onDismissRequest = { showExitConfirmDialog = false },
-                properties = DialogProperties(usePlatformDefaultWidth = false)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
+            if (showExitConfirmDialog) {
+                Dialog(
+                    onDismissRequest = { showExitConfirmDialog = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
                 ) {
-                    NuxCard(
+                    Box(
                         modifier = Modifier
-                            .width(360.dp)
-                            .wrapContentHeight(),
-                        backgroundColor = NuxColors.SurfaceWhite,
-                        shadowOffset = 5.dp,
-                        cornerRadius = NuxSizes.CornerRadiusLarge,
-                        fillMaxHeight = false
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(
+                        NuxCard(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp)
+                                .width(360.dp)
+                                .wrapContentHeight(),
+                            backgroundColor = NuxColors.SurfaceWhite,
+                            shadowOffset = 5.dp,
+                            cornerRadius = NuxSizes.CornerRadiusLarge,
+                            fillMaxHeight = false
                         ) {
-                            Text(
-                                text = "EXIT MINECRAFT?",
-                                color = NuxColors.DarkGray,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 15.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "The Minecraft JVM process will be stopped and you will return to the launcher.",
-                                color = NuxColors.GrayNeutral,
-                                fontSize = 12.sp,
-                                lineHeight = 16.sp
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp)
                             ) {
-                                NuxButton(
-                                    onClick = { showExitConfirmDialog = false },
-                                    backgroundColor = NuxColors.SurfaceWhite,
-                                    contentColor = NuxColors.DarkGray,
-                                    shadowOffset = 2.dp,
-                                    cornerRadius = 8.dp,
-                                    modifier = Modifier.height(36.dp)
+                                Text(
+                                    text = "EXIT MINECRAFT?",
+                                    color = NuxColors.DarkGray,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 15.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "The Minecraft JVM process will be stopped and you will return to the launcher.",
+                                    color = NuxColors.GrayNeutral,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("CANCEL", fontWeight = FontWeight.Black, fontSize = 11.sp)
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                NuxButton(
-                                    onClick = {
-                                        showExitConfirmDialog = false
-                                        onExit()
-                                    },
-                                    backgroundColor = NuxColors.Coral,
-                                    contentColor = Color.White,
-                                    shadowOffset = 2.dp,
-                                    cornerRadius = 8.dp,
-                                    modifier = Modifier.height(36.dp)
-                                ) {
-                                    Text("QUIT ✕", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Color.White)
+                                    NuxButton(
+                                        onClick = { showExitConfirmDialog = false },
+                                        backgroundColor = NuxColors.SurfaceWhite,
+                                        contentColor = NuxColors.DarkGray,
+                                        shadowOffset = 2.dp,
+                                        cornerRadius = 8.dp,
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("CANCEL", fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    NuxButton(
+                                        onClick = {
+                                            showExitConfirmDialog = false
+                                            onExit()
+                                        },
+                                        backgroundColor = NuxColors.Coral,
+                                        contentColor = Color.White,
+                                        shadowOffset = 2.dp,
+                                        cornerRadius = 8.dp,
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("QUIT ✕", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Color.White)
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        // In-Game Settings Modal (Pencet tombol FPS untuk membuka)
-        InGameSettingsDialog(
-            visible = showInGameSettingsDialog,
-            onDismissRequest = { showInGameSettingsDialog = false },
-            initialTab = inGameSettingsInitialTab,
-            currentFps = currentFps,
-            instanceName = instanceName,
-            mcVersion = mcVersion,
-            currentResolutionRatio = launcherSettings.resolutionRatio,
-            onResolutionChange = { newRatio ->
-                onResolutionChange(newRatio)
-            },
-            fpsMode = fpsMode,
-            onFpsModeChange = { newMode ->
-                fpsMode = newMode
-            },
-            onOpenConsoleLog = {
-                fpsMode = FpsMode.SHOW_LOG
-                isConsoleVisible = true
-            },
-            cursorSensitivity = launcherSettings.cursorSensitivity,
-            onCursorSensitivityChange = { newSens ->
-                SettingsManager.updateSettings(
-                    context,
-                    launcherSettings.copy(cursorSensitivity = newSens)
-                )
-            },
-            captureSensitivity = launcherSettings.captureSensitivity,
-            onCaptureSensitivityChange = { newSens ->
-                SettingsManager.updateSettings(
-                    context,
-                    launcherSettings.copy(captureSensitivity = newSens)
-                )
-            },
-            mouseControlMode = mouseControlMode,
-            onMouseControlModeChange = { newMode ->
-                SettingsManager.updateSettings(
-                    context,
-                    launcherSettings.copy(mouseControlMode = if (newMode == MouseControlMode.CLICK) "CLICK" else "SLIDE")
-                )
-            },
-            isControlVisible = isControlVisible,
-            onToggleControlVisibility = {
-                isControlVisible = !isControlVisible
-            },
-            onRequestKeyboard = {
-                isKeyboardRequested = true
-            },
-            onSendKeycode = { keycode ->
-                CallbackBridge.sendKeyPress(keycode, true)
-                CallbackBridge.sendKeyPress(keycode, false)
-            },
-            onForceExitRequest = {
-                showExitConfirmDialog = true
-            },
-            onOpenCustomGui = {
-                showInGameSettingsDialog = false
-                isCustomGuiEditorActive = true
-            },
-            isRecording = recordState.isRecording,
-            recordingDurationSeconds = recordState.durationSeconds,
-            onRequestStartRecord = { config ->
-                onRequestStartRecord(config)
-            },
-            onStopRecord = {
-                onRequestStopRecord()
-            },
-            onOpenPremium = {
-                showPremiumDialog = true
-            }
-        )
-
-        // Nux Premium Dialog in-game
-        if (showPremiumDialog) {
-            NuxPremiumDialog(
-                onDismissRequest = { showPremiumDialog = false }
+            InGameSettingsDialog(
+                visible = showInGameSettingsDialog,
+                onDismissRequest = { showInGameSettingsDialog = false },
+                initialTab = inGameSettingsInitialTab,
+                currentFps = currentFps,
+                instanceName = instanceName,
+                mcVersion = mcVersion,
+                currentResolutionRatio = launcherSettings.resolutionRatio,
+                onResolutionChange = { newRatio ->
+                    onResolutionChange(newRatio)
+                },
+                fpsMode = fpsMode,
+                onFpsModeChange = { newMode ->
+                    fpsMode = newMode
+                },
+                onOpenConsoleLog = {
+                    fpsMode = FpsMode.SHOW_LOG
+                    isConsoleVisible = true
+                },
+                cursorSensitivity = launcherSettings.cursorSensitivity,
+                onCursorSensitivityChange = { newSens ->
+                    SettingsManager.updateSettings(
+                        context,
+                        launcherSettings.copy(cursorSensitivity = newSens)
+                    )
+                },
+                captureSensitivity = launcherSettings.captureSensitivity,
+                onCaptureSensitivityChange = { newSens ->
+                    SettingsManager.updateSettings(
+                        context,
+                        launcherSettings.copy(captureSensitivity = newSens)
+                    )
+                },
+                mouseControlMode = mouseControlMode,
+                onMouseControlModeChange = { newMode ->
+                    SettingsManager.updateSettings(
+                        context,
+                        launcherSettings.copy(mouseControlMode = if (newMode == MouseControlMode.CLICK) "CLICK" else "SLIDE")
+                    )
+                },
+                isControlVisible = isControlVisible,
+                onToggleControlVisibility = {
+                    isControlVisible = !isControlVisible
+                },
+                onRequestKeyboard = {
+                    isKeyboardRequested = true
+                },
+                onSendKeycode = { keycode ->
+                    CallbackBridge.sendKeyPress(keycode, true)
+                    CallbackBridge.sendKeyPress(keycode, false)
+                },
+                onForceExitRequest = {
+                    showExitConfirmDialog = true
+                },
+                onOpenCustomGui = {
+                    showInGameSettingsDialog = false
+                    isCustomGuiEditorActive = true
+                },
+                isRecording = recordState.isRecording,
+                recordingDurationSeconds = recordState.durationSeconds,
+                onRequestStartRecord = { config ->
+                    onRequestStartRecord(config)
+                },
+                onStopRecord = {
+                    onRequestStopRecord()
+                },
+                onOpenPremium = {
+                    showPremiumDialog = true
+                }
             )
-        }
+
+            if (showPremiumDialog) {
+                NuxPremiumDialog(
+                    onDismissRequest = { showPremiumDialog = false }
+                )
+            }
         }
     }
 }
@@ -2091,7 +2094,6 @@ fun VirtualCursorPointer(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val scale = (cursorSizeDp / 24f) * (if (isPressed) 0.88f else 1.0f)
             scale(scale, pivot = Offset.Zero) {
-                // Classic standard desktop arrow cursor
                 val path = Path().apply {
                     moveTo(0f, 0f)
                     lineTo(0f, 22f * density.density)
@@ -2103,7 +2105,6 @@ fun VirtualCursorPointer(
                     close()
                 }
 
-                // 1. Drop shadow
                 val shadowPath = Path().apply {
                     addPath(path, Offset(2f * density.density, 2f * density.density))
                 }
@@ -2113,14 +2114,12 @@ fun VirtualCursorPointer(
                     style = Fill
                 )
 
-                // 2. White fill
                 drawPath(
                     path = path,
                     color = Color.White,
                     style = Fill
                 )
 
-                // 3. Crisp black outline
                 drawPath(
                     path = path,
                     color = Color.Black,
@@ -2181,7 +2180,6 @@ fun CustomVirtualButton(
                                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
                                 if (!change.pressed) {
                                     if (!hasDragged) {
-                                        // Tap: top half scrolls UP, bottom half scrolls DOWN
                                         val h = size.height
                                         if (startY < h / 2f) {
                                             CallbackBridge.sendScroll(0.0, 1.0)
@@ -2199,11 +2197,9 @@ fun CustomVirtualButton(
                                 }
 
                                 if (totalDragY <= -thresholdPx) {
-                                    // Slide UP -> Scroll UP (hotbar prev)
                                     CallbackBridge.sendScroll(0.0, 1.0)
                                     totalDragY = 0f
                                 } else if (totalDragY >= thresholdPx) {
-                                    // Slide DOWN -> Scroll DOWN (hotbar next)
                                     CallbackBridge.sendScroll(0.0, -1.0)
                                     totalDragY = 0f
                                 }
@@ -2562,13 +2558,11 @@ fun CustomVirtualJoystick(
             val r = size.minDimension / 2f
             val c = Offset(size.width / 2f, size.height / 2f)
 
-            // Base plate
             drawCircle(
                 color = if (isTouching) Color(0xCC0E1813) else Color(0x990A0E17),
                 radius = r,
                 center = c
             )
-            // Outer glowing border
             drawCircle(
                 color = if (isTouching) Color(0xFF34D399) else Color(0x4034D399),
                 radius = r - 1.5.dp.toPx(),
@@ -2576,7 +2570,6 @@ fun CustomVirtualJoystick(
                 style = Stroke(width = if (isTouching) 2.dp.toPx() else 1.5.dp.toPx())
             )
 
-            // Crosshairs
             drawLine(
                 color = if (isTouching) Color(0x5534D399) else Color(0x2534D399),
                 start = Offset(c.x, c.y - r * 0.7f),
@@ -2590,13 +2583,11 @@ fun CustomVirtualJoystick(
                 strokeWidth = 1.dp.toPx()
             )
 
-            // Active directional indicators
             if (isWDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x, c.y - r * 0.8f))
             if (isSDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x, c.y + r * 0.8f))
             if (isADown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x - r * 0.8f, c.y))
             if (isDDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x + r * 0.8f, c.y))
 
-            // Knob
             val currentKnobCenter = c + knobOffset
             drawCircle(
                 brush = Brush.radialGradient(
@@ -2620,7 +2611,6 @@ fun CustomVirtualJoystick(
             )
         }
 
-        // Direction labels
         Text(
             text = "▲ W",
             color = if (isWDown) Color(0xFF69F0AE) else Color(0x80A5D6A7),
@@ -2651,5 +2641,3 @@ fun CustomVirtualJoystick(
         )
     }
 }
-
-
