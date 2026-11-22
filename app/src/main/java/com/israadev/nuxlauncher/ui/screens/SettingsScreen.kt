@@ -1,12 +1,10 @@
 package com.israadev.nuxlauncher.ui.screens
 
-import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,15 +15,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import com.israadev.nuxlauncher.core.lang.NuxLanguageManager
-import com.israadev.nuxlauncher.core.lang.tr
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -33,32 +28,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.israadev.nuxlauncher.R
-import com.israadev.nuxlauncher.GameActivity
-import java.io.File
-import java.io.FileOutputStream
 import com.israadev.nuxlauncher.core.account.AccountManager
 import com.israadev.nuxlauncher.core.auth.AuthService
 import com.israadev.nuxlauncher.core.crash.AICrashAnalyzer
-import com.israadev.nuxlauncher.core.models.LauncherSettings
-import com.israadev.nuxlauncher.core.renderer.NuxRendererRegistry
-import com.israadev.nuxlauncher.core.renderer.NuxRendererPluginManager
+import com.israadev.nuxlauncher.core.lang.NuxLanguageManager
+import com.israadev.nuxlauncher.core.lang.tr
 import com.israadev.nuxlauncher.core.renderer.NuxRendererInfo
+import com.israadev.nuxlauncher.core.renderer.NuxRendererPluginManager
+import com.israadev.nuxlauncher.core.renderer.NuxRendererRegistry
 import com.israadev.nuxlauncher.core.settings.SettingsManager
-import com.israadev.nuxlauncher.core.recorder.ScreenRecordManager
 import com.israadev.nuxlauncher.core.utils.NuxVersionUtils
 import com.israadev.nuxlauncher.ui.components.*
-import com.israadev.nuxlauncher.ui.dialogs.NuxRendererV2ConfigDialog
 import com.israadev.nuxlauncher.ui.dialogs.NuxAboutDialog
 import com.israadev.nuxlauncher.ui.dialogs.NuxPremiumDialog
+import com.israadev.nuxlauncher.ui.dialogs.NuxRendererV2ConfigDialog
 import com.israadev.nuxlauncher.ui.theme.NuxColors
 import com.israadev.nuxlauncher.ui.theme.NuxSizes
 import kotlinx.coroutines.launch
@@ -92,7 +82,6 @@ fun SettingsScreen(
     var showPremiumDialog by remember { mutableStateOf(false) }
     var premiumInitialPrompt by remember { mutableStateOf<String?>(null) }
 
-
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -123,9 +112,6 @@ fun SettingsScreen(
     var aiAutoAnalyze by remember(currentSettings.aiAutoAnalyze) { mutableStateOf(currentSettings.aiAutoAnalyze) }
     var aiApiKey by remember(currentSettings.aiApiKey) { mutableStateOf(currentSettings.aiApiKey) }
     var aiModel by remember(currentSettings.aiModel) { mutableStateOf(currentSettings.aiModel) }
-    var recorderResolution by remember(currentSettings.recorderResolution) { mutableStateOf(currentSettings.recorderResolution) }
-    var recorderFps by remember(currentSettings.recorderFps) { mutableIntStateOf(currentSettings.recorderFps) }
-    var recorderAudioEnabled by remember(currentSettings.recorderAudioEnabled) { mutableStateOf(currentSettings.recorderAudioEnabled) }
     var isTestingAiConnection by remember { mutableStateOf(false) }
     var aiConnectionTestResult by remember { mutableStateOf<String?>(null) }
     var isAiConnectionSuccess by remember { mutableStateOf(false) }
@@ -233,7 +219,7 @@ fun SettingsScreen(
             .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
     ) {
         // =========================================================================
-        // 1. TOP HEADER BAR (Minimalist Cyber-Glass matching Home, Accounts & Mods)
+        // 1. TOP HEADER BAR
         // =========================================================================
         Row(
             modifier = Modifier
@@ -246,7 +232,6 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Back to Dashboard Button (Standard 26.dp)
                 Box(
                     modifier = Modifier
                         .height(26.dp)
@@ -283,7 +268,7 @@ fun SettingsScreen(
                     letterSpacing = 0.8.sp
                 )
 
-                // Segmented Mode Tabs: [ PROFIL AKUN | PREFERENSI GAME ]
+                // Segmented Mode Tabs: [ PROFIL AKUN | PREFERENSI GAME | AI ANALITIK CRASH ]
                 Row(
                     modifier = Modifier
                         .height(26.dp)
@@ -352,7 +337,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // TAB 3: AI Analitik Crash
                     val isAiTab = activeSettingsTab == "ai"
                     Box(
                         modifier = Modifier
@@ -389,7 +373,6 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Interactive Language Selector Capsule
                 Box {
                     Box(
                         modifier = Modifier
@@ -514,7 +497,7 @@ fun SettingsScreen(
         }
 
         // =========================================================================
-        // 2. MAIN CONTENT PANELS (Profile Tab vs Game Preferences Tab)
+        // 2. MAIN CONTENT PANELS (Profile Tab vs Game Preferences Tab vs AI Tab)
         // =========================================================================
         if (activeSettingsTab == "profile") {
             Row(
@@ -557,7 +540,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Avatar Display with change button
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -567,7 +549,6 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Avatar Box
                             Box(
                                 modifier = Modifier
                                     .size(64.dp)
@@ -577,7 +558,7 @@ fun SettingsScreen(
                                     model = selectedPreviewUri ?: launcherUser?.photoURL?.takeIf { it.isNotBlank() },
                                     contentDescription = "Profile Avatar",
                                     modifier = Modifier.fillMaxSize(),
-                                    fallbackInitials = launcherUser?.username ?: "NUX",
+                                    fallbackInitials = launcherUser?.username ?: "BELL",
                                     shape = RoundedCornerShape(8.dp)
                                 )
 
@@ -597,7 +578,6 @@ fun SettingsScreen(
                                 }
                             }
 
-                            // Upload Button & Hint
                             Column(modifier = Modifier.weight(1f)) {
                                 NuxButton(
                                     onClick = { photoPickerLauncher.launch("image/*") },
@@ -633,7 +613,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Identity Specs Card
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -681,11 +660,10 @@ fun SettingsScreen(
                                 )
                             }
 
-                            // Tombol Buka Showcase & Upgrade NUX Premium
                             val isUserVip = launcherUser?.isActivated == true
                             NuxButton(
                                 onClick = {
-                                    premiumInitialPrompt = if (isUserVip) "Your NUX Premium status is currently active!" else null
+                                    premiumInitialPrompt = if (isUserVip) "Your Bell Premium status is currently active!" else null
                                     showPremiumDialog = true
                                 },
                                 backgroundColor = if (isUserVip) Color(0xFF1E1710) else Color(0xFFF59E0B),
@@ -698,23 +676,14 @@ fun SettingsScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
-                                    if (isUserVip) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.ic_vip_crown),
-                                            contentDescription = null,
-                                            tint = Color(0xFFFBBF24),
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                    } else {
-                                        Icon(
-                                            painter = painterResource(R.drawable.ic_vip_crown),
-                                            contentDescription = null,
-                                            tint = Color.Black,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                    }
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_vip_crown),
+                                        contentDescription = null,
+                                        tint = if (isUserVip) Color(0xFFFBBF24) else Color.Black,
+                                        modifier = Modifier.size(13.dp)
+                                    )
                                     Text(
-                                        text = if (isUserVip) "PREMIUM STATUS & MANAGE KEY" else "UPGRADE TO NUX PREMIUM",
+                                        text = if (isUserVip) "PREMIUM STATUS & MANAGE KEY" else "UPGRADE TO BELL PREMIUM",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 9.sp
                                     )
@@ -753,7 +722,6 @@ fun SettingsScreen(
 
                             HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
 
-                            // Language Settings Card
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -886,7 +854,6 @@ fun SettingsScreen(
 
                             HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
 
-                            // Tombol Dialog Tentang & Lisensi Open Source (GPL-3.0 & Zalith Compliance)
                             NuxButton(
                                 onClick = { showAboutDialog = true },
                                 backgroundColor = NuxColors.SurfaceInput,
@@ -958,7 +925,6 @@ fun SettingsScreen(
                             lineHeight = 13.sp
                         )
 
-                        // Form Ganti Username
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1035,7 +1001,6 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
 
-                        // Logout & Session Management
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1081,9 +1046,6 @@ fun SettingsScreen(
                 }
             }
         } else if (activeSettingsTab == "game") {
-            // =====================================================================
-            // GAME PREFERENCES TAB (Memory/Java/Graphics + Controls/Mouse)
-            // =====================================================================
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -1108,7 +1070,6 @@ fun SettingsScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Section 1: Java Memory (RAM)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Outlined.Memory,
@@ -1125,7 +1086,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // RAM Slider & Value Display
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1185,7 +1145,6 @@ fun SettingsScreen(
 
                             Spacer(modifier = Modifier.height(4.dp))
 
-                            // Quick RAM Presets
                             Text(
                                 text = tr("settings.ram_quick_presets"),
                                 fontSize = 9.sp,
@@ -1232,7 +1191,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Custom JVM Arguments
                         Column {
                             Text(
                                 text = tr("settings.jvm_args_label"),
@@ -1253,7 +1211,6 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
 
-                        // Section 2: Graphics & Rendering
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Outlined.Speed,
@@ -1270,7 +1227,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Renderer Selection Card
                         val activeRendererInfo = remember(selectedRenderer) {
                             NuxRendererRegistry.findRendererById(selectedRenderer)
                         }
@@ -1283,7 +1239,6 @@ fun SettingsScreen(
                                 .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
                                 .padding(10.dp)
                         ) {
-                            // Top Row: Section label & GANTI button
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1343,7 +1298,6 @@ fun SettingsScreen(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            // Active Renderer Name & Badge
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1381,7 +1335,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Auto Optimize options.txt Switch
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1418,7 +1371,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Resolution Scaling
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1478,7 +1430,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Driver Vulkan Selector
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1532,7 +1483,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // API Grafis Selector
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1586,7 +1536,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Gunakan Driver Vulkan Sistem (Zink)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1627,7 +1576,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Sinkronisasi Vertikal Zink (V-Sync)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1684,7 +1632,6 @@ fun SettingsScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Header for Mouse settings
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Outlined.Mouse,
@@ -1707,7 +1654,6 @@ fun SettingsScreen(
                             color = NuxColors.GrayNeutral
                         )
 
-                        // CUSTOM CONTROLS / GUI EDITOR ACTION CARD
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1757,12 +1703,10 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Mouse Control Mode Selection (SLIDE vs CLICK)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // Trackpad / Slide Card
                             val isSlide = mouseMode == "SLIDE"
                             Box(
                                 modifier = Modifier
@@ -1808,7 +1752,6 @@ fun SettingsScreen(
                                 }
                             }
 
-                            // Direct Touch / Click Card
                             val isClick = mouseMode == "CLICK"
                             Box(
                                 modifier = Modifier
@@ -1855,7 +1798,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // In-Game Camera Look Sensitivity
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1904,7 +1846,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Virtual Cursor Sensitivity
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1953,7 +1894,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Virtual Cursor Size with Preview
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1995,7 +1935,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Physical Mouse Mode Card (Zalith Style: Auto-Hide Virtual Cursor)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2033,7 +1972,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Device Info & Reset Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -2099,16 +2037,12 @@ fun SettingsScreen(
                 }
             }
         } else {
-            // =====================================================================
-            // AI ANALITIK CRASH TAB (Konfigurasi Gemini AI / OpenRouter + Diagnostic)
-            // =====================================================================
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // LEFT CARD: Pengaturan AI Engine, Model & API Key
                 NuxCard(
                     modifier = Modifier
                         .weight(0.95f)
@@ -2126,7 +2060,6 @@ fun SettingsScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Section 1: Header & Switch Otomatis
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Outlined.AutoFixHigh,
@@ -2143,7 +2076,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Toggle Otomatis Analisis
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2163,7 +2095,7 @@ fun SettingsScreen(
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = if (aiAutoAnalyze) "Active: AI analyzes crash logs automatically when game terminates unexpectedly."
-                                           else "Disabled (Default): AI analysis is triggered manually in crash dialogs to conserve quota.",
+                                    else "Disabled (Default): AI analysis is triggered manually in crash dialogs to conserve quota.",
                                     fontSize = 9.sp,
                                     color = if (aiAutoAnalyze) NuxColors.MintGreen else NuxColors.GrayNeutral,
                                     lineHeight = 12.sp
@@ -2184,7 +2116,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Section 2: API Key Configuration
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Outlined.Key,
@@ -2244,7 +2175,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Test Connection & Save Action
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2317,7 +2247,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Test Result Badge
                         if (aiConnectionTestResult != null) {
                             Row(
                                 modifier = Modifier
@@ -2354,7 +2283,6 @@ fun SettingsScreen(
                     }
                 }
 
-                // RIGHT CARD: Status Sistem, Panduan & Keunggulan AI
                 NuxCard(
                     modifier = Modifier
                         .weight(1.05f)
@@ -2372,7 +2300,6 @@ fun SettingsScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Header Right
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -2408,7 +2335,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Penjelasan Kapabilitas AI
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2462,7 +2388,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Tips Dapatkan API Key Gratis
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2488,9 +2413,9 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "1. Open openrouter.ai in your browser and sign up / log in\n" +
-                                       "2. Create an API Key in the 'Keys' menu (starts with 'sk-or-v1-...')\n" +
-                                       "3. Copy the key and paste it into the API Key field on the left\n" +
-                                       "4. Enjoy ultra-fast dedicated quota with the best AI models!",
+                                    "2. Create an API Key in the 'Keys' menu (starts with 'sk-or-v1-...')\n" +
+                                    "3. Copy the key and paste it into the API Key field on the left\n" +
+                                    "4. Enjoy ultra-fast dedicated quota with the best AI models!",
                                 fontSize = 8.5.sp,
                                 color = Color.White.copy(alpha = 0.85f),
                                 lineHeight = 12.sp
@@ -2552,7 +2477,7 @@ fun SettingsScreen(
             )
         }
 
-        // Renderer Selection Dialog (Landscape Optimized with NuxDialog)
+        // Renderer Selection Dialog
         if (showRendererDialog) {
             LaunchedEffect(Unit) {
                 NuxRendererPluginManager.scanPlugins(context)
@@ -2567,7 +2492,6 @@ fun SettingsScreen(
                         .fillMaxSize()
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
-                    // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -2610,7 +2534,6 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Scrollable Renderer List
                     LazyColumn(
                         modifier = Modifier
                             .weight(1f)
@@ -2755,7 +2678,7 @@ fun SettingsScreen(
         }
     }
 
-    // Adreno GPU Warning Dialog (Persis seperti Zalith)
+    // Adreno GPU Warning Dialog
     if (showAdrenoWarningDialog) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showAdrenoWarningDialog = false }) {
             Box(
@@ -2848,7 +2771,7 @@ fun SettingsScreen(
         }
     }
 
-    // Dialog Konfigurasi Renderer V2 (persis Zalith untuk MobileGlues, NGG dll)
+    // Dialog Konfigurasi Renderer V2
     if (showRendererConfigDialog && selectedConfigRenderer != null) {
         NuxRendererV2ConfigDialog(
             rendererInfo = selectedConfigRenderer,
@@ -2856,14 +2779,14 @@ fun SettingsScreen(
         )
     }
 
-    // Dialog Tentang & Lisensi Open Source (GPL-3.0 & Zalith Compliance)
+    // Dialog Tentang & Lisensi Open Source
     if (showAboutDialog) {
         NuxAboutDialog(
             onDismissRequest = { showAboutDialog = false }
         )
     }
 
-    // Dialog NUX Premium & Showcase (Fitur 1 - 7 Eksklusif)
+    // Dialog Bell Premium & Showcase
     if (showPremiumDialog) {
         NuxPremiumDialog(
             initialPrompt = premiumInitialPrompt,
