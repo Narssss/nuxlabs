@@ -14,7 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -28,13 +28,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.israadev.nuxlauncher.ui.components.NuxBadge
 import com.israadev.nuxlauncher.ui.components.NuxButton
-import com.israadev.nuxlauncher.ui.components.NuxCard
 import com.israadev.nuxlauncher.ui.components.NuxDialog
 import com.israadev.nuxlauncher.ui.theme.LocalNuxScale
 import com.israadev.nuxlauncher.ui.theme.NuxColors
-import com.israadev.nuxlauncher.ui.theme.NuxSizes
 
 private data class OpenSourceLibrary(
     val name: String,
@@ -146,8 +143,7 @@ private val LIBRARIES = listOf(
 )
 
 /**
- * Dialog Komprehensif Tentang Aplikasi & Atribusi Lisensi Open Source (GPL-3.0 & Zalith Compliance)
- * Redesigned with High-End Double-Bezel Architecture & Fluid Responsiveness
+ * Bell Launcher About & Open Source Licenses Dialog (GPL-3.0 Compliance)
  */
 @Composable
 fun NuxAboutDialog(
@@ -168,7 +164,7 @@ fun NuxAboutDialog(
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             // ==========================================
-            // 1. TOP HEADER BAR (Double-Bezel Aura)
+            // 1. TOP HEADER BAR (Bell Launcher Cobalt Badge)
             // ==========================================
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -176,48 +172,38 @@ fun NuxAboutDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Outer bezel icon ring
+                    val badgeShape = RoundedCornerShape(9.dp)
                     Box(
                         modifier = Modifier
                             .size(32.dp)
+                            .clip(badgeShape)
                             .background(
-                                Brush.radialGradient(
-                                    listOf(NuxColors.ForestGreen.copy(alpha = 0.28f), Color.Transparent)
+                                Brush.linearGradient(
+                                    listOf(NuxColors.ForestGreen, NuxColors.MintGreen)
                                 ),
-                                CircleShape
+                                badgeShape
                             )
-                            .border(1.2.dp, NuxColors.ForestGreen.copy(alpha = 0.6f), CircleShape)
-                            .padding(2.5.dp),
+                            .border(1.dp, Color(0x6693C5FD), badgeShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF141822), CircleShape)
-                                .border(1.dp, Color(0x33FFFFFF), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Info,
-                                contentDescription = null,
-                                tint = NuxColors.MintGreen,
-                                modifier = Modifier.size(15.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = "Bell Launcher",
+                            tint = Color.White,
+                            modifier = Modifier.size(17.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.width(10.dp))
 
                     Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "ABOUT & OPEN SOURCE LICENSES",
-                                color = Color.White,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                letterSpacing = 0.6.sp
-                            )
-                        }
+                        Text(
+                            text = "BELL LAUNCHER • ABOUT & LICENSES",
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.6.sp
+                        )
                         Text(
                             text = "Copyright attribution, GNU GPL-3.0 compliance, and upstream projects",
                             color = NuxColors.GrayNeutral,
@@ -226,21 +212,22 @@ fun NuxAboutDialog(
                     }
                 }
 
-                // Minimalist Close Button
+                // Close Button
+                val closeShape = RoundedCornerShape(8.dp)
                 Box(
                     modifier = Modifier
-                        .size(26.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF151821), CircleShape)
-                        .border(1.dp, Color(0x33FFFFFF), CircleShape)
+                        .size(28.dp)
+                        .clip(closeShape)
+                        .background(Color(0xFF131C31), closeShape)
+                        .border(1.dp, NuxColors.CardBorder, closeShape)
                         .clickable { onDismissRequest() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
                         contentDescription = "Close",
-                        tint = Color(0xFFA1A1AA),
-                        modifier = Modifier.size(13.dp)
+                        tint = NuxColors.GrayNeutral,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -248,14 +235,14 @@ fun NuxAboutDialog(
             Spacer(modifier = Modifier.height(8.dp))
 
             // ==========================================
-            // 2. SEGMENTED TAB SWITCHER (Machined Pill Track)
+            // 2. SEGMENTED TAB SWITCHER (Cobalt Track)
             // ==========================================
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(9.dp))
-                    .background(Color(0xFF0F1219))
-                    .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(9.dp))
+                    .background(Color(0xFF0E1629))
+                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(9.dp))
                     .padding(2.5.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -266,7 +253,7 @@ fun NuxAboutDialog(
                 ).forEach { (tabKey, title) ->
                     val isSelected = activeTab == tabKey
                     val textColor by animateColorAsState(
-                        targetValue = if (isSelected) Color.White else Color(0xFFA1A1AA),
+                        targetValue = if (isSelected) Color.White else NuxColors.GrayNeutral,
                         animationSpec = tween(150),
                         label = "tabText"
                     )
@@ -277,7 +264,7 @@ fun NuxAboutDialog(
                             .clip(RoundedCornerShape(7.dp))
                             .background(
                                 if (isSelected) Brush.horizontalGradient(
-                                    listOf(Color(0xFF059669), Color(0xFF10B981))
+                                    listOf(NuxColors.ForestGreen, NuxColors.MintGreen)
                                 ) else Brush.horizontalGradient(
                                     listOf(Color.Transparent, Color.Transparent)
                                 )
@@ -300,7 +287,7 @@ fun NuxAboutDialog(
             Spacer(modifier = Modifier.height(8.dp))
 
             // ==========================================
-            // 3. SCROLLABLE CONTENT BODY (Double-Bezel)
+            // 3. SCROLLABLE CONTENT BODY
             // ==========================================
             Box(
                 modifier = Modifier
@@ -315,22 +302,27 @@ fun NuxAboutDialog(
                                 .verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Unofficial Notice Box (Zalith & GPL 7(c) Compliance)
+                            // Unofficial Notice Box (GPL Section 7 Compliance)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFF1C150A))
-                                    .border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF131C31))
+                                    .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
                                     .padding(9.dp)
                             ) {
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(painter = androidx.compose.ui.res.painterResource(com.israadev.nuxlauncher.R.drawable.ic_warning_triangle), contentDescription = null, tint = Color(0xFFFBBF24), modifier = Modifier.size(13.dp))
+                                        Icon(
+                                            painter = androidx.compose.ui.res.painterResource(com.israadev.nuxlauncher.R.drawable.ic_warning_triangle),
+                                            contentDescription = null,
+                                            tint = NuxColors.SkyBlue,
+                                            modifier = Modifier.size(13.dp)
+                                        )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "UNOFFICIAL MODIFIED VERSION NOTICE",
-                                            color = Color(0xFFFBBF24),
+                                            color = NuxColors.SkyBlue,
                                             fontWeight = FontWeight.Black,
                                             fontSize = 9.sp,
                                             letterSpacing = 0.5.sp
@@ -338,8 +330,8 @@ fun NuxAboutDialog(
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "NUX Launcher is an Unofficial Modified Version built and adapted based on Zalith Launcher 2 and PojavLauncher. This program is NOT an official application from Zalith Launcher Team or Mojang Studios.",
-                                        color = Color(0xFFE4E4E7),
+                                        text = "Bell Launcher is an Unofficial Modified Version built and adapted based on Zalith Launcher 2, PojavLauncher, and NUX Launcher. This program is NOT an official application from Zalith Launcher Team or Mojang Studios.",
+                                        color = Color(0xFFE2E8F0),
                                         fontSize = 8.5.sp,
                                         lineHeight = 12.5.sp
                                     )
@@ -354,19 +346,33 @@ fun NuxAboutDialog(
                                 Box(
                                     modifier = Modifier
                                         .size(5.dp)
-                                        .background(NuxColors.MintGreen, CircleShape)
+                                        .background(NuxColors.SkyBlue, CircleShape)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "CORE UPSTREAM PROJECTS:",
-                                    color = Color(0xFFA1A1AA),
+                                    text = "PROJECT & UPSTREAM CREDITS:",
+                                    color = NuxColors.GrayNeutral,
                                     fontSize = 8.5.sp,
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 0.6.sp
                                 )
                             }
 
-                            // 1. Zalith Launcher 2 Card (Double-Bezel)
+                            // 1. Bell Launcher Fork Repository
+                            UpstreamProjectCard(
+                                title = "Bell Launcher (Custom Fork)",
+                                copyright = "Copyright © 2026 Narssss & Upstream Contributors",
+                                license = "GNU General Public License v3.0 (GPL-3.0)",
+                                description = "Customized mobile Minecraft launcher build featuring a Slate & Cobalt UI redesign and updated Minecraft 26.3 runtime compatibility.",
+                                url = "https://github.com/Narssss/nuxlabs",
+                                onOpenUrl = { url ->
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                    } catch (_: Exception) {}
+                                }
+                            )
+
+                            // 2. Zalith Launcher 2 Card
                             UpstreamProjectCard(
                                 title = "Zalith Launcher 2",
                                 copyright = "Copyright © 2024-2026 MovTery & Contributors",
@@ -380,7 +386,7 @@ fun NuxAboutDialog(
                                 }
                             )
 
-                            // 2. PojavLauncher Card (Double-Bezel)
+                            // 3. PojavLauncher Card
                             UpstreamProjectCard(
                                 title = "PojavLauncher",
                                 copyright = "Copyright © 2020-present PojavLauncherTeam & Contributors",
@@ -394,12 +400,12 @@ fun NuxAboutDialog(
                                 }
                             )
 
-                            // 3. NUX Launcher Open Source Repository
+                            // 4. NUX Launcher Upstream Base
                             UpstreamProjectCard(
-                                title = "NUX Launcher (Source Code)",
+                                title = "NUX Launcher (Upstream Base)",
                                 copyright = "Copyright © 2026 IsraaDeveloper & Contributors",
                                 license = "GNU General Public License v3.0 (GPL-3.0)",
-                                description = "Open-source codebase repository of NUX Launcher. Freely licensed under GNU GPL-3.0 terms.",
+                                description = "Upstream Jetpack Compose launcher base licensed under GNU GPL-3.0 terms.",
                                 url = "https://github.com/IsraaDeveloper/nuxlabs",
                                 onOpenUrl = { url ->
                                     try {
@@ -413,14 +419,14 @@ fun NuxAboutDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFF12151E))
-                                    .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF0E1629))
+                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(10.dp))
                                     .padding(9.dp)
                             ) {
                                 Column {
                                     Text(
                                         text = "OFFICIAL MINECRAFT & MOJANG DISCLAIMER:",
-                                        color = Color(0xFFA1A1AA),
+                                        color = NuxColors.GrayNeutral,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 8.sp,
                                         letterSpacing = 0.5.sp
@@ -428,7 +434,7 @@ fun NuxAboutDialog(
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = "NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG STUDIOS OR MICROSOFT. Minecraft is a registered trademark of Mojang AB / Microsoft Corporation. All game assets are downloaded directly from official Mojang distribution servers.",
-                                        color = Color(0xFF71717A),
+                                        color = Color(0xFF64748B),
                                         fontSize = 7.5.sp,
                                         lineHeight = 11.5.sp
                                     )
@@ -451,8 +457,8 @@ fun NuxAboutDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(9.dp))
-                                        .background(Color(0xFF131620))
-                                        .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(9.dp))
+                                        .background(Color(0xFF131C31))
+                                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(9.dp))
                                         .padding(horizontal = 9.dp, vertical = 7.dp)
                                 ) {
                                     Row(
@@ -472,13 +478,13 @@ fun NuxAboutDialog(
                                                 Box(
                                                     modifier = Modifier
                                                         .clip(RoundedCornerShape(4.dp))
-                                                        .background(NuxColors.ForestGreen.copy(alpha = 0.16f))
-                                                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                                                        .background(NuxColors.ForestGreen.copy(alpha = 0.22f))
+                                                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.45f), RoundedCornerShape(4.dp))
                                                         .padding(horizontal = 4.dp, vertical = 1.dp)
                                                 ) {
                                                     Text(
                                                         text = lib.license,
-                                                        color = NuxColors.MintGreen,
+                                                        color = NuxColors.SkyBlue,
                                                         fontSize = 7.sp,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -487,13 +493,13 @@ fun NuxAboutDialog(
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
                                                 text = lib.copyright,
-                                                color = Color(0xFFD4D4D8),
+                                                color = Color(0xFFE2E8F0),
                                                 fontSize = 8.sp,
                                                 fontWeight = FontWeight.Medium
                                             )
                                             Text(
                                                 text = lib.role,
-                                                color = Color(0xFFA1A1AA),
+                                                color = NuxColors.GrayNeutral,
                                                 fontSize = 7.5.sp
                                             )
                                         }
@@ -502,8 +508,8 @@ fun NuxAboutDialog(
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .background(Color(0xFF1A2234))
-                                                .border(1.dp, Color(0x3338BDF8), RoundedCornerShape(6.dp))
+                                                .background(Color(0xFF1E293B))
+                                                .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
                                                 .clickable {
                                                     try {
                                                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(lib.url)))
@@ -513,12 +519,12 @@ fun NuxAboutDialog(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text("Link", color = Color(0xFF38BDF8), fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
+                                                Text("Link", color = NuxColors.SkyBlue, fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
                                                 Spacer(modifier = Modifier.width(2.dp))
                                                 Icon(
                                                     imageVector = Icons.Outlined.OpenInNew,
                                                     contentDescription = "Open Link",
-                                                    tint = Color(0xFF38BDF8),
+                                                    tint = NuxColors.SkyBlue,
                                                     modifier = Modifier.size(10.dp)
                                                 )
                                             }
@@ -542,8 +548,8 @@ fun NuxAboutDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFF131620))
-                                    .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF131C31))
+                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(10.dp))
                                     .padding(10.dp)
                             ) {
                                 Column {
@@ -566,7 +572,7 @@ fun NuxAboutDialog(
                                                 "• Modifications must not misuse the trademarks 'ZalithLauncher' or 'ZL'.\n" +
                                                 "• Modifications must prominently display that this is an 'Unofficial Modified Version'.\n" +
                                                 "• Original authors' copyright notices (Copyright © MovTery & PojavLauncherTeam) must not be removed.",
-                                        color = Color(0xFFD4D4D8),
+                                        color = Color(0xFFE2E8F0),
                                         fontSize = 8.5.sp,
                                         lineHeight = 12.5.sp
                                     )
@@ -579,16 +585,16 @@ fun NuxAboutDialog(
                                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.gnu.org/licenses/gpl-3.0.html")))
                                     } catch (_: Exception) {}
                                 },
-                                backgroundColor = Color(0xFF141A28),
-                                contentColor = Color(0xFF38BDF8),
-                                borderColor = Color(0x3338BDF8),
+                                backgroundColor = Color(0xFF131C31),
+                                contentColor = NuxColors.SkyBlue,
+                                borderColor = NuxColors.ForestGreen.copy(alpha = 0.45f),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(32.dp)
                             ) {
-                                Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(13.dp))
+                                Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = NuxColors.SkyBlue, modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("READ FULL OFFICIAL GNU GPL-3.0 LICENSE TEXT", color = Color(0xFF38BDF8), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                                Text("READ FULL OFFICIAL GNU GPL-3.0 LICENSE TEXT", color = NuxColors.SkyBlue, fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -596,7 +602,6 @@ fun NuxAboutDialog(
                     }
                 }
             }
-
         }
     }
 }
@@ -614,8 +619,8 @@ private fun UpstreamProjectCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF131620))
-            .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(10.dp))
+            .background(Color(0xFF131C31))
+            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(10.dp))
             .padding(9.dp)
     ) {
         Column {
@@ -635,13 +640,13 @@ private fun UpstreamProjectCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .background(NuxColors.ForestGreen.copy(alpha = 0.16f))
-                            .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                            .background(NuxColors.ForestGreen.copy(alpha = 0.22f))
+                            .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.45f), RoundedCornerShape(4.dp))
                             .padding(horizontal = 5.dp, vertical = 1.dp)
                     ) {
                         Text(
                             text = license,
-                            color = NuxColors.MintGreen,
+                            color = NuxColors.SkyBlue,
                             fontSize = 7.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -652,19 +657,19 @@ private fun UpstreamProjectCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFF1A2234))
-                        .border(1.dp, Color(0x3338BDF8), RoundedCornerShape(6.dp))
+                        .background(Color(0xFF1E293B))
+                        .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
                         .clickable { onOpenUrl(url) }
                         .padding(horizontal = 6.dp, vertical = 2.5.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("GitHub", color = Color(0xFF38BDF8), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text("GitHub", color = NuxColors.SkyBlue, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.width(3.dp))
                         Icon(
                             imageVector = Icons.Outlined.OpenInNew,
                             contentDescription = null,
-                            tint = Color(0xFF38BDF8),
+                            tint = NuxColors.SkyBlue,
                             modifier = Modifier.size(10.dp)
                         )
                     }
@@ -674,14 +679,14 @@ private fun UpstreamProjectCard(
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = copyright,
-                color = Color(0xFFE4E4E7),
+                color = Color(0xFFE2E8F0),
                 fontSize = 8.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = description,
-                color = Color(0xFFA1A1AA),
+                color = NuxColors.GrayNeutral,
                 fontSize = 7.5.sp,
                 lineHeight = 11.sp
             )
