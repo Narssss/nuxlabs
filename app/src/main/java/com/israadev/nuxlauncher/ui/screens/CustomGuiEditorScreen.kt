@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.israadev.nuxlauncher.R
 import com.israadev.nuxlauncher.core.controls.ControlLayoutManager
 import com.israadev.nuxlauncher.core.controls.KeycodeCatalog
 import com.israadev.nuxlauncher.core.controls.models.CustomControlButton
@@ -46,6 +47,13 @@ import com.movtery.inputmap.keycodes.LwjglGlfwKeycode
 import java.util.UUID
 import kotlin.math.roundToInt
 
+private val EditorBgBase = Color(0xFF0A0A0C)
+private val EditorSurface = Color(0xFF141418)
+private val EditorSurfaceAlt = Color(0xFF1C1C22)
+private val EditorBorder = Color(0xFF2C2C34)
+private val EditorAccent = Color(0xFFE4E4E7)
+private val EditorMuted = Color(0xFFA1A1AA)
+
 @Composable
 fun CustomGuiEditorScreen(
     onNavigateBack: () -> Unit,
@@ -56,7 +64,6 @@ fun CustomGuiEditorScreen(
     val langVersion by NuxLanguageManager.languageVersion.collectAsState()
     val savedButtons by ControlLayoutManager.buttons.collectAsState()
 
-    // Working local copy of buttons for live editing
     var buttonsList by remember { mutableStateOf(savedButtons.ifEmpty { ControlLayoutManager.getDefaultButtons() }) }
     var selectedButtonId by remember { mutableStateOf<String?>(null) }
     var showKeyPickerForButtonId by remember { mutableStateOf<String?>(null) }
@@ -65,7 +72,7 @@ fun CustomGuiEditorScreen(
     var showResetConfirmDialog by remember { mutableStateOf(false) }
     var manualFlipSide by remember { mutableStateOf<Boolean?>(null) }
 
-    // Mode sembunyi visual (HUD & FPS ikut hilang secara visual, tapi tetap bisa disentuh di lokasinya)
+    // Mode sembunyi visual: GUI menghilang secara visual, namun tetap bisa disentuh di posisinya
     var hideVisualHud by remember { mutableStateOf(false) }
     val hiddenButtonIds = remember { mutableStateListOf<String>() }
 
@@ -89,17 +96,17 @@ fun CustomGuiEditorScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(if (isIngame) Color.Black.copy(alpha = 0.40f) else Color(0xFF090E1A))
+            .background(if (isIngame) Color.Black.copy(alpha = 0.35f) else EditorBgBase)
     ) {
         val screenWidthPx = constraints.maxWidth.toFloat()
         val screenHeightPx = constraints.maxHeight.toFloat()
         val density = LocalDensity.current
 
-        // 1. Blueprint Dot Grid Canvas (Slate Navy Grid)
+        // 1. Blueprint Dot Grid Canvas
         Canvas(modifier = Modifier.fillMaxSize()) {
             val step = 32.dp.toPx()
-            val dotColor = if (isIngame) Color.White.copy(alpha = 0.18f) else Color(0xFF1E293B)
-            val guideLineColor = if (isIngame) Color.White.copy(alpha = 0.14f) else Color(0xFF1E293B).copy(alpha = 0.7f)
+            val dotColor = if (isIngame) Color.White.copy(alpha = 0.14f) else EditorBorder
+            val guideLineColor = if (isIngame) Color.White.copy(alpha = 0.10f) else EditorBorder.copy(alpha = 0.7f)
             var x = step
             while (x < size.width) {
                 var y = step
@@ -127,7 +134,11 @@ fun CustomGuiEditorScreen(
         // 2. Interactive Draggable Buttons on Screen
         buttonsList.forEach { btn ->
             val isSelected = btn.id == selectedButtonId
-            val isStealthHidden = !isSelected && (hideVisualHud || hiddenButtonIds.contains(btn.id))
+            val isHideGuiButton = btn.isSystem && btn.systemAction == "HIDE_GUI"
+            val isStealthHidden =
+                (!isSelected && (hideVisualHud || hiddenButtonIds.contains(btn.id))) ||
+                    (isHideGuiButton && hideVisualHud)
+
             val btnWidthPx = with(density) { btn.widthDp.dp.toPx() }
             val btnHeightPx = with(density) { btn.heightDp.dp.toPx() }
 
@@ -142,35 +153,35 @@ fun CustomGuiEditorScreen(
 
             val btnBg = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> NuxColors.ForestGreen
+                isSelected -> Color.White
                 btn.isSystem -> when (btn.systemAction) {
                     "CLOSE" -> Color(0x80EF4444)
-                    "RECORD" -> NuxColors.Amber.copy(alpha = 0.30f)
-                    else -> Color(0x990F172A)
+                    "RECORD" -> Color(0x4DD97706)
+                    else -> EditorSurface.copy(alpha = 0.85f)
                 }
-                else -> Color(0x990F172A)
+                else -> EditorSurface.copy(alpha = 0.85f)
             }
 
             val btnBorderColor = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> NuxColors.SkyBlue
+                isSelected -> Color.White
                 btn.isSystem -> when (btn.systemAction) {
                     "CLOSE" -> Color(0x80EF4444)
-                    else -> NuxColors.ForestGreen.copy(alpha = 0.60f)
+                    else -> EditorBorder
                 }
-                else -> NuxColors.ForestGreen.copy(alpha = 0.60f)
+                else -> EditorBorder
             }
 
             val textColor = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> Color.White
-                else -> Color(0xFFE2E8F0)
+                isSelected -> EditorBgBase
+                else -> Color.White
             }
 
             val accentTextColor = when {
                 isStealthHidden -> Color.Transparent
-                isSelected -> Color.White
-                else -> NuxColors.SkyBlue
+                isSelected -> EditorBgBase
+                else -> EditorAccent
             }
 
             Box(
@@ -186,7 +197,7 @@ fun CustomGuiEditorScreen(
                     )
                     .pointerInput(btn.id, isStealthHidden) {
                         detectTapGestures {
-                            if (btn.isSystem && btn.systemAction == "HIDE_GUI") {
+                            if (isHideGuiButton) {
                                 hideVisualHud = !hideVisualHud
                                 return@detectTapGestures
                             }
@@ -227,19 +238,19 @@ fun CustomGuiEditorScreen(
                             val c = Offset(size.width / 2f, size.height / 2f)
 
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else if (isSelected) NuxColors.SkyBlue else Color(0x702563EB),
+                                color = if (isStealthHidden) Color.Transparent else if (isSelected) Color.White else EditorBorder,
                                 radius = r - 2.dp.toPx(),
                                 center = c,
                                 style = Stroke(width = 2.dp.toPx())
                             )
                             drawLine(
-                                color = if (isStealthHidden) Color.Transparent else Color(0x4038BDF8),
+                                color = if (isStealthHidden) Color.Transparent else EditorBorder,
                                 start = Offset(c.x, c.y - r * 0.7f),
                                 end = Offset(c.x, c.y + r * 0.7f),
                                 strokeWidth = 1.dp.toPx()
                             )
                             drawLine(
-                                color = if (isStealthHidden) Color.Transparent else Color(0x4038BDF8),
+                                color = if (isStealthHidden) Color.Transparent else EditorBorder,
                                 start = Offset(c.x - r * 0.7f, c.y),
                                 end = Offset(c.x + r * 0.7f, c.y),
                                 strokeWidth = 1.dp.toPx()
@@ -247,18 +258,18 @@ fun CustomGuiEditorScreen(
 
                             val knobRadius = r * 0.38f
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else if (isSelected) NuxColors.ForestGreen else Color(0xCC131C31),
+                                color = if (isStealthHidden) Color.Transparent else if (isSelected) EditorBgBase else EditorSurfaceAlt,
                                 radius = knobRadius,
                                 center = c
                             )
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else if (isSelected) Color.White else NuxColors.SkyBlue,
+                                color = if (isStealthHidden) Color.Transparent else Color.White,
                                 radius = knobRadius,
                                 center = c,
                                 style = Stroke(width = 1.5.dp.toPx())
                             )
                             drawCircle(
-                                color = if (isStealthHidden) Color.Transparent else NuxColors.SkyBlue,
+                                color = if (isStealthHidden) Color.Transparent else Color.White,
                                 radius = 3.5.dp.toPx(),
                                 center = c
                             )
@@ -307,7 +318,7 @@ fun CustomGuiEditorScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(7.dp)
-                                        .background(if (isStealthHidden) Color.Transparent else NuxColors.SkyBlue, CircleShape)
+                                        .background(if (isStealthHidden) Color.Transparent else Color.White, CircleShape)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text("FPS: --", color = textColor, fontWeight = FontWeight.Black, fontSize = 10.sp, maxLines = 1)
@@ -323,13 +334,15 @@ fun CustomGuiEditorScreen(
                             )
                         }
                         "HIDE_GUI" -> {
-                            Text(
-                                text = if (hideVisualHud) "SHOW GUI" else "HIDE GUI",
-                                color = if (isStealthHidden) Color.Transparent else accentTextColor,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 10.sp,
-                                maxLines = 1
-                            )
+                            if (!hideVisualHud) {
+                                Text(
+                                    text = "HIDE GUI",
+                                    color = accentTextColor,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
+                            }
                         }
                         "CLOSE" -> {
                             Text(
@@ -374,7 +387,7 @@ fun CustomGuiEditorScreen(
                                     "TURBO" -> "⚡TRB"
                                     else -> "⚡MAC"
                                 },
-                                color = if (isStealthHidden) Color.Transparent else if (isSelected) Color.White else NuxColors.Amber,
+                                color = if (isStealthHidden) Color.Transparent else if (isSelected) EditorBgBase else EditorAccent,
                                 fontSize = 7.sp,
                                 fontWeight = FontWeight.Black
                             )
@@ -389,8 +402,8 @@ fun CustomGuiEditorScreen(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
-                .background(if (isIngame) NuxColors.ForestGreen else Color(0xFF131C31), RoundedCornerShape(8.dp))
-                .border(1.2.dp, if (isIngame) NuxColors.SkyBlue else NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                .background(if (isIngame) Color.White else EditorSurface, RoundedCornerShape(8.dp))
+                .border(1.2.dp, if (isIngame) Color.White else EditorBorder, RoundedCornerShape(8.dp))
                 .clickable {
                     if (isIngame) {
                         ControlLayoutManager.saveButtons(context, buttonsList)
@@ -400,17 +413,18 @@ fun CustomGuiEditorScreen(
                 }
                 .padding(horizontal = 12.dp, vertical = 7.dp)
         ) {
+            val topBtnContentColor = if (isIngame) EditorBgBase else Color.White
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = if (isIngame) Icons.Outlined.Check else Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = if (isIngame) "Done" else "Back",
-                    tint = Color.White,
+                    tint = topBtnContentColor,
                     modifier = Modifier.size(13.dp)
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = if (isIngame) "DONE" else "BACK",
-                    color = Color.White,
+                    color = topBtnContentColor,
                     fontWeight = FontWeight.Black,
                     fontSize = 11.sp
                 )
@@ -422,15 +436,16 @@ fun CustomGuiEditorScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 16.dp)
-                .background(Color(0xFF131C31), RoundedCornerShape(10.dp))
-                .border(1.5.dp, NuxColors.CardBorder, RoundedCornerShape(10.dp))
+                .background(EditorSurface, RoundedCornerShape(10.dp))
+                .border(1.5.dp, EditorBorder, RoundedCornerShape(10.dp))
                 .padding(horizontal = 8.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .background(NuxColors.SageGreen, RoundedCornerShape(6.dp))
+                    .background(EditorSurfaceAlt, RoundedCornerShape(6.dp))
+                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
                     .clickable {
                         val newBtn = CustomControlButton(
                             id = "btn_" + UUID.randomUUID().toString().take(6),
@@ -454,8 +469,8 @@ fun CustomGuiEditorScreen(
 
             Box(
                 modifier = Modifier
-                    .background(Color(0xFF172554), RoundedCornerShape(6.dp))
-                    .border(1.dp, NuxColors.ForestGreen, RoundedCornerShape(6.dp))
+                    .background(EditorSurfaceAlt, RoundedCornerShape(6.dp))
+                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
                     .clickable {
                         val newJoy = CustomControlButton(
                             id = "joy_" + UUID.randomUUID().toString().take(6),
@@ -478,13 +493,13 @@ fun CustomGuiEditorScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        painter = androidx.compose.ui.res.painterResource(com.israadev.nuxlauncher.R.drawable.ic_joystick),
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_joystick),
                         contentDescription = null,
-                        tint = NuxColors.SkyBlue,
+                        tint = EditorAccent,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("+ JOYSTICK", fontWeight = FontWeight.Black, fontSize = 11.sp, color = NuxColors.SkyBlue)
+                    Text("+ JOYSTICK", fontWeight = FontWeight.Black, fontSize = 11.sp, color = EditorAccent)
                 }
             }
 
@@ -500,7 +515,7 @@ fun CustomGuiEditorScreen(
 
             Box(
                 modifier = Modifier
-                    .background(NuxColors.ForestGreen, RoundedCornerShape(6.dp))
+                    .background(Color.White, RoundedCornerShape(6.dp))
                     .clickable {
                         ControlLayoutManager.saveButtons(context, buttonsList)
                         Toast.makeText(context, "✓ GUI layout saved successfully!", Toast.LENGTH_SHORT).show()
@@ -508,7 +523,7 @@ fun CustomGuiEditorScreen(
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("SAVE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                Text("SAVE", color = EditorBgBase, fontWeight = FontWeight.Black, fontSize = 11.sp)
             }
         }
 
@@ -528,7 +543,7 @@ fun CustomGuiEditorScreen(
                     modifier = Modifier
                         .width(280.dp)
                         .fillMaxHeight(0.85f),
-                    backgroundColor = Color(0xFF0F172A),
+                    backgroundColor = EditorSurface,
                     shadowOffset = 4.dp,
                     cornerRadius = 14.dp,
                     fillMaxHeight = true
@@ -556,7 +571,7 @@ fun CustomGuiEditorScreen(
                                     text = "Position: ${selectedButton.xPercent.roundToInt()}% x ${selectedButton.yPercent.roundToInt()}%",
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = NuxColors.SkyBlue
+                                    color = EditorMuted
                                 )
                             }
 
@@ -564,12 +579,12 @@ fun CustomGuiEditorScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(28.dp)
-                                        .background(Color(0xFF162035), CircleShape)
-                                        .border(1.dp, NuxColors.CardBorder, CircleShape)
+                                        .background(EditorSurfaceAlt, CircleShape)
+                                        .border(1.dp, EditorBorder, CircleShape)
                                         .clickable { manualFlipSide = !shouldDockLeft },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("⇄", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
+                                    Text("⇄", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
 
                                 Box(
@@ -585,9 +600,8 @@ fun CustomGuiEditorScreen(
                             }
                         }
 
-                        HorizontalDivider(color = NuxColors.CardBorder, thickness = 1.dp)
+                        HorizontalDivider(color = EditorBorder, thickness = 1.dp)
 
-                        // Invisible Touch (Stealth) Toggle for selected button
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -595,7 +609,7 @@ fun CustomGuiEditorScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Invisible Touch:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                Text("Hide visual, keep tap area active", fontSize = 8.sp, color = NuxColors.GrayNeutral)
+                                Text("Hide visual, keep tap area active", fontSize = 8.sp, color = EditorMuted)
                             }
                             Switch(
                                 checked = isBtnHidden,
@@ -607,22 +621,21 @@ fun CustomGuiEditorScreen(
                                     }
                                 },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = NuxColors.ForestGreen,
-                                    uncheckedThumbColor = Color(0xFF94A3B8),
-                                    uncheckedTrackColor = Color(0xFF1E293B)
+                                    checkedThumbColor = EditorBgBase,
+                                    checkedTrackColor = Color.White,
+                                    uncheckedThumbColor = EditorMuted,
+                                    uncheckedTrackColor = EditorSurfaceAlt
                                 )
                             )
                         }
 
-                        // 1. Label Name Field
-                        Text("Button Label Text:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
+                        Text("Button Label Text:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
                         if (selectedButton.isSystem) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF131C31).copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                                    .background(EditorSurfaceAlt.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 12.dp, vertical = 10.dp)
                             ) {
                                 Row(
@@ -633,13 +646,13 @@ fun CustomGuiEditorScreen(
                                     Text(selectedButton.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            painter = androidx.compose.ui.res.painterResource(com.israadev.nuxlauncher.R.drawable.ic_lock),
+                                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_lock),
                                             contentDescription = null,
-                                            tint = NuxColors.SkyBlue,
+                                            tint = EditorMuted,
                                             modifier = Modifier.size(12.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Fixed", color = NuxColors.SkyBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text("Fixed", color = EditorMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -647,12 +660,12 @@ fun CustomGuiEditorScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF131C31), RoundedCornerShape(8.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                                    .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
+                                    .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 12.dp, vertical = 10.dp)
                             ) {
                                 if (selectedButton.name.isEmpty()) {
-                                    Text("Button label...", color = Color(0xFF64748B), fontSize = 13.sp)
+                                    Text("Button label...", color = EditorMuted, fontSize = 13.sp)
                                 }
                                 BasicTextField(
                                     value = selectedButton.name,
@@ -660,7 +673,7 @@ fun CustomGuiEditorScreen(
                                         buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(name = newName) else it }
                                     },
                                     textStyle = TextStyle(color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                                    cursorBrush = SolidColor(NuxColors.SkyBlue),
+                                    cursorBrush = SolidColor(Color.White),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -668,32 +681,32 @@ fun CustomGuiEditorScreen(
                         }
 
                         if (selectedButton.isJoystick) {
-                            Text("Control Type:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
+                            Text("Control Type:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF131C31), RoundedCornerShape(8.dp))
-                                    .border(1.dp, NuxColors.ForestGreen, RoundedCornerShape(8.dp))
+                                    .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color.White, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            painter = androidx.compose.ui.res.painterResource(com.israadev.nuxlauncher.R.drawable.ic_joystick),
+                                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_joystick),
                                             contentDescription = null,
-                                            tint = NuxColors.SkyBlue,
+                                            tint = Color.White,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
-                                        Text("Virtual Analog Joystick (WASD)", color = NuxColors.SkyBlue, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                        Text("Virtual Analog Joystick (WASD)", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
                                     }
-                                    Text("Smooth 8-way analog movement replacing W, A, S, D keys.", color = NuxColors.GrayNeutral, fontSize = 9.sp)
+                                    Text("Smooth 8-way analog movement replacing W, A, S, D keys.", color = EditorMuted, fontSize = 9.sp)
                                 }
                             }
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Joystick Size (Diameter):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
-                                Text("${selectedButton.widthDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                Text("Joystick Size (Diameter):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                                Text("${selectedButton.widthDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
                             }
                             Slider(
                                 value = selectedButton.widthDp.toFloat(),
@@ -705,15 +718,15 @@ fun CustomGuiEditorScreen(
                                 },
                                 valueRange = 80f..220f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.SkyBlue,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = Color(0xFF1E293B)
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = EditorBorder
                                 )
                             )
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Transparency (Opacity):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
-                                Text("${(selectedButton.opacity * 100).roundToInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                Text("Transparency (Opacity):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                                Text("${(selectedButton.opacity * 100).roundToInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
                             }
                             Slider(
                                 value = selectedButton.opacity,
@@ -722,30 +735,30 @@ fun CustomGuiEditorScreen(
                                 },
                                 valueRange = 0.15f..1.0f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.SkyBlue,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = Color(0xFF1E293B)
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = EditorBorder
                                 )
                             )
                         } else {
-                            Text("Key / Input Action:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
+                            Text("Key / Input Action:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
                             if (selectedButton.isSystem) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(Color(0xFF131C31).copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-                                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                                        .background(EditorSurfaceAlt.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                                        .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
                                         .padding(horizontal = 12.dp, vertical = 10.dp)
                                 ) {
                                     val actionDesc = when (selectedButton.systemAction) {
                                         "FPS" -> "In-Game FPS Indicator"
                                         "KEYBOARD" -> "Toggle On-Screen Keyboard"
-                                        "HIDE_GUI" -> "Hide/Show GUI"
+                                        "HIDE_GUI" -> "Hide GUI (Invisible Toggle)"
                                         "CLOSE" -> "Quit Game"
-                                        "RECORD" -> "Screen Recorder [Premium]"
-                                        else -> "Launcher System Action"
+                                        "RECORD" -> "Screen Recorder"
+                                        else -> "System Action"
                                     }
-                                    Text(actionDesc, color = NuxColors.SkyBlue, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text(actionDesc, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 }
                             } else {
                                 val mappedKeyName = remember(selectedButton) {
@@ -767,8 +780,8 @@ fun CustomGuiEditorScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(Color(0xFF131C31), RoundedCornerShape(8.dp))
-                                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                                        .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
+                                        .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
                                         .clickable {
                                             keyPickerTargetMode = "MAIN"
                                             keyPickerSearchQuery = ""
@@ -783,14 +796,14 @@ fun CustomGuiEditorScreen(
                                     ) {
                                         Text(mappedKeyName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Change >", color = NuxColors.SkyBlue, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                                        Text("Change >", color = EditorMuted, fontWeight = FontWeight.Black, fontSize = 10.sp)
                                     }
                                 }
                             }
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Width:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
-                                Text("${selectedButton.widthDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                Text("Width:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                                Text("${selectedButton.widthDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
                             }
                             Slider(
                                 value = selectedButton.widthDp.toFloat(),
@@ -799,15 +812,15 @@ fun CustomGuiEditorScreen(
                                 },
                                 valueRange = 24f..160f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.SkyBlue,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = Color(0xFF1E293B)
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = EditorBorder
                                 )
                             )
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Height:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
-                                Text("${selectedButton.heightDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                Text("Height:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                                Text("${selectedButton.heightDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
                             }
                             Slider(
                                 value = selectedButton.heightDp.toFloat(),
@@ -816,15 +829,15 @@ fun CustomGuiEditorScreen(
                                 },
                                 valueRange = 24f..160f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.SkyBlue,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = Color(0xFF1E293B)
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = EditorBorder
                                 )
                             )
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Transparency (Opacity):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
-                                Text("${(selectedButton.opacity * 100).roundToInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                Text("Transparency (Opacity):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                                Text("${(selectedButton.opacity * 100).roundToInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
                             }
                             Slider(
                                 value = selectedButton.opacity,
@@ -833,15 +846,15 @@ fun CustomGuiEditorScreen(
                                 },
                                 valueRange = 0.15f..1.0f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.SkyBlue,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = Color(0xFF1E293B)
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = EditorBorder
                                 )
                             )
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Corner Radius:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
-                                Text("${selectedButton.cornerRadiusDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                Text("Corner Radius:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
+                                Text("${selectedButton.cornerRadiusDp} dp", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
                             }
                             Slider(
                                 value = selectedButton.cornerRadiusDp.toFloat(),
@@ -850,9 +863,9 @@ fun CustomGuiEditorScreen(
                                 },
                                 valueRange = 0f..28f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.SkyBlue,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = Color(0xFF1E293B)
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = EditorBorder
                                 )
                             )
                         }
@@ -865,7 +878,7 @@ fun CustomGuiEditorScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Toggle Mode:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                    Text("Tap once to toggle/lock", fontSize = 8.sp, color = NuxColors.GrayNeutral)
+                                    Text("Tap once to toggle/lock", fontSize = 8.sp, color = EditorMuted)
                                 }
                                 Switch(
                                     checked = selectedButton.isToggle,
@@ -873,10 +886,10 @@ fun CustomGuiEditorScreen(
                                         buttonsList = buttonsList.map { if (it.id == selectedButton.id) it.copy(isToggle = isToggled) else it }
                                     },
                                     colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = NuxColors.ForestGreen,
-                                        uncheckedThumbColor = Color(0xFF94A3B8),
-                                        uncheckedTrackColor = Color(0xFF1E293B)
+                                        checkedThumbColor = EditorBgBase,
+                                        checkedTrackColor = Color.White,
+                                        uncheckedThumbColor = EditorMuted,
+                                        uncheckedTrackColor = EditorSurfaceAlt
                                     )
                                 )
                             }
@@ -887,8 +900,8 @@ fun CustomGuiEditorScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF131C31), RoundedCornerShape(10.dp))
-                                    .border(1.dp, if (selectedButton.isMacro) NuxColors.SkyBlue else NuxColors.CardBorder, RoundedCornerShape(10.dp))
+                                    .background(EditorSurfaceAlt, RoundedCornerShape(10.dp))
+                                    .border(1.dp, if (selectedButton.isMacro) Color.White else EditorBorder, RoundedCornerShape(10.dp))
                                     .padding(10.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
@@ -902,23 +915,23 @@ fun CustomGuiEditorScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Bolt,
                                                 contentDescription = null,
-                                                tint = if (selectedButton.isMacro) NuxColors.SkyBlue else Color.White,
+                                                tint = Color.White,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("MACRO FEATURES", fontSize = 11.sp, fontWeight = FontWeight.Black, color = if (selectedButton.isMacro) NuxColors.SkyBlue else Color.White)
+                                            Text("MACRO FEATURES", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color.White)
                                             if (selectedButton.isMacro) {
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(NuxColors.ForestGreen.copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                                                        .background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(4.dp))
                                                         .padding(horizontal = 5.dp, vertical = 2.dp)
                                                 ) {
-                                                    Text("ACTIVE", fontSize = 8.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                                    Text("ACTIVE", fontSize = 8.sp, fontWeight = FontWeight.Black, color = Color.White)
                                                 }
                                             }
                                         }
-                                        Text("Enable macro automation for this button", fontSize = 8.sp, color = NuxColors.GrayNeutral)
+                                        Text("Enable macro automation for this button", fontSize = 8.sp, color = EditorMuted)
                                     }
                                     Switch(
                                         checked = selectedButton.isMacro,
@@ -928,18 +941,18 @@ fun CustomGuiEditorScreen(
                                             }
                                         },
                                         colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = NuxColors.ForestGreen,
-                                            uncheckedThumbColor = Color(0xFF94A3B8),
-                                            uncheckedTrackColor = Color(0xFF1E293B)
+                                            checkedThumbColor = EditorBgBase,
+                                            checkedTrackColor = Color.White,
+                                            uncheckedThumbColor = EditorMuted,
+                                            uncheckedTrackColor = EditorSurface
                                         )
                                     )
                                 }
 
                                 if (selectedButton.isMacro) {
-                                    HorizontalDivider(color = NuxColors.CardBorder, thickness = 1.dp)
+                                    HorizontalDivider(color = EditorBorder, thickness = 1.dp)
 
-                                    Text("Select Macro Mode:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NuxColors.SkyBlue)
+                                    Text("Select Macro Mode:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = EditorMuted)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -955,12 +968,12 @@ fun CustomGuiEditorScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .background(
-                                                        if (isChosen) NuxColors.ForestGreen else Color(0xFF0E1629),
+                                                        if (isChosen) Color.White else EditorSurface,
                                                         RoundedCornerShape(6.dp)
                                                     )
                                                     .border(
                                                         1.dp,
-                                                        if (isChosen) NuxColors.SkyBlue else NuxColors.CardBorder,
+                                                        if (isChosen) Color.White else EditorBorder,
                                                         RoundedCornerShape(6.dp)
                                                     )
                                                     .clickable {
@@ -975,7 +988,7 @@ fun CustomGuiEditorScreen(
                                                     text = typeLabel,
                                                     fontSize = 8.sp,
                                                     fontWeight = if (isChosen) FontWeight.Black else FontWeight.Bold,
-                                                    color = Color.White,
+                                                    color = if (isChosen) EditorBgBase else Color.White,
                                                     maxLines = 1
                                                 )
                                             }
@@ -993,17 +1006,17 @@ fun CustomGuiEditorScreen(
                                                     }
                                                 },
                                                 textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                                                cursorBrush = SolidColor(NuxColors.SkyBlue),
+                                                cursorBrush = SolidColor(Color.White),
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .background(Color(0xFF090E1A), RoundedCornerShape(6.dp))
-                                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                                                    .background(EditorBgBase, RoundedCornerShape(6.dp))
+                                                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
                                                     .padding(horizontal = 10.dp, vertical = 8.dp),
                                                 decorationBox = { innerTextField ->
                                                     if (selectedButton.macroCommand.isEmpty()) {
                                                         Text(
                                                             text = "e.g. /gamemode creative or /home",
-                                                            color = Color(0xFF64748B),
+                                                            color = EditorMuted,
                                                             fontSize = 10.sp
                                                         )
                                                     }
@@ -1011,7 +1024,7 @@ fun CustomGuiEditorScreen(
                                                 }
                                             )
 
-                                            Text("Quick Templates:", fontSize = 8.sp, color = NuxColors.GrayNeutral)
+                                            Text("Quick Templates:", fontSize = 8.sp, color = EditorMuted)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1019,8 +1032,8 @@ fun CustomGuiEditorScreen(
                                                 listOf("/gamemode c", "/gamemode s", "/spawn", "/home").forEach { sample ->
                                                     Box(
                                                         modifier = Modifier
-                                                            .background(Color(0xFF162035), RoundedCornerShape(4.dp))
-                                                            .border(0.5.dp, NuxColors.CardBorder, RoundedCornerShape(4.dp))
+                                                            .background(EditorSurface, RoundedCornerShape(4.dp))
+                                                            .border(0.5.dp, EditorBorder, RoundedCornerShape(4.dp))
                                                             .clickable {
                                                                 buttonsList = buttonsList.map {
                                                                     if (it.id == selectedButton.id) it.copy(macroCommand = sample) else it
@@ -1028,7 +1041,7 @@ fun CustomGuiEditorScreen(
                                                             }
                                                             .padding(horizontal = 6.dp, vertical = 3.dp)
                                                     ) {
-                                                        Text(sample, fontSize = 8.sp, color = NuxColors.SkyBlue, fontWeight = FontWeight.Bold)
+                                                        Text(sample, fontSize = 8.sp, color = EditorAccent, fontWeight = FontWeight.Bold)
                                                     }
                                                 }
                                             }
@@ -1072,14 +1085,14 @@ fun CustomGuiEditorScreen(
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .background(Color(0xFF090E1A), RoundedCornerShape(6.dp))
-                                                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                                                        .background(EditorBgBase, RoundedCornerShape(6.dp))
+                                                        .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
                                                         .padding(vertical = 10.dp, horizontal = 12.dp),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Text(
                                                         text = "No combo keys added yet. Add keys below.",
-                                                        color = NuxColors.GrayNeutral,
+                                                        color = EditorMuted,
                                                         fontSize = 9.sp
                                                     )
                                                 }
@@ -1089,8 +1102,8 @@ fun CustomGuiEditorScreen(
                                                         Row(
                                                             modifier = Modifier
                                                                 .fillMaxWidth()
-                                                                .background(Color(0xFF090E1A), RoundedCornerShape(6.dp))
-                                                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                                                                .background(EditorBgBase, RoundedCornerShape(6.dp))
+                                                                .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
                                                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                                                             horizontalArrangement = Arrangement.SpaceBetween,
                                                             verticalAlignment = Alignment.CenterVertically
@@ -1098,10 +1111,10 @@ fun CustomGuiEditorScreen(
                                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                                                 Box(
                                                                     modifier = Modifier
-                                                                        .background(NuxColors.ForestGreen.copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                                                                        .background(EditorSurfaceAlt, RoundedCornerShape(4.dp))
                                                                         .padding(horizontal = 5.dp, vertical = 2.dp)
                                                                 ) {
-                                                                    Text("#${index + 1}", fontSize = 8.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                                                    Text("#${index + 1}", fontSize = 8.sp, fontWeight = FontWeight.Black, color = Color.White)
                                                                 }
                                                                 Spacer(modifier = Modifier.width(6.dp))
                                                                 Text(
@@ -1136,8 +1149,8 @@ fun CustomGuiEditorScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .background(Color(0xFF162035), RoundedCornerShape(6.dp))
-                                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
+                                                    .background(EditorSurface, RoundedCornerShape(6.dp))
+                                                    .border(1.dp, EditorBorder, RoundedCornerShape(6.dp))
                                                     .clickable {
                                                         keyPickerTargetMode = "COMBO"
                                                         keyPickerSearchQuery = ""
@@ -1147,13 +1160,13 @@ fun CustomGuiEditorScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text("+", fontSize = 12.sp, color = NuxColors.SkyBlue, fontWeight = FontWeight.Black)
+                                                    Text("+", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Black)
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text("Add Key to Combo", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
                                                 }
                                             }
 
-                                            Text("Quick Add:", fontSize = 8.sp, color = NuxColors.GrayNeutral)
+                                            Text("Quick Add:", fontSize = 8.sp, color = EditorMuted)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1168,8 +1181,8 @@ fun CustomGuiEditorScreen(
                                                 ).forEach { (label, code) ->
                                                     Box(
                                                         modifier = Modifier
-                                                            .background(Color(0xFF162035), RoundedCornerShape(4.dp))
-                                                            .border(0.5.dp, NuxColors.CardBorder, RoundedCornerShape(4.dp))
+                                                            .background(EditorSurface, RoundedCornerShape(4.dp))
+                                                            .border(0.5.dp, EditorBorder, RoundedCornerShape(4.dp))
                                                             .clickable {
                                                                 val updated = comboKeysList + code
                                                                 buttonsList = buttonsList.map {
@@ -1180,11 +1193,11 @@ fun CustomGuiEditorScreen(
                                                             }
                                                             .padding(horizontal = 6.dp, vertical = 3.dp)
                                                     ) {
-                                                        Text("+ $label", fontSize = 8.sp, color = NuxColors.SkyBlue, fontWeight = FontWeight.Bold)
+                                                        Text("+ $label", fontSize = 8.sp, color = EditorAccent, fontWeight = FontWeight.Bold)
                                                     }
                                                 }
                                             }
-                                            Text("Executed sequentially from top (#1) to bottom on press.", fontSize = 8.sp, color = NuxColors.GrayNeutral)
+                                            Text("Executed sequentially from top (#1) to bottom on press.", fontSize = 8.sp, color = EditorMuted)
                                         }
                                     }
 
@@ -1196,7 +1209,7 @@ fun CustomGuiEditorScreen(
                                             ) {
                                                 Text("Auto-Click Interval:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                                 val cps = (1000f / selectedButton.macroTurboIntervalMs.coerceAtLeast(1L)).roundToInt()
-                                                Text("${selectedButton.macroTurboIntervalMs} ms (~$cps CPS)", fontSize = 9.sp, fontWeight = FontWeight.Black, color = NuxColors.SkyBlue)
+                                                Text("${selectedButton.macroTurboIntervalMs} ms (~$cps CPS)", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.White)
                                             }
                                             Slider(
                                                 value = selectedButton.macroTurboIntervalMs.toFloat(),
@@ -1207,12 +1220,12 @@ fun CustomGuiEditorScreen(
                                                 },
                                                 valueRange = 40f..500f,
                                                 colors = SliderDefaults.colors(
-                                                    thumbColor = NuxColors.SkyBlue,
-                                                    activeTrackColor = NuxColors.ForestGreen,
-                                                    inactiveTrackColor = Color(0xFF1E293B)
+                                                    thumbColor = Color.White,
+                                                    activeTrackColor = Color.White,
+                                                    inactiveTrackColor = EditorBorder
                                                 )
                                             )
-                                            Text("Button automatically triggers repeated rapid presses while held.", fontSize = 8.sp, color = NuxColors.GrayNeutral)
+                                            Text("Button automatically triggers repeated rapid presses while held.", fontSize = 8.sp, color = EditorMuted)
                                         }
                                     }
                                 }
@@ -1241,14 +1254,14 @@ fun CustomGuiEditorScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF131C31), RoundedCornerShape(8.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                                    .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
+                                    .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
                                     .padding(vertical = 10.dp, horizontal = 12.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "System buttons cannot be deleted",
-                                    color = NuxColors.GrayNeutral,
+                                    color = EditorMuted,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp
                                 )
@@ -1265,20 +1278,20 @@ fun CustomGuiEditorScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 12.dp)
-                    .background(Color(0xCC0F172A), RoundedCornerShape(20.dp))
-                    .border(1.dp, NuxColors.SkyBlue.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                    .background(EditorSurface.copy(alpha = 0.92f), RoundedCornerShape(20.dp))
+                    .border(1.dp, EditorBorder, RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
                             .size(7.dp)
-                            .background(NuxColors.SkyBlue, CircleShape)
+                            .background(Color.White, CircleShape)
                     )
                     Spacer(modifier = Modifier.width(7.dp))
                     Text(
                         text = "IN-GAME MODE · Position buttons over game HUD then tap DONE",
-                        color = Color(0xFFBAE6FD),
+                        color = EditorAccent,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -1300,7 +1313,7 @@ fun CustomGuiEditorScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
                     .fillMaxHeight(0.88f),
-                backgroundColor = Color(0xFF0F172A),
+                backgroundColor = EditorSurface,
                 shadowOffset = 6.dp,
                 cornerRadius = 16.dp
             ) {
@@ -1316,7 +1329,7 @@ fun CustomGuiEditorScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (isComboMode) "Select Combo Key" else "Select Minecraft Key Input",
+                                text = if (isComboMode) "Select Combo Key" else "Select Key Input",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 14.sp,
                                 color = Color.White
@@ -1324,7 +1337,7 @@ fun CustomGuiEditorScreen(
                             Text(
                                 text = if (isComboMode) "This key executes sequentially with the primary key" else "Full keyboard: A-Z, F1-F12, numbers, modifiers & symbols",
                                 fontSize = 9.sp,
-                                color = NuxColors.GrayNeutral
+                                color = EditorMuted
                             )
                         }
                         Box(
@@ -1348,8 +1361,8 @@ fun CustomGuiEditorScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(38.dp)
-                            .background(Color(0xFF131C31), RoundedCornerShape(8.dp))
-                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                            .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
+                            .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
                             .padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1360,11 +1373,11 @@ fun CustomGuiEditorScreen(
                             onValueChange = { keyPickerSearchQuery = it },
                             singleLine = true,
                             textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                            cursorBrush = SolidColor(NuxColors.SkyBlue),
+                            cursorBrush = SolidColor(Color.White),
                             modifier = Modifier.weight(1f),
                             decorationBox = { innerTextField ->
                                 if (keyPickerSearchQuery.isEmpty()) {
-                                    Text("Search key (W, Alt, F3, Tab, Shift...)", color = Color(0xFF64748B), fontSize = 10.sp, maxLines = 1)
+                                    Text("Search key (W, Alt, F3, Tab, Shift...)", color = EditorMuted, fontSize = 10.sp, maxLines = 1)
                                 }
                                 innerTextField()
                             }
@@ -1373,7 +1386,7 @@ fun CustomGuiEditorScreen(
                             Box(
                                 modifier = Modifier
                                     .size(18.dp)
-                                    .background(Color(0xFF1E293B), CircleShape)
+                                    .background(EditorSurface, CircleShape)
                                     .clickable { keyPickerSearchQuery = "" },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1412,7 +1425,7 @@ fun CustomGuiEditorScreen(
                         ) {
                             Text(
                                 "No keys match \"$keyPickerSearchQuery\"",
-                                color = NuxColors.SkyBlue,
+                                color = EditorAccent,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -1429,7 +1442,7 @@ fun CustomGuiEditorScreen(
                                         text = category.uppercase(),
                                         fontWeight = FontWeight.Black,
                                         fontSize = 11.sp,
-                                        color = NuxColors.SkyBlue,
+                                        color = EditorMuted,
                                         modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
                                     )
                                 }
@@ -1437,8 +1450,8 @@ fun CustomGuiEditorScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(Color(0xFF131C31), RoundedCornerShape(8.dp))
-                                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
+                                            .background(EditorSurfaceAlt, RoundedCornerShape(8.dp))
+                                            .border(1.dp, EditorBorder, RoundedCornerShape(8.dp))
                                             .clickable {
                                                 buttonsList = buttonsList.map {
                                                     if (it.id == targetId) {
@@ -1482,7 +1495,7 @@ fun CustomGuiEditorScreen(
                                                 text = keyOpt.category,
                                                 fontWeight = FontWeight.Normal,
                                                 fontSize = 9.sp,
-                                                color = NuxColors.GrayNeutral
+                                                color = EditorMuted
                                             )
                                         }
                                     }
@@ -1500,7 +1513,7 @@ fun CustomGuiEditorScreen(
         Dialog(onDismissRequest = { showResetConfirmDialog = false }) {
             NuxCard(
                 modifier = Modifier.width(320.dp),
-                backgroundColor = Color(0xFF0F172A),
+                backgroundColor = EditorSurface,
                 shadowOffset = 6.dp,
                 cornerRadius = 16.dp
             ) {
@@ -1510,13 +1523,13 @@ fun CustomGuiEditorScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text("Reset GUI Layout?", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                    Text("All button positions and custom mappings will be restored to default Bell layout.", fontSize = 12.sp, color = NuxColors.GrayNeutral)
+                    Text("All button positions and custom mappings will be restored to default layout.", fontSize = 12.sp, color = EditorMuted)
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         NuxButton(
                             onClick = { showResetConfirmDialog = false },
                             modifier = Modifier.weight(1f).height(44.dp),
-                            backgroundColor = Color(0xFF162035),
+                            backgroundColor = EditorSurfaceAlt,
                             contentColor = Color.White,
                             shadowOffset = 2.dp
                         ) {
