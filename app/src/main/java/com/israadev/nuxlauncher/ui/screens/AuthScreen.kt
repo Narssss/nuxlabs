@@ -2,8 +2,6 @@ package com.israadev.nuxlauncher.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import com.israadev.nuxlauncher.core.network.NuxConfig
-import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +16,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.israadev.nuxlauncher.R
@@ -43,15 +43,32 @@ import com.israadev.nuxlauncher.core.account.AccountManager
 import com.israadev.nuxlauncher.core.auth.AuthService
 import com.israadev.nuxlauncher.core.auth.AuthUser
 import com.israadev.nuxlauncher.core.auth.OtpCooldownManager
-import com.israadev.nuxlauncher.ui.components.NuxButton
-import com.israadev.nuxlauncher.ui.components.NuxCard
-import com.israadev.nuxlauncher.ui.theme.NuxColors
-import com.israadev.nuxlauncher.ui.theme.NuxSizes
+import com.israadev.nuxlauncher.core.lang.trStr
+import com.israadev.nuxlauncher.core.network.NuxConfig
 import com.israadev.nuxlauncher.ui.theme.resp
-import com.israadev.nuxlauncher.core.lang.tr
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+
+// Token Desain Bell Launcher (Monochrome Obsidian Glass + Crisp White)
+private val BellBgCanvas = Color(0xFF07070A)
+private val BellGlassSidebar = Color(0xCC0D0D11)
+private val BellGlassCard = Color(0xBF131318)
+private val BellGlassInput = Color(0xCC0A0A0E)
+private val BellBorder = Color(0x26FFFFFF)
+private val BellBorderActive = Color(0x66FFFFFF)
+private val BellPillWhite = Color(0xFFFFFFFF)
+private val BellInkDark = Color(0xFF09090B)
+private val BellTextPrimary = Color(0xFFFFFFFF)
+private val BellTextSecondary = Color(0xFFB4B6BE)
+private val BellTextMuted = Color(0xFF787B85)
+private val BellDanger = Color(0xFFF87171)
+private val BellAmber = Color(0xFFFBBF24)
+
+private fun safeAuthTr(key: String, fallback: String): String {
+    val translated = trStr(key)
+    return if (translated.isBlank() || translated == key) fallback else translated
+}
 
 enum class AuthMode {
     LOGIN,
@@ -104,34 +121,30 @@ fun AuthScreen(
     Row(
         modifier = modifier
             .fillMaxSize()
-            .background(NuxColors.Background)
+            .background(BellBgCanvas)
             .padding((10.dp).resp()),
         horizontalArrangement = Arrangement.spacedBy((10.dp).resp())
     ) {
-        // =========================================================================
+        // =====================================================================
         // LEFT PANE: BRANDING & GAMING SHOWCASE (38% Width)
-        // =========================================================================
+        // =====================================================================
         val leftPanelShape = RoundedCornerShape((16.dp).resp())
         Box(
             modifier = Modifier
                 .weight(0.38f)
                 .fillMaxHeight()
                 .clip(leftPanelShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF141722), Color(0xFF0C0E14))
-                    )
-                )
-                .border(1.dp, Color(0x2EFFFFFF), leftPanelShape)
+                .background(BellGlassSidebar)
+                .border(1.dp, BellBorder, leftPanelShape)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Background Wallpaper with gradient overlay
+                // Background Wallpaper with dark obsidian gradient overlay
                 Image(
                     painter = painterResource(id = R.drawable.mc_hero_bg),
                     contentDescription = "Background",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    alpha = 0.30f
+                    alpha = 0.25f
                 )
 
                 Box(
@@ -140,9 +153,9 @@ fun AuthScreen(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Transparent,
-                                    Color(0xFF0C0E14).copy(alpha = 0.8f),
-                                    Color(0xFF0C0E14)
+                                    Color(0x6607070A),
+                                    Color(0xCC0A0A0E),
+                                    Color(0xF50A0A0E)
                                 )
                             )
                         )
@@ -163,33 +176,32 @@ fun AuthScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF10B981).copy(alpha = 0.16f))
-                                .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(BellPillWhite)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
-                                text = "NUX CLIENT",
-                                color = NuxColors.MintGreen,
-                                fontSize = 9.sp,
+                                text = "BELL CLIENT",
+                                color = BellInkDark,
+                                fontSize = 8.5.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 1.sp
+                                letterSpacing = 0.9.sp
                             )
                         }
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(7.dp)
-                                    .background(NuxColors.ForestGreen, CircleShape)
+                                    .size(6.dp)
+                                    .background(BellPillWhite, CircleShape)
                             )
                             Text(
                                 text = "ONLINE GATEWAY",
-                                color = Color(0xFFA1A1AA),
-                                fontSize = 8.5.sp,
+                                color = BellTextSecondary,
+                                fontSize = 8.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.5.sp
                             )
@@ -199,79 +211,73 @@ fun AuthScreen(
                     // Middle: Title & Gaming Highlights
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Text(
-                            text = "MINECRAFT JAVA",
-                            color = NuxColors.MintGreen,
-                            fontSize = 11.sp,
+                            text = "MINECRAFT JAVA EDITION",
+                            color = BellTextSecondary,
+                            fontSize = 9.5.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp
+                            letterSpacing = 1.1.sp
                         )
 
                         Text(
-                            text = "NUX LAUNCHER",
-                            color = Color.White,
-                            fontSize = 24.sp,
+                            text = "BELL LAUNCHER",
+                            color = BellTextPrimary,
+                            fontSize = 23.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = (-0.3).sp,
-                            lineHeight = 28.sp
+                            lineHeight = 27.sp
                         )
 
                         Text(
-                            text = "Play Minecraft Java Edition on your Android device with maximum performance, custom controls, and voice rooms.",
-                            color = Color(0xFFD4D4D8),
-                            fontSize = 11.sp,
-                            lineHeight = 15.sp,
+                            text = "Play Minecraft Java Edition on Android with high-FPS Vulkan renderers, custom touch controls, and modpack support.",
+                            color = BellTextSecondary,
+                            fontSize = 10.5.sp,
+                            lineHeight = 14.5.sp,
                             fontWeight = FontWeight.Normal
                         )
                     }
 
                     // Bottom: Feature Badges
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             GamingFeaturePill(text = "FABRIC / FORGE", icon = Icons.Default.Extension, modifier = Modifier.weight(1f))
-                            GamingFeaturePill(text = "LIVEKIT VOICE", icon = Icons.Default.Mic, modifier = Modifier.weight(1f))
+                            GamingFeaturePill(text = "VULKAN / ZINK", icon = Icons.Default.Speed, modifier = Modifier.weight(1f))
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             GamingFeaturePill(text = "CUSTOM GUI", icon = Icons.Default.TouchApp, modifier = Modifier.weight(1f))
-                            GamingFeaturePill(text = "OFFICIAL & SAFE", icon = Icons.Default.Shield, modifier = Modifier.weight(1f))
+                            GamingFeaturePill(text = "AI DIAGNOSTICS", icon = Icons.Default.AutoFixHigh, modifier = Modifier.weight(1f))
                         }
                     }
                 }
             }
         }
 
-        // =========================================================================
+        // =====================================================================
         // RIGHT PANE: COMPACT INTERACTIVE AUTH CONSOLE (62% Width)
-        // =========================================================================
+        // =====================================================================
         val rightPanelShape = RoundedCornerShape((16.dp).resp())
         Box(
             modifier = Modifier
                 .weight(0.62f)
                 .fillMaxHeight()
                 .clip(rightPanelShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF141722), Color(0xFF0C0E14))
-                    )
-                )
-                .border(1.dp, Color(0x2EFFFFFF), rightPanelShape)
+                .background(BellGlassCard)
+                .border(1.dp, BellBorder, rightPanelShape)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = (13.dp).resp(), vertical = (10.dp).resp()),
-                verticalArrangement = Arrangement.spacedBy((7.dp).resp())
+                    .padding(horizontal = (16.dp).resp(), vertical = (12.dp).resp()),
+                verticalArrangement = Arrangement.spacedBy((9.dp).resp())
             ) {
                 // Top Segmented Switcher (Only in Login & Register)
                 if (mode == AuthMode.LOGIN || mode == AuthMode.REGISTER) {
@@ -280,8 +286,8 @@ fun AuthScreen(
                             .fillMaxWidth()
                             .height((36.dp).resp())
                             .clip(RoundedCornerShape((9.dp).resp()))
-                            .background(Color(0xFF090B10))
-                            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape((9.dp).resp()))
+                            .background(BellGlassInput)
+                            .border(1.dp, BellBorder, RoundedCornerShape((9.dp).resp()))
                             .padding((3.dp).resp())
                     ) {
                         Row(
@@ -293,13 +299,8 @@ fun AuthScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isLogin) Color(0xFF181C26) else Color.Transparent)
-                                    .border(
-                                        width = if (isLogin) 1.dp else 0.dp,
-                                        color = if (isLogin) Color(0x33FFFFFF) else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(if (isLogin) BellPillWhite else Color.Transparent)
                                     .clickable {
                                         errorMessage = ""
                                         successMessage = ""
@@ -308,10 +309,11 @@ fun AuthScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = tr("auth.sign_in"),
-                                    fontSize = 11.5.sp,
-                                    fontWeight = if (isLogin) FontWeight.Black else FontWeight.SemiBold,
-                                    color = if (isLogin) Color.White else Color(0xFF71717A)
+                                    text = safeAuthTr("auth.sign_in", "SIGN IN").uppercase(),
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.6.sp,
+                                    color = if (isLogin) BellInkDark else BellTextSecondary
                                 )
                             }
 
@@ -320,13 +322,8 @@ fun AuthScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isRegister) Color(0xFF181C26) else Color.Transparent)
-                                    .border(
-                                        width = if (isRegister) 1.dp else 0.dp,
-                                        color = if (isRegister) Color(0x33FFFFFF) else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(if (isRegister) BellPillWhite else Color.Transparent)
                                     .clickable {
                                         errorMessage = ""
                                         successMessage = ""
@@ -335,10 +332,11 @@ fun AuthScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = tr("auth.sign_up"),
-                                    fontSize = 11.5.sp,
-                                    fontWeight = if (isRegister) FontWeight.Black else FontWeight.SemiBold,
-                                    color = if (isRegister) Color.White else Color(0xFF71717A)
+                                    text = safeAuthTr("auth.sign_up", "CREATE ACCOUNT").uppercase(),
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.6.sp,
+                                    color = if (isRegister) BellInkDark else BellTextSecondary
                                 )
                             }
                         }
@@ -351,13 +349,13 @@ fun AuthScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF261017))
-                            .border(1.dp, Color(0xFFF43F5E).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                            .background(BellDanger.copy(alpha = 0.14f))
+                            .border(1.dp, BellDanger.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFF43F5E), modifier = Modifier.size(16.dp))
-                            Text(text = errorMessage, color = Color(0xFFFDA4AF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = BellDanger, modifier = Modifier.size(15.dp))
+                            Text(text = errorMessage, color = BellDanger, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -368,13 +366,13 @@ fun AuthScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF0F221B))
-                            .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                            .background(Color(0x26FFFFFF))
+                            .border(1.dp, BellBorderActive, RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = NuxColors.ForestGreen, modifier = Modifier.size(16.dp))
-                            Text(text = successMessage, color = NuxColors.MintGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.Check, contentDescription = null, tint = BellTextPrimary, modifier = Modifier.size(15.dp))
+                            Text(text = successMessage, color = BellTextPrimary, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -385,16 +383,16 @@ fun AuthScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF261D0C))
-                            .border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                            .background(BellAmber.copy(alpha = 0.14f))
+                            .border(1.dp, BellAmber.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Info, contentDescription = null, tint = BellAmber, modifier = Modifier.size(15.dp))
                             Text(
-                                text = "Code didn't arrive in Inbox? Make sure to check your SPAM / JUNK email folder. Please wait for cooldown before requesting again.",
-                                color = Color(0xFFFCD34D),
-                                fontSize = 10.5.sp,
+                                text = "Code didn't arrive in Inbox? Check your SPAM / JUNK email folder before requesting again.",
+                                color = BellAmber,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -410,16 +408,16 @@ fun AuthScreen(
                         AuthInputField(
                             value = email,
                             onValueChange = { email = it; errorMessage = "" },
-                            label = tr("auth.email_label"),
-                            placeholder = tr("auth.email_placeholder"),
+                            label = safeAuthTr("auth.email_label", "EMAIL ADDRESS"),
+                            placeholder = safeAuthTr("auth.email_placeholder", "you@example.com"),
                             leadingIcon = Icons.Default.Email
                         )
 
                         AuthInputField(
                             value = password,
                             onValueChange = { password = it; errorMessage = "" },
-                            label = tr("auth.password_label"),
-                            placeholder = tr("auth.password_placeholder"),
+                            label = safeAuthTr("auth.password_label", "PASSWORD"),
+                            placeholder = safeAuthTr("auth.password_placeholder", "Enter your password"),
                             leadingIcon = Icons.Default.Lock,
                             isPassword = true,
                             isPasswordVisible = isPasswordVisible,
@@ -431,10 +429,10 @@ fun AuthScreen(
                             horizontalArrangement = Arrangement.End
                         ) {
                             Text(
-                                text = tr("auth.forgot_password"),
-                                fontSize = 11.sp,
+                                text = safeAuthTr("auth.forgot_password", "Forgot Password?"),
+                                fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = NuxColors.ForestGreen,
+                                color = BellTextSecondary,
                                 modifier = Modifier.clickable {
                                     errorMessage = ""
                                     successMessage = ""
@@ -443,11 +441,14 @@ fun AuthScreen(
                             )
                         }
 
-                        NuxButton(
+                        BellAuthPrimaryButton(
+                            text = if (isLoading) safeAuthTr("common.loading", "SIGNING IN...").uppercase() else safeAuthTr("auth.btn_sign_in", "SIGN IN TO LAUNCHER").uppercase(),
+                            icon = Icons.Default.SportsEsports,
+                            isLoading = isLoading,
                             onClick = {
                                 if (email.isBlank() || password.isBlank()) {
                                     errorMessage = "Email and password are required."
-                                    return@NuxButton
+                                    return@BellAuthPrimaryButton
                                 }
                                 isLoading = true
                                 errorMessage = ""
@@ -470,22 +471,8 @@ fun AuthScreen(
                                         }
                                     )
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            backgroundColor = NuxColors.ForestGreen,
-                            contentColor = Color.White,
-                            enabled = !isLoading
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.SportsEsports, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                Text(
-                                    text = if (isLoading) tr("common.loading") else tr("auth.btn_sign_in"),
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp,
-                                    color = Color.White
-                                )
                             }
-                        }
+                        )
                     }
 
                     // ==========================================
@@ -500,8 +487,8 @@ fun AuthScreen(
                                 AuthInputField(
                                     value = username,
                                     onValueChange = { username = it; errorMessage = "" },
-                                    label = tr("auth.username_label"),
-                                    placeholder = tr("auth.username_placeholder"),
+                                    label = safeAuthTr("auth.username_label", "USERNAME"),
+                                    placeholder = safeAuthTr("auth.username_placeholder", "BellPlayer"),
                                     leadingIcon = Icons.Default.Person
                                 )
                             }
@@ -509,8 +496,8 @@ fun AuthScreen(
                                 AuthInputField(
                                     value = email,
                                     onValueChange = { email = it; errorMessage = "" },
-                                    label = tr("auth.email_label"),
-                                    placeholder = tr("auth.email_placeholder"),
+                                    label = safeAuthTr("auth.email_label", "EMAIL ADDRESS"),
+                                    placeholder = safeAuthTr("auth.email_placeholder", "you@example.com"),
                                     leadingIcon = Icons.Default.Email
                                 )
                             }
@@ -524,8 +511,8 @@ fun AuthScreen(
                                 AuthInputField(
                                     value = password,
                                     onValueChange = { password = it; errorMessage = "" },
-                                    label = tr("auth.password_label"),
-                                    placeholder = tr("auth.password_placeholder"),
+                                    label = safeAuthTr("auth.password_label", "PASSWORD"),
+                                    placeholder = safeAuthTr("auth.password_placeholder", "Min. 6 characters"),
                                     leadingIcon = Icons.Default.Lock,
                                     isPassword = true,
                                     isPasswordVisible = isPasswordVisible,
@@ -536,8 +523,8 @@ fun AuthScreen(
                                 AuthInputField(
                                     value = confirmPassword,
                                     onValueChange = { confirmPassword = it; errorMessage = "" },
-                                    label = tr("auth.confirm_password_label"),
-                                    placeholder = tr("auth.confirm_password_placeholder"),
+                                    label = safeAuthTr("auth.confirm_password_label", "CONFIRM PASSWORD"),
+                                    placeholder = safeAuthTr("auth.confirm_password_placeholder", "Repeat password"),
                                     leadingIcon = Icons.Default.Lock,
                                     isPassword = true,
                                     isPasswordVisible = isPasswordVisible,
@@ -546,25 +533,28 @@ fun AuthScreen(
                             }
                         }
 
-                        NuxButton(
+                        BellAuthPrimaryButton(
+                            text = if (isLoading) safeAuthTr("common.loading", "CREATING ACCOUNT...").uppercase() else safeAuthTr("auth.btn_create_account", "CREATE BELL ACCOUNT").uppercase(),
+                            icon = Icons.Default.PersonAdd,
+                            isLoading = isLoading,
                             onClick = {
                                 val cleanUser = username.trim()
                                 val cleanEmail = email.trim()
                                 if (cleanUser.isEmpty()) {
                                     errorMessage = "Username is required."
-                                    return@NuxButton
+                                    return@BellAuthPrimaryButton
                                 }
                                 if (!cleanEmail.contains("@")) {
                                     errorMessage = "Invalid email format."
-                                    return@NuxButton
+                                    return@BellAuthPrimaryButton
                                 }
                                 if (password.length < 6) {
                                     errorMessage = "Password must be at least 6 characters."
-                                    return@NuxButton
+                                    return@BellAuthPrimaryButton
                                 }
                                 if (password != confirmPassword) {
                                     errorMessage = "Password confirmation does not match."
-                                    return@NuxButton
+                                    return@BellAuthPrimaryButton
                                 }
 
                                 isLoading = true
@@ -588,22 +578,8 @@ fun AuthScreen(
                                         }
                                     )
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            backgroundColor = NuxColors.ForestGreen,
-                            contentColor = Color.White,
-                            enabled = !isLoading
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = if (isLoading) tr("common.loading") else tr("auth.btn_create_account"),
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 12.sp,
-                                    color = Color.White
-                                )
                             }
-                        }
+                        )
                     }
 
                     // ==========================================
@@ -621,12 +597,12 @@ fun AuthScreen(
                     AuthMode.ACTIVATE_KEY -> {
                         val user = pendingUser ?: AccountManager.launcherUser.value
 
-                        // Compact Account Pill
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF141926), RoundedCornerShape(10.dp))
-                                .border(1.dp, Color(0x334ADE80), RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorderActive, RoundedCornerShape(10.dp))
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -636,20 +612,20 @@ fun AuthScreen(
                                     text = "ACCOUNT: ${user?.username ?: "User"}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = Color(0xFF4ADE80)
+                                    color = BellTextPrimary
                                 )
                                 Text(
                                     text = com.israadev.nuxlauncher.core.utils.PrivacyMasker.maskEmail(user?.email ?: email),
                                     fontSize = 10.sp,
-                                    color = Color(0xFF94A3B8)
+                                    color = BellTextSecondary
                                 )
                             }
 
                             Text(
                                 text = "Switch Account",
-                                fontSize = 11.sp,
+                                fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF38BDF8),
+                                color = BellTextPrimary,
                                 modifier = Modifier.clickable {
                                     AccountManager.logout(context)
                                     pendingUser = null
@@ -658,33 +634,33 @@ fun AuthScreen(
                             )
                         }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(
-                                text = tr("auth.activate_title"),
+                                text = safeAuthTr("auth.activate_title", "ACTIVATE LICENSE KEY").uppercase(),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Black,
-                                color = Color.White
+                                color = BellTextPrimary
                             )
                             Text(
                                 text = "Format: XXXX-XXXX-XXXX-XXXX (16 characters)",
                                 fontSize = 10.sp,
-                                color = Color(0xFF94A3B8)
+                                color = BellTextSecondary
                             )
                         }
 
-                        // Formatted Monospace Key Input
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF0F131D), RoundedCornerShape(10.dp))
-                                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorderActive, RoundedCornerShape(10.dp))
                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             if (licenseKey.isEmpty()) {
                                 Text(
                                     text = "PASTE YOUR LICENSE KEY HERE",
-                                    color = Color(0xFF64748B),
-                                    fontSize = 12.sp,
+                                    color = BellTextMuted,
+                                    fontSize = 11.5.sp,
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -697,13 +673,13 @@ fun AuthScreen(
                                     errorMessage = ""
                                 },
                                 textStyle = TextStyle(
-                                    color = Color(0xFF4ADE80),
-                                    fontSize = 14.sp,
+                                    color = BellTextPrimary,
+                                    fontSize = 13.5.sp,
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 1.sp
                                 ),
-                                cursorBrush = SolidColor(Color(0xFF4ADE80)),
+                                cursorBrush = SolidColor(BellPillWhite),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -713,94 +689,89 @@ fun AuthScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // Buy Key Button
-                            NuxButton(
-                                onClick = {
-                                    try {
-                                        val buyUrl = NuxConfig.BUY_KEY_URL
-                                        if (buyUrl.isNotBlank()) {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(buyUrl))
-                                            context.startActivity(intent)
-                                        }
-                                    } catch (_: Exception) {}
-                                },
-                                modifier = Modifier.weight(0.42f),
-                                backgroundColor = Color(0xFF161B26)
+                            Box(
+                                modifier = Modifier
+                                    .weight(0.42f)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(9.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(9.dp))
+                                    .clickable {
+                                        try {
+                                            val buyUrl = NuxConfig.BUY_KEY_URL
+                                            if (buyUrl.isNotBlank()) {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(buyUrl))
+                                                context.startActivity(intent)
+                                            }
+                                        } catch (_: Exception) {}
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(13.dp))
-                                    Text("Buy Key", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = BellTextPrimary, modifier = Modifier.size(13.dp))
+                                    Text("BUY KEY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BellTextPrimary)
                                 }
                             }
 
-                            // Activate Button
-                            NuxButton(
-                                onClick = {
-                                    val uid = user?.uid ?: ""
-                                    val rawKey = licenseKey.trim().uppercase()
-                                    val key = if (!rawKey.contains("-") && rawKey.length == 16) {
-                                        "${rawKey.substring(0, 4)}-${rawKey.substring(4, 8)}-${rawKey.substring(8, 12)}-${rawKey.substring(12, 16)}"
-                                    } else {
-                                        rawKey
-                                    }
-                                    if (uid.isEmpty()) {
-                                        errorMessage = "Invalid session. Please sign in again."
-                                        mode = AuthMode.LOGIN
-                                        return@NuxButton
-                                    }
-                                    if (key.length < 8) {
-                                        errorMessage = "Invalid license key format."
-                                        return@NuxButton
-                                    }
+                            Box(modifier = Modifier.weight(0.58f)) {
+                                BellAuthPrimaryButton(
+                                    text = if (isLoading) "ACTIVATING..." else safeAuthTr("auth.btn_activate", "ACTIVATE LICENSE").uppercase(),
+                                    icon = Icons.Default.Key,
+                                    isLoading = isLoading,
+                                    onClick = {
+                                        val uid = user?.uid ?: ""
+                                        val rawKey = licenseKey.trim().uppercase()
+                                        val key = if (!rawKey.contains("-") && rawKey.length == 16) {
+                                            "${rawKey.substring(0, 4)}-${rawKey.substring(4, 8)}-${rawKey.substring(8, 12)}-${rawKey.substring(12, 16)}"
+                                        } else {
+                                            rawKey
+                                        }
+                                        if (uid.isEmpty()) {
+                                            errorMessage = "Invalid session. Please sign in again."
+                                            mode = AuthMode.LOGIN
+                                            return@BellAuthPrimaryButton
+                                        }
+                                        if (key.length < 8) {
+                                            errorMessage = "Invalid license key format."
+                                            return@BellAuthPrimaryButton
+                                        }
 
-                                    val targetUser = user ?: AuthUser(uid = uid, email = email, username = username)
+                                        val targetUser = user ?: AuthUser(uid = uid, email = email, username = username)
 
-                                    isLoading = true
-                                    errorMessage = ""
-                                    coroutineScope.launch {
-                                        val token = user?.idToken?.takeIf { it.isNotBlank() }
-                                            ?: AccountManager.getActiveUser()?.idToken?.takeIf { it.isNotBlank() }
-                                        val res = AuthService.activateLicense(uid, key, token)
-                                        isLoading = false
-                                        res.fold(
-                                            onSuccess = { actResult ->
-                                                if (!actResult.success || !actResult.isActivated) {
-                                                    errorMessage = if (actResult.message.isNotBlank()) {
-                                                        actResult.message
-                                                    } else {
-                                                        "License key is invalid or already registered to another account."
+                                        isLoading = true
+                                        errorMessage = ""
+                                        coroutineScope.launch {
+                                            val token = user?.idToken?.takeIf { it.isNotBlank() }
+                                                ?: AccountManager.getActiveUser()?.idToken?.takeIf { it.isNotBlank() }
+                                            val res = AuthService.activateLicense(uid, key, token)
+                                            isLoading = false
+                                            res.fold(
+                                                onSuccess = { actResult ->
+                                                    if (!actResult.success || !actResult.isActivated) {
+                                                        errorMessage = if (actResult.message.isNotBlank()) {
+                                                            actResult.message
+                                                        } else {
+                                                            "License key is invalid or already registered to another account."
+                                                        }
+                                                        return@fold
                                                     }
-                                                    return@fold
+                                                    val sessionPair = AuthService.requestSessionToken(uid)
+                                                    val activatedUser = targetUser.copy(
+                                                        isActivated = true,
+                                                        tier = actResult.tier,
+                                                        idToken = sessionPair?.first ?: targetUser.idToken,
+                                                        refreshToken = sessionPair?.second ?: targetUser.refreshToken
+                                                    )
+                                                    AccountManager.saveAuthUser(context, activatedUser)
+                                                    onAuthSuccess()
+                                                },
+                                                onFailure = { err ->
+                                                    errorMessage = err.message ?: "Activation failed. Please check your license key."
                                                 }
-                                                val sessionPair = AuthService.requestSessionToken(uid)
-                                                val activatedUser = targetUser.copy(
-                                                    isActivated = true,
-                                                    tier = actResult.tier,
-                                                    idToken = sessionPair?.first ?: targetUser.idToken,
-                                                    refreshToken = sessionPair?.second ?: targetUser.refreshToken
-                                                )
-                                                AccountManager.saveAuthUser(context, activatedUser)
-                                                onAuthSuccess()
-                                            },
-                                            onFailure = { err ->
-                                                errorMessage = err.message ?: "Activation failed. Please check your license key."
-                                            }
-                                        )
+                                            )
+                                        }
                                     }
-                                },
-                                modifier = Modifier.weight(0.58f),
-                                backgroundColor = NuxColors.ForestGreen,
-                                enabled = !isLoading
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Icon(Icons.Default.Key, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
-                                    Text(
-                                        text = if (isLoading) tr("common.loading") else tr("auth.btn_activate"),
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 11.sp,
-                                        color = Color.White
-                                    )
-                                }
+                                )
                             }
                         }
                     }
@@ -814,38 +785,42 @@ fun AuthScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.clickable { mode = AuthMode.LOGIN }
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("common.back"), tint = Color(0xFF94A3B8), modifier = Modifier.size(15.dp))
-                            Text(tr("auth.btn_back_to_login"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = BellTextSecondary, modifier = Modifier.size(15.dp))
+                            Text(safeAuthTr("auth.btn_back_to_login", "Back to Sign In"), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = BellTextSecondary)
                         }
 
                         Text(
-                            text = "Reset Account Password",
+                            text = "RESET ACCOUNT PASSWORD",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color.White
+                            letterSpacing = 0.6.sp,
+                            color = BellTextPrimary
                         )
 
                         Text(
-                            text = "Enter your registered email address. Firebase will send an official link to your email to create a new password without needing an OTP code.",
-                            fontSize = 11.sp,
-                            color = Color(0xFF94A3B8),
-                            lineHeight = 16.sp
+                            text = "Enter your registered email address. An official password reset link will be sent directly to your inbox.",
+                            fontSize = 10.5.sp,
+                            color = BellTextSecondary,
+                            lineHeight = 15.sp
                         )
 
                         AuthInputField(
                             value = email,
                             onValueChange = { email = it; errorMessage = "" },
-                            label = "Registered Email Address",
-                            placeholder = "email_kamu@gmail.com",
+                            label = "REGISTERED EMAIL ADDRESS",
+                            placeholder = "you@example.com",
                             leadingIcon = Icons.Default.Email
                         )
 
-                        NuxButton(
+                        BellAuthPrimaryButton(
+                            text = if (isLoading) "SENDING LINK..." else "SEND PASSWORD RESET LINK",
+                            icon = Icons.Default.Send,
+                            isLoading = isLoading,
                             onClick = {
                                 val cleanEmail = email.trim()
                                 if (!cleanEmail.contains("@")) {
                                     errorMessage = "Invalid email format."
-                                    return@NuxButton
+                                    return@BellAuthPrimaryButton
                                 }
 
                                 isLoading = true
@@ -863,21 +838,8 @@ fun AuthScreen(
                                         }
                                     )
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            backgroundColor = NuxColors.ForestGreen,
-                            enabled = !isLoading
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = if (isLoading) "SENDING LINK..." else "SEND PASSWORD RESET LINK",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 12.sp,
-                                    color = Color.White
-                                )
                             }
-                        }
+                        )
                     }
 
                     // ==========================================
@@ -895,8 +857,55 @@ fun AuthScreen(
 }
 
 // --------------------------------------------------------------------------
-// HELPER COMPOSABLES
+// HELPER COMPOSABLES (BELL MONOCHROME THEME)
 // --------------------------------------------------------------------------
+
+@Composable
+private fun BellAuthPrimaryButton(
+    text: String,
+    icon: ImageVector,
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(38.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(if (!isLoading) BellPillWhite else Color(0x33FFFFFF))
+            .clickable(enabled = !isLoading) { onClick() }
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    color = BellInkDark,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = BellInkDark,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Text(
+                text = text,
+                fontWeight = FontWeight.Black,
+                fontSize = 11.sp,
+                letterSpacing = 0.6.sp,
+                color = BellInkDark
+            )
+        }
+    }
+}
 
 @Composable
 private fun GamingFeaturePill(
@@ -907,8 +916,8 @@ private fun GamingFeaturePill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF141824))
-            .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(8.dp))
+            .background(BellGlassInput)
+            .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Row(
@@ -918,16 +927,17 @@ private fun GamingFeaturePill(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = NuxColors.MintGreen,
+                tint = BellTextPrimary,
                 modifier = Modifier.size(13.dp)
             )
             Text(
                 text = text,
-                color = Color.White,
-                fontSize = 9.sp,
+                color = BellTextPrimary,
+                fontSize = 8.5.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 0.5.sp,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -951,19 +961,19 @@ private fun AuthInputField(
     ) {
         Text(
             text = label.uppercase(),
-            fontSize = 9.5.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFA1A1AA),
-            letterSpacing = 0.8.sp
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Black,
+            color = BellTextSecondary,
+            letterSpacing = 0.7.sp
         )
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color(0xFF0C0E14))
-                .border(1.dp, Color(0x2EFFFFFF), RoundedCornerShape(10.dp))
-                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(9.dp))
+                .background(BellGlassInput)
+                .border(1.dp, BellBorder, RoundedCornerShape(9.dp))
+                .padding(horizontal = 10.dp, vertical = 8.5.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -973,16 +983,16 @@ private fun AuthInputField(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = NuxColors.MintGreen,
-                    modifier = Modifier.size(16.dp)
+                    tint = BellTextSecondary,
+                    modifier = Modifier.size(15.dp)
                 )
 
                 Box(modifier = Modifier.weight(1f)) {
                     if (value.isEmpty()) {
                         Text(
                             text = placeholder,
-                            color = Color(0xFF52525B),
-                            fontSize = 12.sp,
+                            color = BellTextMuted,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Normal
                         )
                     }
@@ -991,11 +1001,11 @@ private fun AuthInputField(
                         onValueChange = onValueChange,
                         visualTransformation = if (isPassword && !isPasswordVisible) PasswordVisualTransformation() else VisualTransformation.None,
                         textStyle = TextStyle(
-                            color = Color.White,
-                            fontSize = 12.sp,
+                            color = BellTextPrimary,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold
                         ),
-                        cursorBrush = SolidColor(NuxColors.ForestGreen),
+                        cursorBrush = SolidColor(BellPillWhite),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1005,9 +1015,9 @@ private fun AuthInputField(
                     Icon(
                         imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                         contentDescription = "Toggle password",
-                        tint = Color(0xFFA1A1AA),
+                        tint = BellTextSecondary,
                         modifier = Modifier
-                            .size(16.dp)
+                            .size(15.dp)
                             .clickable { onPasswordToggle() }
                     )
                 }
@@ -1025,9 +1035,9 @@ private fun OtpBoxes(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF090B10))
-            .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .background(BellGlassInput)
+            .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
             .padding(vertical = 10.dp, horizontal = 12.dp)
     ) {
         Row(
@@ -1043,12 +1053,10 @@ private fun OtpBoxes(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (isFilled) Color(0xFF10B981).copy(alpha = 0.16f) else Color(0xFF141720)
-                        )
+                        .background(if (isFilled) Color(0x26FFFFFF) else BellGlassCard)
                         .border(
                             1.dp,
-                            if (isFilled) NuxColors.ForestGreen else Color(0x22FFFFFF),
+                            if (isFilled) BellPillWhite else BellBorder,
                             RoundedCornerShape(8.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -1057,7 +1065,7 @@ private fun OtpBoxes(
                         text = digit,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
-                        color = if (isFilled) NuxColors.MintGreen else Color.White,
+                        color = BellTextPrimary,
                         fontFamily = FontFamily.Monospace
                     )
                 }
