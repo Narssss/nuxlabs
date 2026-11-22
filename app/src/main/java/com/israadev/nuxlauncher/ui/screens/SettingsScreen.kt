@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -29,9 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.israadev.nuxlauncher.R
@@ -49,10 +50,39 @@ import com.israadev.nuxlauncher.ui.components.*
 import com.israadev.nuxlauncher.ui.dialogs.NuxAboutDialog
 import com.israadev.nuxlauncher.ui.dialogs.NuxPremiumDialog
 import com.israadev.nuxlauncher.ui.dialogs.NuxRendererV2ConfigDialog
-import com.israadev.nuxlauncher.ui.theme.NuxColors
 import com.israadev.nuxlauncher.ui.theme.NuxSizes
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
+// Token Desain Bell Launcher (Monochrome Obsidian Glass + Crisp White)
+private val BellGlassSidebar = Color(0xCC0D0D11)
+private val BellGlassCard = Color(0xBF131318)
+private val BellGlassElevated = Color(0xE61A1A22)
+private val BellGlassInput = Color(0xCC0A0A0E)
+private val BellBorder = Color(0x26FFFFFF)
+private val BellBorderActive = Color(0x66FFFFFF)
+private val BellPillWhite = Color(0xFFFFFFFF)
+private val BellInkDark = Color(0xFF09090B)
+private val BellTextPrimary = Color(0xFFFFFFFF)
+private val BellTextSecondary = Color(0xFFB4B6BE)
+private val BellTextMuted = Color(0xFF787B85)
+private val BellDanger = Color(0xFFF87171)
+private val BellAmber = Color(0xFFFBBF24)
+
+private data class SettingsSectionItem(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector
+)
+
+private val SETTINGS_SECTIONS = listOf(
+    SettingsSectionItem("profile", "PROFILE", "Identity & Language", Icons.Outlined.AccountCircle),
+    SettingsSectionItem("memory", "MEMORY & JVM", "RAM & Java Runtime", Icons.Outlined.Memory),
+    SettingsSectionItem("graphics", "GRAPHICS", "Renderer & Vulkan", Icons.Outlined.Speed),
+    SettingsSectionItem("controls", "CONTROLS", "Mouse & Virtual GUI", Icons.Outlined.Mouse),
+    SettingsSectionItem("ai", "AI DIAGNOSTICS", "Crash Analyzer & Key", Icons.Outlined.AutoFixHigh)
+)
 
 @Composable
 fun SettingsScreen(
@@ -65,11 +95,10 @@ fun SettingsScreen(
     val currentSettings by SettingsManager.settings.collectAsState()
     val launcherUser by AccountManager.launcherUser.collectAsState()
 
-    var activeSettingsTab by remember { mutableStateOf("profile") } // "profile" or "game"
+    var activeSection by remember { mutableStateOf("profile") }
     val availableLanguages by NuxLanguageManager.availableLanguages.collectAsState()
     val activeLanguage by NuxLanguageManager.currentLanguage.collectAsState()
-    var isTopLangMenuExpanded by remember { mutableStateOf(false) }
-    var isCardLangMenuExpanded by remember { mutableStateOf(false) }
+    var isLangMenuExpanded by remember { mutableStateOf(false) }
 
     // Profile state
     var editUsername by remember(launcherUser?.username) { mutableStateOf(launcherUser?.username ?: "") }
@@ -154,7 +183,7 @@ fun SettingsScreen(
         }
     }
 
-    // Local mutable state for instant responsive UI before saving
+    // Game settings local state
     var ramMb by remember(currentSettings.ramMb) { mutableIntStateOf(currentSettings.ramMb) }
     var initialHeapMb by remember(currentSettings.initialHeapMb) { mutableIntStateOf(currentSettings.initialHeapMb) }
     var customJvmArgs by remember(currentSettings.customJvmArgs) { mutableStateOf(currentSettings.customJvmArgs) }
@@ -212,655 +241,492 @@ fun SettingsScreen(
         SettingsManager.updateSettings(context, updated)
     }
 
-    Column(
+    // =========================================================================
+    // MASTER-DETAIL SPLIT LAYOUT (KIRI: KATEGORI PENGATURAN | KANAN: PANEL DETAIL)
+    // =========================================================================
+    Row(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Transparent)
-            .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // =========================================================================
-        // 1. TOP HEADER BAR
-        // =========================================================================
-        Row(
+        // =====================================================================
+        // PANEL KIRI: SETTINGS CATEGORY SIDEBAR (180.dp)
+        // =====================================================================
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .width(180.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(14.dp))
+                .background(BellGlassSidebar)
+                .border(1.dp, BellBorder, RoundedCornerShape(14.dp))
+                .padding(10.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                        .clickable { onNavigateBack() }
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back",
-                            tint = NuxColors.ForestGreen,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = tr("settings.dashboard_nav"),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                }
-
                 Text(
-                    text = tr("settings.title"),
-                    color = Color.White,
+                    text = "PREFERENCES",
+                    color = BellTextMuted,
                     fontWeight = FontWeight.Black,
-                    fontSize = 14.sp,
-                    letterSpacing = 0.8.sp
+                    fontSize = 8.sp,
+                    letterSpacing = 0.9.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
                 )
 
-                // Segmented Mode Tabs: [ PROFIL AKUN | PREFERENSI GAME | AI ANALITIK CRASH ]
-                Row(
-                    modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                        .padding(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val isProfileTab = activeSettingsTab == "profile"
-                    Box(
+                SETTINGS_SECTIONS.forEach { sec ->
+                    val isSelected = activeSection == sec.id
+                    Row(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (isProfileTab) NuxColors.ForestGreen else Color.Transparent
-                            )
-                            .clickable { activeSettingsTab = "profile" }
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) BellPillWhite else Color.Transparent)
+                            .clickable { activeSection = sec.id }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.AccountCircle,
-                                contentDescription = null,
-                                tint = if (isProfileTab) Color.White else NuxColors.GrayNeutral,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = sec.icon,
+                            contentDescription = sec.title,
+                            tint = if (isSelected) BellInkDark else BellTextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = tr("settings.tab_profile"),
-                                color = if (isProfileTab) Color.White else NuxColors.GrayNeutral,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.5.sp
+                                text = sec.title,
+                                color = if (isSelected) BellInkDark else BellTextPrimary,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 9.5.sp,
+                                letterSpacing = 0.5.sp,
+                                maxLines = 1
                             )
-                        }
-                    }
-
-                    val isGameTab = activeSettingsTab == "game"
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (isGameTab) NuxColors.ForestGreen else Color.Transparent
-                            )
-                            .clickable { activeSettingsTab = "game" }
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Tune,
-                                contentDescription = null,
-                                tint = if (isGameTab) Color.White else NuxColors.GrayNeutral,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = tr("settings.tab_game"),
-                                color = if (isGameTab) Color.White else NuxColors.GrayNeutral,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.5.sp
-                            )
-                        }
-                    }
-
-                    val isAiTab = activeSettingsTab == "ai"
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (isAiTab) NuxColors.ForestGreen else Color.Transparent
-                            )
-                            .clickable { activeSettingsTab = "ai" }
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.AutoFixHigh,
-                                contentDescription = null,
-                                tint = if (isAiTab) Color.White else NuxColors.GrayNeutral,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = tr("settings.tab_ai"),
-                                color = if (isAiTab) Color.White else NuxColors.GrayNeutral,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.5.sp
+                                text = sec.subtitle,
+                                color = if (isSelected) BellInkDark.copy(alpha = 0.7f) else BellTextMuted,
+                                fontSize = 8.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
             }
 
-            // Top Right: Language Dropdown Capsule & Hardware Specs Badges
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Footer Sidebar: Hardware Telemetry & Reset
+            Column(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Box {
-                    Box(
-                        modifier = Modifier
-                            .height(26.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                            .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                            .clickable { isTopLangMenuExpanded = true }
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(text = activeLanguage.flag, fontSize = 12.sp)
-                            Text(
-                                text = activeLanguage.name,
-                                color = NuxColors.MintGreen,
-                                fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Select Language",
-                                tint = Color(0xFFA1A1AA),
-                                modifier = Modifier.size(13.dp)
-                            )
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = isTopLangMenuExpanded,
-                        onDismissRequest = { isTopLangMenuExpanded = false },
-                        shape = RoundedCornerShape(12.dp),
-                        containerColor = Color(0xF212141C),
-                        shadowElevation = 16.dp,
-                        border = BorderStroke(1.dp, Color(0x33FFFFFF))
-                    ) {
-                        availableLanguages.forEach { lang ->
-                            val isSelected = lang.code.equals(activeLanguage.code, ignoreCase = true)
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text(text = lang.flag, fontSize = 15.sp)
-                                            Column {
-                                                Text(
-                                                    text = lang.name,
-                                                    color = if (isSelected) NuxColors.MintGreen else Color.White,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    fontSize = 11.sp
-                                                )
-                                                if (lang.author.isNotBlank()) {
-                                                    Text(
-                                                        text = "By ${lang.author}",
-                                                        color = Color(0xFFA1A1AA),
-                                                        fontSize = 8.5.sp
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        if (isSelected) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = "Selected",
-                                                tint = NuxColors.ForestGreen,
-                                                modifier = Modifier.size(15.dp)
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    NuxLanguageManager.setLanguage(context, lang.code)
-                                    isTopLangMenuExpanded = false
-                                    Toast.makeText(context, "${lang.flag} ${lang.name}", Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        }
-                    }
-                }
-                Box(
+                Row(
                     modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x14FFFFFF))
+                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${totalRamMb / 1024} GB RAM",
-                        color = NuxColors.MintGreen,
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "${totalRamMb / 1024}GB RAM",
+                        color = BellTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 8.5.sp
                     )
-                }
-                Box(
-                    modifier = Modifier
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                        .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
                     Text(
                         text = "$cpuCores CORES",
-                        color = NuxColors.GrayNeutral,
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Bold
+                        color = BellTextMuted,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 8.5.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(30.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellDanger.copy(alpha = 0.14f))
+                        .border(1.dp, BellDanger.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                        .clickable {
+                            SettingsManager.resetToDefaults(context)
+                            val reset = SettingsManager.settings.value
+                            ramMb = reset.ramMb
+                            initialHeapMb = reset.initialHeapMb
+                            customJvmArgs = reset.customJvmArgs
+                            defaultRuntime = reset.defaultJavaRuntime
+                            mouseMode = reset.mouseControlMode
+                            cursorSensitivity = reset.cursorSensitivity
+                            captureSensitivity = reset.captureSensitivity
+                            mouseSizeDp = reset.mouseSizeDp
+                            physicalMouseMode = reset.physicalMouseMode
+                            resolutionRatio = reset.resolutionRatio
+                            autoOptimizeMC = reset.autoOptimizeMinecraft
+                            sustainedPerf = reset.sustainedPerformanceMode
+                            aiAutoAnalyze = reset.aiAutoAnalyze
+                            aiApiKey = reset.aiApiKey
+                            aiModel = reset.aiModel
+                            Toast.makeText(context, "Settings reset to defaults!", Toast.LENGTH_SHORT).show()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "RESET ALL",
+                        color = BellDanger,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 9.sp,
+                        letterSpacing = 0.6.sp
                     )
                 }
             }
         }
 
-        // =========================================================================
-        // 2. MAIN CONTENT PANELS (Profile Tab vs Game Preferences Tab vs AI Tab)
-        // =========================================================================
-        if (activeSettingsTab == "profile") {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // LEFT CARD: FOTO PROFIL & IDENTITAS
-                NuxCard(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = NuxColors.CardBorder,
-                    borderWidth = 1.dp,
-                    cornerRadius = 8.dp,
-                    fillMaxHeight = true
-                ) {
+        // =====================================================================
+        // PANEL KANAN: DETAIL VIEW
+        // =====================================================================
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(14.dp))
+                .background(BellGlassCard)
+                .border(1.dp, BellBorder, RoundedCornerShape(14.dp))
+                .padding(14.dp)
+        ) {
+            when (activeSection) {
+                // -------------------------------------------------------------
+                // SECTION 1: PROFILE & ACCOUNT
+                // -------------------------------------------------------------
+                "profile" -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.AccountCircle,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "PROFILE PICTURE & IDENTITY",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                color = Color.White
-                            )
-                        }
+                        BellSectionHeader(
+                            title = "PROFILE & ACCOUNT IDENTITY",
+                            subtitle = "Manage your Bell Launcher profile, display name, language, and session"
+                        )
 
+                        // Kartu Avatar + Ganti Username dalam satu grid rapi
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Box(
+                            // Kolom Avatar
+                            Column(
                                 modifier = Modifier
-                                    .size(64.dp)
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(8.dp))
-                            ) {
-                                NuxNetworkImage(
-                                    model = selectedPreviewUri ?: launcherUser?.photoURL?.takeIf { it.isNotBlank() },
-                                    contentDescription = "Profile Avatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    fallbackInitials = launcherUser?.username ?: "BELL",
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-
-                                if (isUploadingAvatar) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            color = Color.White,
-                                            strokeWidth = 2.dp
-                                        )
-                                    }
-                                }
-                            }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                NuxButton(
-                                    onClick = { photoPickerLauncher.launch("image/*") },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(34.dp),
-                                    backgroundColor = NuxColors.ForestGreen,
-                                    contentColor = Color.White,
-                                    cornerRadius = 6.dp,
-                                    enabled = !isUploadingAvatar
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.PhotoCamera,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (isUploadingAvatar) tr("common.loading") else tr("settings.btn_change_avatar"),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        color = Color.White
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Choose image from device gallery. Automatically synced to cloud & voice rooms.",
-                                    fontSize = 9.5.sp,
-                                    color = NuxColors.GrayNeutral,
-                                    lineHeight = 12.sp
-                                )
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Registered Email", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
-                                Text(
-                                    text = com.israadev.nuxlauncher.core.utils.PrivacyMasker.maskEmail(launcherUser?.email),
-                                    fontSize = 10.5.sp,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("License Status", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
-                                val isVip = launcherUser?.isActivated == true
-                                val tierText = if (isVip) {
-                                    when (launcherUser?.tier?.lowercase()) {
-                                        "monthly" -> "MONTHLY PREMIUM"
-                                        "yearly" -> "YEARLY PREMIUM"
-                                        else -> "LIFETIME PREMIUM"
-                                    }
-                                } else {
-                                    "FREE MEMBER"
-                                }
-                                NuxBadge(
-                                    text = tierText,
-                                    backgroundColor = if (isVip) Color(0xFFF59E0B).copy(alpha = 0.2f) else NuxColors.SurfaceElevated,
-                                    textColor = if (isVip) Color(0xFFFBBF24) else Color(0xFF94A3B8)
-                                )
-                            }
-
-                            val isUserVip = launcherUser?.isActivated == true
-                            NuxButton(
-                                onClick = {
-                                    premiumInitialPrompt = if (isUserVip) "Your Bell Premium status is currently active!" else null
-                                    showPremiumDialog = true
-                                },
-                                backgroundColor = if (isUserVip) Color(0xFF1E1710) else Color(0xFFF59E0B),
-                                contentColor = if (isUserVip) Color(0xFFFBBF24) else Color.Black,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(30.dp)
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_vip_crown),
-                                        contentDescription = null,
-                                        tint = if (isUserVip) Color(0xFFFBBF24) else Color.Black,
-                                        modifier = Modifier.size(13.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(54.dp)
+                                            .border(1.dp, BellBorderActive, RoundedCornerShape(10.dp))
+                                    ) {
+                                        NuxNetworkImage(
+                                            model = selectedPreviewUri ?: launcherUser?.photoURL?.takeIf { it.isNotBlank() },
+                                            contentDescription = "Profile Avatar",
+                                            modifier = Modifier.fillMaxSize(),
+                                            fallbackInitials = launcherUser?.username ?: "BELL",
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                        if (isUploadingAvatar) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(10.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    color = BellTextPrimary,
+                                                    strokeWidth = 2.dp
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = launcherUser?.username ?: "Bell User",
+                                            color = BellTextPrimary,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 13.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = com.israadev.nuxlauncher.core.utils.PrivacyMasker.maskEmail(launcherUser?.email),
+                                            color = BellTextSecondary,
+                                            fontSize = 9.5.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                BellWhiteButton(
+                                    text = if (isUploadingAvatar) "UPLOADING..." else "CHANGE AVATAR",
+                                    icon = Icons.Outlined.PhotoCamera,
+                                    enabled = !isUploadingAvatar,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { photoPickerLauncher.launch("image/*") }
+                                )
+                            }
+
+                            // Kolom Ubah Username
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                val titleText = tr("settings.card_change_username").let {
+                                    if (it == "settings.card_change_username") "CHANGE USERNAME" else it.uppercase()
+                                }
+                                Text(
+                                    text = titleText,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 10.sp,
+                                    letterSpacing = 0.6.sp,
+                                    color = BellTextPrimary
+                                )
+                                NuxTextField(
+                                    value = editUsername,
+                                    onValueChange = {
+                                        editUsername = it
+                                        usernameError = null
+                                    },
+                                    placeholder = "e.g. BellPlayer99"
+                                )
+                                if (usernameError != null) {
                                     Text(
-                                        text = if (isUserVip) "PREMIUM STATUS & MANAGE KEY" else "UPGRADE TO BELL PREMIUM",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 9.sp
+                                        text = usernameError!!,
+                                        color = BellDanger,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
+                                }
+                                val saveBtnText = tr("settings.btn_save_username").let {
+                                    if (it == "settings.btn_save_username") "SAVE USERNAME" else it.uppercase()
+                                }
+                                BellWhiteButton(
+                                    text = if (isSavingUsername) "SAVING..." else saveBtnText,
+                                    icon = Icons.Outlined.Check,
+                                    enabled = !isSavingUsername,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { handleSaveUsername() }
+                                )
+                            }
+                        }
+
+                        // Bahasa & Status Lisensi
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Pemilih Bahasa
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "LAUNCHER LANGUAGE",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.6.sp,
+                                    color = BellTextPrimary
+                                )
+                                Box {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(34.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(BellGlassCard)
+                                            .border(1.dp, BellBorderActive, RoundedCornerShape(8.dp))
+                                            .clickable { isLangMenuExpanded = true }
+                                            .padding(horizontal = 10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(text = activeLanguage.flag, fontSize = 13.sp)
+                                            Text(
+                                                text = activeLanguage.name,
+                                                color = BellTextPrimary,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 10.5.sp
+                                            )
+                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = null,
+                                            tint = BellTextSecondary,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = isLangMenuExpanded,
+                                        onDismissRequest = { isLangMenuExpanded = false },
+                                        shape = RoundedCornerShape(12.dp),
+                                        containerColor = BellGlassElevated,
+                                        border = BorderStroke(1.dp, BellBorder)
+                                    ) {
+                                        availableLanguages.forEach { lang ->
+                                            val isSelected = lang.code.equals(activeLanguage.code, ignoreCase = true)
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                        ) {
+                                                            Text(text = lang.flag, fontSize = 14.sp)
+                                                            Text(
+                                                                text = lang.name,
+                                                                color = if (isSelected) BellTextPrimary else BellTextSecondary,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                                fontSize = 11.sp
+                                                            )
+                                                        }
+                                                        if (isSelected) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Check,
+                                                                contentDescription = null,
+                                                                tint = BellTextPrimary,
+                                                                modifier = Modifier.size(14.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                onClick = {
+                                                    NuxLanguageManager.setLanguage(context, lang.code)
+                                                    isLangMenuExpanded = false
+                                                    Toast.makeText(context, "${lang.flag} ${lang.name}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
-                            HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Account Platform", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
-                                NuxBadge(
-                                    text = "ANDROID MOBILE",
-                                    backgroundColor = NuxColors.SurfaceElevated,
-                                    textColor = Color.White
-                                )
-                            }
-
-                            HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Account UID", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NuxColors.GrayNeutral)
-                                Text(
-                                    text = launcherUser?.uid?.take(16) ?: "-",
-                                    fontSize = 9.5.sp,
-                                    color = NuxColors.GrayNeutral
-                                )
-                            }
-
-                            HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
-
+                            // Status Membership
                             Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(NuxColors.SurfaceElevated, RoundedCornerShape(6.dp))
-                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                    .padding(8.dp)
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                val isVip = launcherUser?.isActivated == true
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Language,
-                                                contentDescription = null,
-                                                tint = NuxColors.ForestGreen,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Text(
-                                                text = tr("settings.language_label"),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "MEMBERSHIP",
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.6.sp,
+                                        color = BellTextPrimary
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(if (isVip) BellAmber.copy(alpha = 0.2f) else Color(0x1AFFFFFF))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
                                         Text(
-                                            text = tr("settings.language_desc"),
-                                            fontSize = 8.5.sp,
-                                            color = NuxColors.GrayNeutral
+                                            text = if (isVip) "PREMIUM" else "FREE TIER",
+                                            color = if (isVip) BellAmber else BellTextSecondary,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 8.sp
                                         )
                                     }
-
-                                    Spacer(modifier = Modifier.width(6.dp))
-
-                                    Box {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                                .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                                                .clickable { isCardLangMenuExpanded = true }
-                                                .padding(horizontal = 8.dp, vertical = 5.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                            ) {
-                                                Text(text = activeLanguage.flag, fontSize = 12.sp)
-                                                Text(
-                                                    text = activeLanguage.name,
-                                                    color = NuxColors.MintGreen,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 9.5.sp
-                                                )
-                                                Icon(
-                                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = Color(0xFFA1A1AA),
-                                                    modifier = Modifier.size(12.dp)
-                                                )
-                                            }
-                                        }
-
-                                        DropdownMenu(
-                                            expanded = isCardLangMenuExpanded,
-                                            onDismissRequest = { isCardLangMenuExpanded = false },
-                                            shape = RoundedCornerShape(12.dp),
-                                            containerColor = Color(0xF212141C),
-                                            shadowElevation = 16.dp,
-                                            border = BorderStroke(1.dp, Color(0x33FFFFFF))
-                                        ) {
-                                            availableLanguages.forEach { lang ->
-                                                val isSelected = lang.code.equals(activeLanguage.code, ignoreCase = true)
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Row(
-                                                            modifier = Modifier.fillMaxWidth(),
-                                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                                            verticalAlignment = Alignment.CenterVertically
-                                                        ) {
-                                                            Row(
-                                                                verticalAlignment = Alignment.CenterVertically,
-                                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                            ) {
-                                                                Text(text = lang.flag, fontSize = 15.sp)
-                                                                Column {
-                                                                    Text(
-                                                                        text = lang.name,
-                                                                        color = if (isSelected) NuxColors.MintGreen else Color.White,
-                                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                                        fontSize = 11.sp
-                                                                    )
-                                                                    if (lang.author.isNotBlank()) {
-                                                                        Text(
-                                                                            text = "By ${lang.author}",
-                                                                            color = Color(0xFFA1A1AA),
-                                                                            fontSize = 8.5.sp
-                                                                        )
-                                                                    }
-                                                                }
-                                                            }
-                                                            if (isSelected) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Check,
-                                                                    contentDescription = "Selected",
-                                                                    tint = NuxColors.ForestGreen,
-                                                                    modifier = Modifier.size(15.dp)
-                                                                )
-                                                            }
-                                                        }
-                                                    },
-                                                    onClick = {
-                                                        NuxLanguageManager.setLanguage(context, lang.code)
-                                                        isCardLangMenuExpanded = false
-                                                        Toast.makeText(context, "${lang.flag} ${lang.name}", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                )
-                                            }
-                                        }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isVip) Color(0x1FFBBF24) else BellAmber)
+                                        .clickable {
+                                            premiumInitialPrompt = if (isVip) "Your Bell Premium status is currently active!" else null
+                                            showPremiumDialog = true
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_vip_crown),
+                                            contentDescription = null,
+                                            tint = if (isVip) BellAmber else BellInkDark,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Text(
+                                            text = if (isVip) "MANAGE PREMIUM" else "UPGRADE PREMIUM",
+                                            color = if (isVip) BellAmber else BellInkDark,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 9.sp,
+                                            letterSpacing = 0.5.sp
+                                        )
                                     }
                                 }
                             }
+                        }
 
-                            HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
-
-                            NuxButton(
-                                onClick = { showAboutDialog = true },
-                                backgroundColor = NuxColors.SurfaceInput,
-                                contentColor = Color.White,
+                        // Footer Actions: About & Sign Out
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .weight(1f)
                                     .height(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                    .clickable { showAboutDialog = true },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -869,14 +735,45 @@ fun SettingsScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.Info,
                                         contentDescription = null,
-                                        tint = NuxColors.ForestGreen,
-                                        modifier = Modifier.size(13.dp)
+                                        tint = BellTextPrimary,
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Text(
-                                        text = "ABOUT & OPEN SOURCE LICENSES",
+                                        text = "ABOUT & LICENSES",
+                                        color = BellTextPrimary,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 9.sp,
-                                        color = Color.White
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellDanger.copy(alpha = 0.14f))
+                                    .border(1.dp, BellDanger.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                    .clickable { showLogoutDialog = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.Logout,
+                                        contentDescription = null,
+                                        tint = BellDanger,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "SIGN OUT",
+                                        color = BellDanger,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 0.5.sp
                                     )
                                 }
                             }
@@ -884,214 +781,29 @@ fun SettingsScreen(
                     }
                 }
 
-                // RIGHT CARD: GANTI USERNAME & MANAJEMEN AKUN
-                NuxCard(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = NuxColors.CardBorder,
-                    borderWidth = 1.dp,
-                    cornerRadius = 8.dp,
-                    fillMaxHeight = true
-                ) {
+                // -------------------------------------------------------------
+                // SECTION 2: MEMORY & JVM ARGUMENTS
+                // -------------------------------------------------------------
+                "memory" -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Badge,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = tr("settings.card_change_username"),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                color = Color.White
-                            )
-                        }
-
-                        Text(
-                            text = "Update your display name. Username is globally unique and used in Minecraft and voice rooms.",
-                            fontSize = 9.5.sp,
-                            color = NuxColors.GrayNeutral,
-                            lineHeight = 13.sp
+                        BellSectionHeader(
+                            title = "MEMORY & JAVA VIRTUAL MACHINE",
+                            subtitle = "Configure maximum heap allocation and custom JVM launch flags"
                         )
 
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Text(
-                                text = "New Username",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NuxColors.GrayNeutral
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            NuxTextField(
-                                value = editUsername,
-                                onValueChange = {
-                                    editUsername = it
-                                    usernameError = null
-                                },
-                                placeholder = "e.g. AlexGamer99"
-                            )
-
-                            if (usernameError != null) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = usernameError!!,
-                                    color = NuxColors.Coral,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "3 - 20 alphanumeric characters & underscores (_).",
-                                fontSize = 9.sp,
-                                color = NuxColors.GrayNeutral
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            NuxButton(
-                                onClick = { handleSaveUsername() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(34.dp),
-                                backgroundColor = NuxColors.ForestGreen,
-                                contentColor = Color.White,
-                                cornerRadius = 6.dp,
-                                enabled = !isSavingUsername
-                            ) {
-                                if (isSavingUsername) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("SAVING...", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.White)
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Check,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(tr("settings.btn_save_username"), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.White)
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Text(
-                                text = "ACCOUNT SESSION MANAGEMENT",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White
-                            )
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Text(
-                                text = "Sign out of your active account session on this device.",
-                                fontSize = 9.5.sp,
-                                color = NuxColors.GrayNeutral
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            NuxButton(
-                                onClick = { showLogoutDialog = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(34.dp),
-                                backgroundColor = NuxColors.Coral.copy(alpha = 0.15f),
-                                contentColor = NuxColors.Coral,
-                                borderColor = NuxColors.Coral.copy(alpha = 0.35f),
-                                cornerRadius = 6.dp
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.Logout,
-                                    contentDescription = null,
-                                    tint = NuxColors.Coral,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(tr("sidebar.logout"), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = NuxColors.Coral)
-                            }
-                        }
-                    }
-                }
-            }
-        } else if (activeSettingsTab == "game") {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // LEFT COLUMN: Memory & Java + Graphics
-                NuxCard(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = NuxColors.CardBorder,
-                    borderWidth = 1.dp,
-                    cornerRadius = 8.dp,
-                    fillMaxHeight = true
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Memory,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = tr("settings.section_ram"),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                color = Color.White
-                            )
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1102,31 +814,28 @@ fun SettingsScreen(
                                     text = tr("settings.ram_max_label"),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = BellTextPrimary
                                 )
+                                val isHighRam = ramMb > (totalRamMb * 0.75f)
                                 Box(
                                     modifier = Modifier
-                                        .background(
-                                            if (ramMb > (totalRamMb * 0.75f)) NuxColors.Coral.copy(alpha = 0.2f) else NuxColors.ForestGreen.copy(alpha = 0.2f),
-                                            RoundedCornerShape(4.dp)
-                                        )
+                                        .clip(RoundedCornerShape(5.dp))
+                                        .background(if (isHighRam) BellDanger.copy(alpha = 0.2f) else Color(0x26FFFFFF))
                                         .border(
                                             1.dp,
-                                            if (ramMb > (totalRamMb * 0.75f)) NuxColors.Coral.copy(alpha = 0.4f) else NuxColors.MintGreen.copy(alpha = 0.3f),
-                                            RoundedCornerShape(4.dp)
+                                            if (isHighRam) BellDanger.copy(alpha = 0.5f) else BellBorderActive,
+                                            RoundedCornerShape(5.dp)
                                         )
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
                                     Text(
                                         text = "$ramMb MB (${String.format("%.1f", ramMb / 1024f)} GB)",
-                                        color = if (ramMb > (totalRamMb * 0.75f)) NuxColors.Coral else NuxColors.MintGreen,
+                                        color = if (isHighRam) BellDanger else BellTextPrimary,
                                         fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Black
                                     )
                                 }
                             }
-
-                            Spacer(modifier = Modifier.height(4.dp))
 
                             Slider(
                                 value = ramMb.toFloat(),
@@ -1137,41 +846,37 @@ fun SettingsScreen(
                                 valueRange = 512f..maxAllocatableRam.toFloat(),
                                 steps = ((maxAllocatableRam - 512) / 128) - 1,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.MintGreen,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = NuxColors.CardBorder
+                                    thumbColor = BellPillWhite,
+                                    activeTrackColor = BellPillWhite,
+                                    inactiveTrackColor = Color(0x26FFFFFF)
                                 )
                             )
 
-                            Spacer(modifier = Modifier.height(4.dp))
-
                             Text(
                                 text = tr("settings.ram_quick_presets"),
-                                fontSize = 9.sp,
+                                fontSize = 8.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = NuxColors.GrayNeutral
+                                letterSpacing = 0.6.sp,
+                                color = BellTextMuted
                             )
-                            Spacer(modifier = Modifier.height(3.dp))
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                listOf(1024, 1536, 2048, 3072, 4096).forEach { preset ->
+                                listOf(1024, 1536, 2048, 3072, 4096, 6144).forEach { preset ->
                                     if (preset <= maxAllocatableRam) {
                                         val isSelected = ramMb == preset
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .height(24.dp)
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .background(
-                                                    if (isSelected) NuxColors.ForestGreen else NuxColors.SurfaceElevated,
-                                                    RoundedCornerShape(4.dp)
-                                                )
+                                                .height(28.dp)
+                                                .clip(RoundedCornerShape(7.dp))
+                                                .background(if (isSelected) BellPillWhite else BellGlassCard)
                                                 .border(
                                                     1.dp,
-                                                    if (isSelected) NuxColors.MintGreen else NuxColors.CardBorder,
-                                                    RoundedCornerShape(4.dp)
+                                                    if (isSelected) BellPillWhite else BellBorder,
+                                                    RoundedCornerShape(7.dp)
                                                 )
                                                 .clickable {
                                                     ramMb = preset
@@ -1180,10 +885,10 @@ fun SettingsScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = if (preset >= 1024) "${preset / 1024}G" else "${preset}M",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) Color.White else NuxColors.GrayNeutral
+                                                text = if (preset >= 1024) "${preset / 1024}GB" else "${preset}MB",
+                                                fontSize = 9.5.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = if (isSelected) BellInkDark else BellTextSecondary
                                             )
                                         }
                                     }
@@ -1191,14 +896,21 @@ fun SettingsScreen(
                             }
                         }
 
-                        Column {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Text(
                                 text = tr("settings.jvm_args_label"),
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = NuxColors.GrayNeutral
+                                color = BellTextPrimary
                             )
-                            Spacer(modifier = Modifier.height(3.dp))
                             NuxTextField(
                                 value = customJvmArgs,
                                 onValueChange = {
@@ -1208,24 +920,23 @@ fun SettingsScreen(
                                 placeholder = tr("settings.jvm_args_placeholder")
                             )
                         }
+                    }
+                }
 
-                        HorizontalDivider(color = NuxColors.CardBorder, thickness = 0.5.dp)
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Speed,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = tr("settings.section_graphics"),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                color = Color.White
-                            )
-                        }
+                // -------------------------------------------------------------
+                // SECTION 3: GRAPHICS & RENDERER
+                // -------------------------------------------------------------
+                "graphics" -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        BellSectionHeader(
+                            title = "GRAPHICS BACKEND & RENDERER",
+                            subtitle = "Select OpenGL/Vulkan translator, render scale, and driver optimizations"
+                        )
 
                         val activeRendererInfo = remember(selectedRenderer) {
                             NuxRendererRegistry.findRendererById(selectedRenderer)
@@ -1234,30 +945,50 @@ fun SettingsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(NuxColors.SurfaceInput)
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = tr("settings.renderer_card_title"),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = activeRendererInfo.displayName,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = BellTextPrimary
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(BellPillWhite)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = activeRendererInfo.badge,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = BellInkDark
+                                        )
+                                    }
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     if (activeRendererInfo.isConfigurable) {
                                         Box(
                                             modifier = Modifier
-                                                .size(24.dp)
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .background(NuxColors.SurfaceElevated)
-                                                .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                                .size(28.dp)
+                                                .clip(RoundedCornerShape(7.dp))
+                                                .background(BellGlassCard)
+                                                .border(1.dp, BellBorderActive, RoundedCornerShape(7.dp))
                                                 .clickable {
                                                     selectedConfigRenderer = activeRendererInfo
                                                     showRendererConfigDialog = true
@@ -1267,258 +998,167 @@ fun SettingsScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Settings,
                                                 contentDescription = "Configure Renderer",
-                                                tint = NuxColors.MintGreen,
+                                                tint = BellTextPrimary,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                         }
-                                        Spacer(modifier = Modifier.width(6.dp))
                                     }
                                     Box(
                                         modifier = Modifier
-                                            .height(24.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(NuxColors.SurfaceElevated)
-                                            .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(4.dp))
+                                            .height(28.dp)
+                                            .clip(RoundedCornerShape(7.dp))
+                                            .background(BellPillWhite)
                                             .clickable {
                                                 NuxRendererPluginManager.scanPlugins(context)
                                                 showRendererDialog = true
                                             }
-                                            .padding(horizontal = 8.dp),
+                                            .padding(horizontal = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "CHANGE",
-                                            fontSize = 9.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = NuxColors.MintGreen
+                                            text = "SWITCH",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = BellInkDark
                                         )
                                     }
                                 }
                             }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = activeRendererInfo.displayName,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = NuxColors.MintGreen
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .background(NuxColors.ForestGreen.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                        .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = activeRendererInfo.badge,
-                                        fontSize = 8.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = NuxColors.MintGreen,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
                             Text(
                                 text = activeRendererInfo.summary,
                                 fontSize = 9.5.sp,
-                                color = NuxColors.GrayNeutral,
+                                color = BellTextSecondary,
                                 lineHeight = 13.sp
                             )
                         }
 
+                        // Resolution Scale + Vulkan Driver
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Auto-Optimize options.txt",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Automatically optimize visual settings (Clouds, Shadows) for peak FPS",
-                                    fontSize = 9.5.sp,
-                                    color = NuxColors.GrayNeutral
-                                )
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "RENDER SCALE",
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = BellTextPrimary
+                                    )
+                                    Text(
+                                        text = "$resolutionRatio%",
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = BellTextPrimary
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    listOf(50, 75, 100, 125).forEach { ratio ->
+                                        val isSelected = resolutionRatio == ratio
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(26.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(if (isSelected) BellPillWhite else BellGlassCard)
+                                                .border(1.dp, if (isSelected) BellPillWhite else BellBorder, RoundedCornerShape(6.dp))
+                                                .clickable {
+                                                    resolutionRatio = ratio
+                                                    commitSettings()
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "$ratio%",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) BellInkDark else BellTextSecondary
+                                            )
+                                        }
+                                    }
+                                }
                             }
-                            Switch(
-                                checked = autoOptimizeMC,
-                                onCheckedChange = {
-                                    autoOptimizeMC = it
-                                    commitSettings()
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = NuxColors.ForestGreen,
-                                    uncheckedTrackColor = NuxColors.SurfaceElevated
-                                )
-                            )
-                        }
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BellGlassInput)
+                                    .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = tr("settings.resolution_ratio_label"),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "$resolutionRatio%",
-                                    fontSize = 11.sp,
+                                    text = "VULKAN DRIVER",
+                                    fontSize = 9.5.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = NuxColors.MintGreen
+                                    color = BellTextPrimary
                                 )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf(50, 75, 100, 125).forEach { ratio ->
-                                    val isSelected = resolutionRatio == ratio
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(24.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(
-                                                if (isSelected) NuxColors.ForestGreen else NuxColors.SurfaceElevated,
-                                                RoundedCornerShape(4.dp)
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    listOf("auto" to "AUTO", "system" to "SYSTEM", "turnip" to "TURNIP").forEach { (id, label) ->
+                                        val isSelected = vulkanDriver == id
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(26.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(if (isSelected) BellPillWhite else BellGlassCard)
+                                                .border(1.dp, if (isSelected) BellPillWhite else BellBorder, RoundedCornerShape(6.dp))
+                                                .clickable {
+                                                    vulkanDriver = id
+                                                    commitSettings()
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 8.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) BellInkDark else BellTextSecondary
                                             )
-                                            .border(
-                                                1.dp,
-                                                if (isSelected) NuxColors.MintGreen else NuxColors.CardBorder,
-                                                RoundedCornerShape(4.dp)
-                                            )
-                                            .clickable {
-                                                resolutionRatio = ratio
-                                                commitSettings()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "$ratio%",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else NuxColors.GrayNeutral
-                                        )
+                                        }
                                     }
                                 }
                             }
                         }
 
+                        // Graphics API 26.2+
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "Vulkan Driver",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Select Vulkan driver implementation for system/game",
+                                text = "MODERN GRAPHICS API (26.2+)",
                                 fontSize = 9.5.sp,
-                                color = NuxColors.GrayNeutral
+                                fontWeight = FontWeight.Black,
+                                color = BellTextPrimary
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("auto" to "Auto", "system" to "Sistem", "turnip" to "Turnip").forEach { (id, label) ->
-                                    val isSelected = vulkanDriver == id
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(24.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(
-                                                if (isSelected) NuxColors.ForestGreen else NuxColors.SurfaceElevated,
-                                                RoundedCornerShape(4.dp)
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (isSelected) NuxColors.MintGreen else NuxColors.CardBorder,
-                                                RoundedCornerShape(4.dp)
-                                            )
-                                            .clickable {
-                                                vulkanDriver = id
-                                                commitSettings()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = label,
-                                            fontSize = 9.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else NuxColors.GrayNeutral
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Text(
-                                text = "Graphics API",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Configure graphics API used by modern Minecraft 26.2+",
-                                fontSize = 9.5.sp,
-                                color = NuxColors.GrayNeutral
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("DEFAULT" to "Default", "OPENGL" to "OpenGL", "VULKAN" to "Vulkan").forEach { (id, label) ->
+                                listOf("DEFAULT" to "DEFAULT", "OPENGL" to "OPENGL", "VULKAN" to "VULKAN").forEach { (id, label) ->
                                     val isSelected = graphicsApi == id
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(24.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(
-                                                if (isSelected) NuxColors.ForestGreen else NuxColors.SurfaceElevated,
-                                                RoundedCornerShape(4.dp)
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (isSelected) NuxColors.MintGreen else NuxColors.CardBorder,
-                                                RoundedCornerShape(4.dp)
-                                            )
+                                            .height(28.dp)
+                                            .clip(RoundedCornerShape(7.dp))
+                                            .background(if (isSelected) BellPillWhite else BellGlassCard)
+                                            .border(1.dp, if (isSelected) BellPillWhite else BellBorder, RoundedCornerShape(7.dp))
                                             .clickable {
                                                 graphicsApi = id
                                                 commitSettings()
@@ -1527,227 +1167,139 @@ fun SettingsScreen(
                                     ) {
                                         Text(
                                             text = label,
-                                            fontSize = 9.5.sp,
+                                            fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else NuxColors.GrayNeutral
+                                            color = if (isSelected) BellInkDark else BellTextSecondary
                                         )
                                     }
                                 }
                             }
                         }
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = tr("settings.vulkan_system_label"),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Force device system Vulkan driver instead of Turnip. Affects Zink renderer.",
-                                    fontSize = 9.5.sp,
-                                    color = NuxColors.GrayNeutral
-                                )
+                        // Toggles: Auto-Optimize, System Vulkan, VSync
+                        BellToggleRow(
+                            title = "Auto-Optimize options.txt",
+                            subtitle = "Automatically optimize visual settings (Clouds, Shadows) for peak FPS",
+                            checked = autoOptimizeMC,
+                            onCheckedChange = {
+                                autoOptimizeMC = it
+                                commitSettings()
                             }
-                            Switch(
-                                checked = zinkPreferSystemDriver,
-                                onCheckedChange = { checked ->
-                                    if (checked && NuxVersionUtils.isAdrenoGPU()) {
-                                        showAdrenoWarningDialog = true
-                                    } else {
-                                        zinkPreferSystemDriver = checked
-                                        commitSettings()
-                                    }
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = NuxColors.ForestGreen,
-                                    uncheckedTrackColor = NuxColors.SurfaceElevated
-                                )
-                            )
-                        }
+                        )
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = tr("settings.vsync_zink_label"),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Enable vertical synchronization (V-Sync) for Kopper Zink renderer.",
-                                    fontSize = 9.5.sp,
-                                    color = NuxColors.GrayNeutral
-                                )
-                            }
-                            Switch(
-                                checked = vsyncInZink,
-                                onCheckedChange = {
-                                    vsyncInZink = it
+                        BellToggleRow(
+                            title = tr("settings.vulkan_system_label"),
+                            subtitle = "Force device system Vulkan driver instead of Turnip for Zink renderer",
+                            checked = zinkPreferSystemDriver,
+                            onCheckedChange = { checked ->
+                                if (checked && NuxVersionUtils.isAdrenoGPU()) {
+                                    showAdrenoWarningDialog = true
+                                } else {
+                                    zinkPreferSystemDriver = checked
                                     commitSettings()
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = NuxColors.ForestGreen,
-                                    uncheckedTrackColor = NuxColors.SurfaceElevated
-                                )
-                            )
-                        }
+                                }
+                            }
+                        )
+
+                        BellToggleRow(
+                            title = tr("settings.vsync_zink_label"),
+                            subtitle = "Enable vertical synchronization (V-Sync) for Kopper Zink renderer",
+                            checked = vsyncInZink,
+                            onCheckedChange = {
+                                vsyncInZink = it
+                                commitSettings()
+                            }
+                        )
                     }
                 }
 
-                // RIGHT COLUMN: In-Game Mouse & Touch Controls
-                NuxCard(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = NuxColors.CardBorder,
-                    borderWidth = 1.dp,
-                    cornerRadius = 8.dp,
-                    fillMaxHeight = true
-                ) {
+                // -------------------------------------------------------------
+                // SECTION 4: CONTROLS & VIRTUAL GUI
+                // -------------------------------------------------------------
+                "controls" -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Mouse,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = tr("settings.section_mouse"),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                color = Color.White
-                            )
-                        }
-
-                        Text(
-                            text = tr("settings.mouse_desc"),
-                            fontSize = 9.5.sp,
-                            color = NuxColors.GrayNeutral
+                        BellSectionHeader(
+                            title = "TOUCH, MOUSE & VIRTUAL CONTROLS",
+                            subtitle = "Customize on-screen buttons, cursor sensitivity, and input behavior"
                         )
 
-                        Box(
+                        // Virtual GUI Editor Card
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Tune,
-                                        contentDescription = null,
-                                        tint = NuxColors.ForestGreen,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = tr("settings.virtual_controls_title"),
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 11.sp,
-                                        color = Color.White
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = tr("settings.virtual_controls_title"),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                    color = BellTextPrimary
+                                )
                                 Text(
                                     text = tr("settings.virtual_controls_desc"),
                                     fontSize = 9.5.sp,
-                                    color = NuxColors.GrayNeutral,
-                                    lineHeight = 12.sp
+                                    color = BellTextSecondary
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                NuxButton(
-                                    onClick = onOpenGuiEditor,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(34.dp),
-                                    backgroundColor = NuxColors.ForestGreen,
-                                    contentColor = Color.White,
-                                    cornerRadius = 6.dp
-                                ) {
-                                    Icon(Icons.Outlined.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(tr("settings.btn_open_gui_editor"), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.White)
-                                }
                             }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            BellWhiteButton(
+                                text = "OPEN EDITOR",
+                                icon = Icons.Outlined.Edit,
+                                onClick = onOpenGuiEditor
+                            )
                         }
 
+                        // Mouse Mode Selector
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val isSlide = mouseMode == "SLIDE"
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .background(
-                                        if (isSlide) NuxColors.ForestGreen.copy(alpha = 0.15f) else NuxColors.SurfaceInput,
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isSlide) NuxColors.MintGreen else NuxColors.CardBorder,
-                                        RoundedCornerShape(6.dp)
-                                    )
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSlide) Color(0x26FFFFFF) else BellGlassInput)
+                                    .border(1.dp, if (isSlide) BellPillWhite else BellBorder, RoundedCornerShape(10.dp))
                                     .clickable {
                                         mouseMode = "SLIDE"
                                         commitSettings()
                                     }
-                                    .padding(8.dp)
+                                    .padding(10.dp)
                             ) {
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             imageVector = Icons.Outlined.TouchApp,
                                             contentDescription = null,
-                                            tint = if (isSlide) NuxColors.MintGreen else Color.White,
+                                            tint = BellTextPrimary,
                                             modifier = Modifier.size(14.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Spacer(modifier = Modifier.width(5.dp))
                                         Text(
                                             text = tr("settings.mouse_mode_slide_title"),
                                             fontSize = 10.5.sp,
                                             fontWeight = FontWeight.Black,
-                                            color = if (isSlide) NuxColors.MintGreen else Color.White
+                                            color = BellTextPrimary
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = tr("settings.mouse_mode_slide_desc"),
                                         fontSize = 9.sp,
-                                        color = NuxColors.GrayNeutral,
-                                        lineHeight = 11.sp
+                                        color = BellTextSecondary,
+                                        lineHeight = 12.sp
                                     )
                                 }
                             }
@@ -1756,397 +1308,133 @@ fun SettingsScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .background(
-                                        if (isClick) NuxColors.ForestGreen.copy(alpha = 0.15f) else NuxColors.SurfaceInput,
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isClick) NuxColors.MintGreen else NuxColors.CardBorder,
-                                        RoundedCornerShape(6.dp)
-                                    )
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isClick) Color(0x26FFFFFF) else BellGlassInput)
+                                    .border(1.dp, if (isClick) BellPillWhite else BellBorder, RoundedCornerShape(10.dp))
                                     .clickable {
                                         mouseMode = "CLICK"
                                         commitSettings()
                                     }
-                                    .padding(8.dp)
+                                    .padding(10.dp)
                             ) {
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             imageVector = Icons.Outlined.NearMe,
                                             contentDescription = null,
-                                            tint = if (isClick) NuxColors.MintGreen else Color.White,
+                                            tint = BellTextPrimary,
                                             modifier = Modifier.size(14.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Spacer(modifier = Modifier.width(5.dp))
                                         Text(
                                             text = tr("settings.mouse_mode_click_title"),
                                             fontSize = 10.5.sp,
                                             fontWeight = FontWeight.Black,
-                                            color = if (isClick) NuxColors.MintGreen else Color.White
+                                            color = BellTextPrimary
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = tr("settings.mouse_mode_click_desc"),
                                         fontSize = 9.sp,
-                                        color = NuxColors.GrayNeutral,
-                                        lineHeight = 11.sp
+                                        color = BellTextSecondary,
+                                        lineHeight = 12.sp
                                     )
                                 }
                             }
                         }
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = tr("settings.camera_sensitivity_label"),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .background(NuxColors.ForestGreen.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                        .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "$captureSensitivity%",
-                                        color = NuxColors.MintGreen,
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                        // Sensitivities & Mouse Size
+                        BellSliderCard(
+                            label = tr("settings.camera_sensitivity_label"),
+                            valueText = "$captureSensitivity%",
+                            value = captureSensitivity.toFloat(),
+                            range = 50f..300f,
+                            steps = 25,
+                            onValueChange = {
+                                captureSensitivity = it.roundToInt()
+                                commitSettings()
                             }
-                            Slider(
-                                value = captureSensitivity.toFloat(),
-                                onValueChange = {
-                                    captureSensitivity = it.roundToInt()
-                                    commitSettings()
-                                },
-                                valueRange = 50f..300f,
-                                steps = 25,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.MintGreen,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = NuxColors.CardBorder
-                                )
-                            )
-                        }
+                        )
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = tr("settings.mouse_sensitivity_label"),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .background(NuxColors.ForestGreen.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                        .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "$cursorSensitivity%",
-                                        color = NuxColors.MintGreen,
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                        BellSliderCard(
+                            label = tr("settings.mouse_sensitivity_label"),
+                            valueText = "$cursorSensitivity%",
+                            value = cursorSensitivity.toFloat(),
+                            range = 50f..300f,
+                            steps = 25,
+                            onValueChange = {
+                                cursorSensitivity = it.roundToInt()
+                                commitSettings()
                             }
-                            Slider(
-                                value = cursorSensitivity.toFloat(),
-                                onValueChange = {
-                                    cursorSensitivity = it.roundToInt()
-                                    commitSettings()
-                                },
-                                valueRange = 50f..300f,
-                                steps = 25,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.MintGreen,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = NuxColors.CardBorder
-                                )
-                            )
-                        }
+                        )
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = tr("settings.mouse_size_label"),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "${mouseSizeDp}dp",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = NuxColors.MintGreen
-                                )
+                        BellSliderCard(
+                            label = tr("settings.mouse_size_label"),
+                            valueText = "${mouseSizeDp}dp",
+                            value = mouseSizeDp.toFloat(),
+                            range = 16f..48f,
+                            steps = 16,
+                            onValueChange = {
+                                mouseSizeDp = it.roundToInt()
+                                commitSettings()
                             }
-                            Slider(
-                                value = mouseSizeDp.toFloat(),
-                                onValueChange = {
-                                    mouseSizeDp = it.roundToInt()
-                                    commitSettings()
-                                },
-                                valueRange = 16f..48f,
-                                steps = 16,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = NuxColors.MintGreen,
-                                    activeTrackColor = NuxColors.ForestGreen,
-                                    inactiveTrackColor = NuxColors.CardBorder
-                                )
-                            )
-                        }
+                        )
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Physical Mouse Mode (Auto-Hide)",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Automatically hide virtual controls when external mouse is connected",
-                                    fontSize = 9.sp,
-                                    color = NuxColors.GrayNeutral
-                                )
+                        BellToggleRow(
+                            title = "Physical Mouse Mode (Auto-Hide)",
+                            subtitle = "Automatically hide virtual controls when an external mouse is connected",
+                            checked = physicalMouseMode,
+                            onCheckedChange = {
+                                physicalMouseMode = it
+                                commitSettings()
                             }
-                            Switch(
-                                checked = physicalMouseMode,
-                                onCheckedChange = {
-                                    physicalMouseMode = it
-                                    commitSettings()
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = NuxColors.MintGreen,
-                                    checkedTrackColor = NuxColors.ForestGreen,
-                                    uncheckedThumbColor = Color.Gray,
-                                    uncheckedTrackColor = NuxColors.CardBorder
-                                )
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            NuxButton(
-                                onClick = {
-                                    SettingsManager.resetToDefaults(context)
-                                    val reset = SettingsManager.settings.value
-                                    ramMb = reset.ramMb
-                                    initialHeapMb = reset.initialHeapMb
-                                    customJvmArgs = reset.customJvmArgs
-                                    defaultRuntime = reset.defaultJavaRuntime
-                                    mouseMode = reset.mouseControlMode
-                                    cursorSensitivity = reset.cursorSensitivity
-                                    captureSensitivity = reset.captureSensitivity
-                                    mouseSizeDp = reset.mouseSizeDp
-                                    physicalMouseMode = reset.physicalMouseMode
-                                    resolutionRatio = reset.resolutionRatio
-                                    autoOptimizeMC = reset.autoOptimizeMinecraft
-                                    sustainedPerf = reset.sustainedPerformanceMode
-                                    aiAutoAnalyze = reset.aiAutoAnalyze
-                                    aiApiKey = reset.aiApiKey
-                                    aiModel = reset.aiModel
-                                    Toast.makeText(context, "Settings reset to defaults!", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp),
-                                backgroundColor = NuxColors.Coral.copy(alpha = 0.15f),
-                                contentColor = NuxColors.Coral,
-                                borderColor = NuxColors.Coral.copy(alpha = 0.35f),
-                                cornerRadius = 6.dp
-                            ) {
-                                Text(
-                                    text = "RESET DEFAULTS",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.5.sp,
-                                    color = NuxColors.Coral
-                                )
-                            }
-
-                            NuxButton(
-                                onClick = {
-                                    commitSettings()
-                                    Toast.makeText(context, "All settings saved!", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp),
-                                backgroundColor = NuxColors.ForestGreen,
-                                contentColor = Color.White,
-                                cornerRadius = 6.dp
-                            ) {
-                                Text(
-                                    text = "SAVE",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.5.sp,
-                                    color = Color.White
-                                )
-                            }
-                        }
+                        )
                     }
                 }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                NuxCard(
-                    modifier = Modifier
-                        .weight(0.95f)
-                        .fillMaxHeight(),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = NuxColors.CardBorder,
-                    borderWidth = 1.dp,
-                    cornerRadius = 8.dp,
-                    fillMaxHeight = true
-                ) {
+
+                // -------------------------------------------------------------
+                // SECTION 5: AI CRASH DIAGNOSTICS
+                // -------------------------------------------------------------
+                else -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.AutoFixHigh,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = tr("settings.section_ai_crash"),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                color = Color.White
-                            )
-                        }
+                        BellSectionHeader(
+                            title = "AI CRASH DIAGNOSTICS & API",
+                            subtitle = "Automatic crash log inspection and OpenRouter API configuration"
+                        )
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = tr("settings.ai_auto_analyze_label"),
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = if (aiAutoAnalyze) "Active: AI analyzes crash logs automatically when game terminates unexpectedly."
-                                    else "Disabled (Default): AI analysis is triggered manually in crash dialogs to conserve quota.",
-                                    fontSize = 9.sp,
-                                    color = if (aiAutoAnalyze) NuxColors.MintGreen else NuxColors.GrayNeutral,
-                                    lineHeight = 12.sp
-                                )
+                        BellToggleRow(
+                            title = tr("settings.ai_auto_analyze_label"),
+                            subtitle = if (aiAutoAnalyze) "Active: AI analyzes crash logs automatically when game terminates unexpectedly."
+                            else "Disabled: AI analysis is triggered manually in crash dialogs to conserve quota.",
+                            checked = aiAutoAnalyze,
+                            onCheckedChange = {
+                                aiAutoAnalyze = it
+                                commitSettings()
                             }
-                            Switch(
-                                checked = aiAutoAnalyze,
-                                onCheckedChange = {
-                                    aiAutoAnalyze = it
-                                    commitSettings()
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = NuxColors.ForestGreen,
-                                    uncheckedThumbColor = NuxColors.GrayNeutral,
-                                    uncheckedTrackColor = NuxColors.CardBorder
-                                )
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Key,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = tr("settings.ai_api_key_label"),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 11.sp,
-                                color = Color.White
-                            )
-                        }
+                        )
 
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BellGlassInput)
+                                .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "API Access Key (OpenRouter API Key):",
+                                text = "OPENROUTER API KEY (OPTIONAL)",
                                 fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NuxColors.GrayNeutral
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.6.sp,
+                                color = BellTextPrimary
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-
                             NuxTextField(
                                 value = aiApiKey,
                                 onValueChange = {
@@ -2159,518 +1447,117 @@ fun SettingsScreen(
                                     Icon(
                                         imageVector = if (showApiKeyPlaintext) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                         contentDescription = null,
-                                        tint = NuxColors.GrayNeutral,
+                                        tint = BellTextSecondary,
                                         modifier = Modifier
                                             .size(16.dp)
                                             .clickable { showApiKeyPlaintext = !showApiKeyPlaintext }
                                     )
                                 }
                             )
-
-                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Supports OpenRouter 'sk-or-v1-...' format. If empty, launcher uses built-in free quota.",
+                                text = "Supports OpenRouter 'sk-or-v1-...' format. Leave empty to use built-in free quota.",
                                 fontSize = 8.5.sp,
-                                color = NuxColors.GrayNeutral
+                                color = BellTextMuted
                             )
-                        }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            NuxButton(
-                                onClick = {
-                                    isTestingAiConnection = true
-                                    aiConnectionTestResult = null
-                                    scope.launch {
-                                        val res = AICrashAnalyzer.testConnection(aiApiKey, "")
-                                        isTestingAiConnection = false
-                                        res.onSuccess { msg ->
-                                            isAiConnectionSuccess = true
-                                            aiConnectionTestResult = msg
-                                        }.onFailure { err ->
-                                            isAiConnectionSuccess = false
-                                            aiConnectionTestResult = err.message ?: "Connection failed"
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp),
-                                backgroundColor = NuxColors.SurfaceInput,
-                                borderColor = NuxColors.CardBorder,
-                                contentColor = Color.White,
-                                cornerRadius = 6.dp,
-                                enabled = !isTestingAiConnection
-                            ) {
-                                if (isTestingAiConnection) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(12.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(tr("settings.btn_testing_ai"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = Color.White)
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Outlined.NetworkCheck,
-                                        contentDescription = null,
-                                        tint = NuxColors.MintGreen,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(tr("settings.btn_test_ai"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = Color.White)
-                                }
-                            }
-
-                            NuxButton(
-                                onClick = {
-                                    commitSettings()
-                                    Toast.makeText(context, "AI Analytics settings saved!", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp),
-                                backgroundColor = NuxColors.ForestGreen,
-                                contentColor = Color.White,
-                                cornerRadius = 6.dp
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Save,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(tr("settings.btn_save_settings"), fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = Color.White)
-                            }
-                        }
-
-                        if (aiConnectionTestResult != null) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        if (isAiConnectionSuccess) NuxColors.MintGreen.copy(alpha = 0.15f)
-                                        else NuxColors.Coral.copy(alpha = 0.15f)
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isAiConnectionSuccess) NuxColors.MintGreen.copy(alpha = 0.4f)
-                                        else NuxColors.Coral.copy(alpha = 0.4f),
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    imageVector = if (isAiConnectionSuccess) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
-                                    contentDescription = null,
-                                    tint = if (isAiConnectionSuccess) NuxColors.MintGreen else NuxColors.Coral,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = aiConnectionTestResult!!,
-                                    fontSize = 9.sp,
-                                    color = if (isAiConnectionSuccess) Color.White else NuxColors.Coral,
-                                    lineHeight = 12.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                NuxCard(
-                    modifier = Modifier
-                        .weight(1.05f)
-                        .fillMaxHeight(),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = NuxColors.CardBorder,
-                    borderWidth = 1.dp,
-                    cornerRadius = 8.dp,
-                    fillMaxHeight = true
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Info,
-                                    contentDescription = null,
-                                    tint = NuxColors.ForestGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "SYSTEM STATUS & CAPABILITIES",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 12.sp,
-                                    color = Color.White
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .background(NuxColors.MintGreen.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "ONLINE & READY",
-                                    color = NuxColors.MintGreen,
-                                    fontSize = 8.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.SurfaceInput, RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(6.dp))
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = tr("settings.ai_capabilities_title"),
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-
-                            val features = listOf(
-                                "📦 Incompatible Mods & Conflicts" to "Accurately detects which mod caused the game to crash and identifies missing dependencies.",
-                                "🧠 RAM Allocation & OutOfMemoryError" to "Analyzes whether system RAM is insufficient or Java heap size is too small for the modpack.",
-                                "🎮 GPU Driver, Vulkan & Zink Shader" to "Diagnoses GL/GLES crashes, Turnip driver issues, or Minecraft shader compilation errors.",
-                                "☕ Java Runtime & ClassNotFound" to "Verifies compatibility between Java version (Java 8, 17, 21) and the installed Fabric/Forge version.",
-                                "⚡ Instant Fix Recommendations" to "Provides actionable 1-2-3 resolution steps that players can apply immediately without reading raw logs."
-                            )
-
-                            features.forEach { (title, desc) ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(top = 2.dp)
-                                            .size(5.dp)
-                                            .background(NuxColors.MintGreen, CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = title,
-                                            fontSize = 9.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
-                                        Text(
-                                            text = desc,
-                                            fontSize = 8.5.sp,
-                                            color = NuxColors.GrayNeutral,
-                                            lineHeight = 11.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(NuxColors.ForestGreen.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
-                                .border(1.dp, NuxColors.ForestGreen.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-                                .padding(10.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Lightbulb,
-                                    contentDescription = null,
-                                    tint = NuxColors.MintGreen,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Want to Use a Personal API Key?",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NuxColors.MintGreen
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "1. Open openrouter.ai in your browser and sign up / log in\n" +
-                                    "2. Create an API Key in the 'Keys' menu (starts with 'sk-or-v1-...')\n" +
-                                    "3. Copy the key and paste it into the API Key field on the left\n" +
-                                    "4. Enjoy ultra-fast dedicated quota with the best AI models!",
-                                fontSize = 8.5.sp,
-                                color = Color.White.copy(alpha = 0.85f),
-                                lineHeight = 12.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Logout Confirmation Dialog
-        if (showLogoutDialog) {
-            AlertDialog(
-                onDismissRequest = { showLogoutDialog = false },
-                title = {
-                    Text(
-                        text = "Sign Out of Account?",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 14.sp,
-                        color = Color.White
-                    )
-                },
-                text = {
-                    Text(
-                        text = "You will be signed out of ${launcherUser?.username ?: ""}. You can log back in at any time.",
-                        color = NuxColors.GrayNeutral,
-                        fontSize = 11.sp
-                    )
-                },
-                confirmButton = {
-                    NuxButton(
-                        onClick = {
-                            showLogoutDialog = false
-                            AccountManager.logout(context)
-                            onNavigateBack()
-                            Toast.makeText(context, "Signed out successfully", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.height(32.dp),
-                        backgroundColor = NuxColors.Coral,
-                        contentColor = Color.White,
-                        cornerRadius = 6.dp
-                    ) {
-                        Text("YES, SIGN OUT", fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
-                    }
-                },
-                dismissButton = {
-                    NuxButton(
-                        onClick = { showLogoutDialog = false },
-                        modifier = Modifier.height(32.dp),
-                        backgroundColor = NuxColors.SurfaceInput,
-                        contentColor = NuxColors.GrayNeutral,
-                        cornerRadius = 6.dp
-                    ) {
-                        Text("CANCEL", fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
-                    }
-                },
-                containerColor = NuxColors.SurfaceElevated,
-                shape = RoundedCornerShape(8.dp)
-            )
-        }
-
-        // Renderer Selection Dialog
-        if (showRendererDialog) {
-            LaunchedEffect(Unit) {
-                NuxRendererPluginManager.scanPlugins(context)
-            }
-            NuxDialog(
-                onDismissRequest = { showRendererDialog = false },
-                modifier = Modifier.fillMaxWidth(0.72f),
-                fillMaxHeight = true
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Layers,
-                                contentDescription = null,
-                                tint = NuxColors.ForestGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = "SELECT GRAPHICS RENDERER",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Match graphics backend with Minecraft version & device GPU",
-                                    fontSize = 9.5.sp,
-                                    color = NuxColors.GrayNeutral
-                                )
-                            }
-                        }
-                        IconButton(
-                            onClick = { showRendererDialog = false },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        items(NuxRendererRegistry.availableRenderers) { rendererItem ->
-                            val isSelected = selectedRenderer.equals(rendererItem.id, ignoreCase = true)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        if (isSelected) NuxColors.ForestGreen.copy(alpha = 0.15f) else NuxColors.SurfaceInput
-                                    )
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isSelected) NuxColors.MintGreen else NuxColors.CardBorder,
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-                                    .clickable {
-                                        selectedRenderer = rendererItem.id
-                                        commitSettings()
-                                        showRendererDialog = false
-                                        Toast.makeText(context, "Renderer changed to: ${rendererItem.displayName}", Toast.LENGTH_SHORT).show()
-                                    }
-                                    .padding(8.dp)
-                            ) {
-                                Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            RadioButton(
-                                                selected = isSelected,
-                                                onClick = {
-                                                    selectedRenderer = rendererItem.id
-                                                    commitSettings()
-                                                    showRendererDialog = false
-                                                    Toast.makeText(context, "Renderer changed to: ${rendererItem.displayName}", Toast.LENGTH_SHORT).show()
-                                                },
-                                                colors = RadioButtonDefaults.colors(
-                                                    selectedColor = NuxColors.ForestGreen,
-                                                    unselectedColor = NuxColors.CardBorder
-                                                ),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = rendererItem.displayName,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp,
-                                                color = if (isSelected) NuxColors.MintGreen else Color.White
-                                            )
-                                        }
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            if (rendererItem.isConfigurable) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(22.dp)
-                                                        .clip(RoundedCornerShape(4.dp))
-                                                        .background(NuxColors.SurfaceElevated)
-                                                        .border(1.dp, NuxColors.MintGreen.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                                                        .clickable {
-                                                            selectedConfigRenderer = rendererItem
-                                                            showRendererDialog = false
-                                                            showRendererConfigDialog = true
-                                                        },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Settings,
-                                                        contentDescription = "Configure ${rendererItem.displayName}",
-                                                        tint = NuxColors.MintGreen,
-                                                        modifier = Modifier.size(13.dp)
-                                                    )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BellGlassCard)
+                                        .border(1.dp, BellBorder, RoundedCornerShape(8.dp))
+                                        .clickable(enabled = !isTestingAiConnection) {
+                                            isTestingAiConnection = true
+                                            aiConnectionTestResult = null
+                                            scope.launch {
+                                                val res = AICrashAnalyzer.testConnection(aiApiKey, "")
+                                                isTestingAiConnection = false
+                                                res.onSuccess { msg ->
+                                                    isAiConnectionSuccess = true
+                                                    aiConnectionTestResult = msg
+                                                }.onFailure { err ->
+                                                    isAiConnectionSuccess = false
+                                                    aiConnectionTestResult = err.message ?: "Connection failed"
                                                 }
-                                                Spacer(modifier = Modifier.width(6.dp))
                                             }
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(
-                                                        if (isSelected) NuxColors.ForestGreen else NuxColors.SurfaceElevated,
-                                                        RoundedCornerShape(4.dp)
-                                                    )
-                                                    .border(1.dp, NuxColors.CardBorder, RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = rendererItem.badge,
-                                                    fontSize = 8.5.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) Color.White else NuxColors.GrayNeutral
-                                                )
-                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        if (isTestingAiConnection) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(12.dp),
+                                                color = BellTextPrimary,
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Outlined.NetworkCheck,
+                                                contentDescription = null,
+                                                tint = BellTextPrimary,
+                                                modifier = Modifier.size(14.dp)
+                                            )
                                         }
+                                        Text(
+                                            text = if (isTestingAiConnection) "TESTING..." else "TEST CONNECTION",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.sp,
+                                            color = BellTextPrimary
+                                        )
                                     }
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = rendererItem.summary,
-                                        fontSize = 9.5.sp,
-                                        color = NuxColors.GrayNeutral,
-                                        lineHeight = 12.sp,
-                                        modifier = Modifier.padding(start = 24.dp)
+                                }
+
+                                BellWhiteButton(
+                                    text = "SAVE KEY",
+                                    icon = Icons.Outlined.Save,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        commitSettings()
+                                        Toast.makeText(context, "AI Analytics settings saved!", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
+
+                            if (aiConnectionTestResult != null) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isAiConnectionSuccess) Color(0x26FFFFFF)
+                                            else BellDanger.copy(alpha = 0.15f)
+                                        )
+                                        .border(
+                                            1.dp,
+                                            if (isAiConnectionSuccess) BellBorderActive
+                                            else BellDanger.copy(alpha = 0.4f),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (isAiConnectionSuccess) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
+                                        contentDescription = null,
+                                        tint = if (isAiConnectionSuccess) BellTextPrimary else BellDanger,
+                                        modifier = Modifier.size(15.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Compatibility: ${rendererItem.compatibility}",
+                                        text = aiConnectionTestResult!!,
                                         fontSize = 9.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = NuxColors.MintGreen,
-                                        modifier = Modifier.padding(start = 24.dp)
+                                        color = if (isAiConnectionSuccess) BellTextPrimary else BellDanger
                                     )
                                 }
                             }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        NuxButton(
-                            onClick = { showRendererDialog = false },
-                            modifier = Modifier.height(30.dp),
-                            backgroundColor = NuxColors.SurfaceInput,
-                            contentColor = Color.White,
-                            cornerRadius = 6.dp
-                        ) {
-                            Text("CLOSE", fontWeight = FontWeight.Bold, fontSize = 10.sp)
                         }
                     }
                 }
@@ -2678,7 +1565,228 @@ fun SettingsScreen(
         }
     }
 
-    // Adreno GPU Warning Dialog
+    // =========================================================================
+    // DIALOGS (MONOCHROME BELL THEME)
+    // =========================================================================
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = "Sign Out of Account?",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp,
+                    color = BellTextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "You will be signed out of ${launcherUser?.username ?: ""}. You can log back in at any time.",
+                    color = BellTextSecondary,
+                    fontSize = 11.sp
+                )
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellDanger)
+                        .clickable {
+                            showLogoutDialog = false
+                            AccountManager.logout(context)
+                            onNavigateBack()
+                            Toast.makeText(context, "Signed out successfully", Toast.LENGTH_SHORT).show()
+                        }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("YES, SIGN OUT", fontWeight = FontWeight.Black, fontSize = 10.sp, color = BellInkDark)
+                }
+            },
+            dismissButton = {
+                Box(
+                    modifier = Modifier
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BellGlassInput)
+                        .clickable { showLogoutDialog = false }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("CANCEL", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = BellTextSecondary)
+                }
+            },
+            containerColor = BellGlassElevated,
+            shape = RoundedCornerShape(14.dp)
+        )
+    }
+
+    if (showRendererDialog) {
+        LaunchedEffect(Unit) {
+            NuxRendererPluginManager.scanPlugins(context)
+        }
+        NuxDialog(
+            onDismissRequest = { showRendererDialog = false },
+            modifier = Modifier.fillMaxWidth(0.75f),
+            fillMaxHeight = true
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "SELECT GRAPHICS RENDERER",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = BellTextPrimary
+                        )
+                        Text(
+                            text = "Match graphics backend with Minecraft version & device GPU",
+                            fontSize = 9.5.sp,
+                            color = BellTextSecondary
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(BellGlassInput)
+                            .clickable { showRendererDialog = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = BellTextPrimary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(NuxRendererRegistry.availableRenderers) { rendererItem ->
+                        val isSelected = selectedRenderer.equals(rendererItem.id, ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) Color(0x26FFFFFF) else BellGlassInput)
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) BellPillWhite else BellBorder,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable {
+                                    selectedRenderer = rendererItem.id
+                                    commitSettings()
+                                    showRendererDialog = false
+                                    Toast.makeText(context, "Renderer changed to: ${rendererItem.displayName}", Toast.LENGTH_SHORT).show()
+                                }
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(14.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isSelected) BellPillWhite else Color.Transparent)
+                                                .border(1.5.dp, if (isSelected) BellPillWhite else BellTextMuted, CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = rendererItem.displayName,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.5.sp,
+                                            color = BellTextPrimary
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (rendererItem.isConfigurable) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(BellGlassCard)
+                                                    .border(1.dp, BellBorderActive, RoundedCornerShape(6.dp))
+                                                    .clickable {
+                                                        selectedConfigRenderer = rendererItem
+                                                        showRendererDialog = false
+                                                        showRendererConfigDialog = true
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Settings,
+                                                    contentDescription = null,
+                                                    tint = BellTextPrimary,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(5.dp))
+                                                .background(if (isSelected) BellPillWhite else BellGlassCard)
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = rendererItem.badge,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = if (isSelected) BellInkDark else BellTextSecondary
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = rendererItem.summary,
+                                    fontSize = 9.5.sp,
+                                    color = BellTextSecondary,
+                                    lineHeight = 12.sp,
+                                    modifier = Modifier.padding(start = 22.dp)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Compatibility: ${rendererItem.compatibility}",
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = BellTextMuted,
+                                    modifier = Modifier.padding(start = 22.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (showAdrenoWarningDialog) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showAdrenoWarningDialog = false }) {
             Box(
@@ -2692,8 +1800,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .width(420.dp)
                         .wrapContentHeight(),
-                    backgroundColor = NuxColors.SurfaceElevated,
-                    borderColor = Color(0x33FFFFFF),
+                    backgroundColor = BellGlassElevated,
+                    borderColor = BellBorder,
                     cornerRadius = NuxSizes.CornerRadiusLarge,
                     fillMaxHeight = false
                 ) {
@@ -2707,20 +1815,20 @@ fun SettingsScreen(
                             Icon(
                                 painter = painterResource(R.drawable.ic_warning_triangle),
                                 contentDescription = null,
-                                tint = Color(0xFFFBBF24),
+                                tint = BellAmber,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "ADRENO DRIVER WARNING",
-                                color = Color(0xFFFBBF24),
+                                color = BellAmber,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 13.sp
                             )
                         }
                         Text(
                             text = "Launcher detected an Adreno GPU. Enabling this option may cause Zink renderer to malfunction or crash. Are you sure you want to proceed?",
-                            color = Color(0xFFD4D4D8),
+                            color = BellTextSecondary,
                             fontSize = 11.sp,
                             lineHeight = 16.sp
                         )
@@ -2728,41 +1836,35 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                NuxButton(
-                                    onClick = {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellGlassInput)
+                                    .clickable {
                                         zinkPreferSystemDriver = false
                                         commitSettings()
                                         showAdrenoWarningDialog = false
                                     },
-                                    backgroundColor = NuxColors.SurfaceInput,
-                                    contentColor = Color.White,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        "CANCEL",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                }
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("CANCEL", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = BellTextPrimary)
                             }
-                            Box(modifier = Modifier.weight(1f)) {
-                                NuxButton(
-                                    onClick = {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BellAmber)
+                                    .clickable {
                                         zinkPreferSystemDriver = true
                                         commitSettings()
                                         showAdrenoWarningDialog = false
                                     },
-                                    backgroundColor = Color(0xFFF59E0B),
-                                    contentColor = Color.Black,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        "AKTIFKAN",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                }
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("ENABLE ANYWAY", fontWeight = FontWeight.Black, fontSize = 10.sp, color = BellInkDark)
                             }
                         }
                     }
@@ -2771,7 +1873,6 @@ fun SettingsScreen(
         }
     }
 
-    // Dialog Konfigurasi Renderer V2
     if (showRendererConfigDialog && selectedConfigRenderer != null) {
         NuxRendererV2ConfigDialog(
             rendererInfo = selectedConfigRenderer,
@@ -2779,14 +1880,10 @@ fun SettingsScreen(
         )
     }
 
-    // Dialog Tentang & Lisensi Open Source
     if (showAboutDialog) {
-        NuxAboutDialog(
-            onDismissRequest = { showAboutDialog = false }
-        )
+        NuxAboutDialog(onDismissRequest = { showAboutDialog = false })
     }
 
-    // Dialog Bell Premium & Showcase
     if (showPremiumDialog) {
         NuxPremiumDialog(
             initialPrompt = premiumInitialPrompt,
@@ -2794,6 +1891,166 @@ fun SettingsScreen(
                 showPremiumDialog = false
                 premiumInitialPrompt = null
             }
+        )
+    }
+}
+
+@Composable
+private fun BellSectionHeader(
+    title: String,
+    subtitle: String
+) {
+    Column(modifier = Modifier.padding(bottom = 2.dp)) {
+        Text(
+            text = title,
+            color = BellTextPrimary,
+            fontWeight = FontWeight.Black,
+            fontSize = 13.sp,
+            letterSpacing = 0.7.sp
+        )
+        Text(
+            text = subtitle,
+            color = BellTextSecondary,
+            fontSize = 9.5.sp
+        )
+    }
+}
+
+@Composable
+private fun BellWhiteButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (enabled) BellPillWhite else Color(0x33FFFFFF))
+            .clickable(enabled = enabled) { onClick() }
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (enabled) BellInkDark else BellTextMuted,
+                modifier = Modifier.size(13.dp)
+            )
+            Text(
+                text = text,
+                color = if (enabled) BellInkDark else BellTextMuted,
+                fontWeight = FontWeight.Black,
+                fontSize = 9.sp,
+                letterSpacing = 0.5.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun BellToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(BellGlassInput)
+            .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = BellTextPrimary
+            )
+            Text(
+                text = subtitle,
+                fontSize = 9.sp,
+                color = BellTextSecondary,
+                lineHeight = 12.sp
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = BellInkDark,
+                checkedTrackColor = BellPillWhite,
+                uncheckedThumbColor = BellTextSecondary,
+                uncheckedTrackColor = Color(0x26FFFFFF)
+            )
+        )
+    }
+}
+
+@Composable
+private fun BellSliderCard(
+    label: String,
+    valueText: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    onValueChange: (Float) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(BellGlassInput)
+            .border(1.dp, BellBorder, RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = BellTextPrimary
+            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(Color(0x26FFFFFF))
+                    .padding(horizontal = 7.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = valueText,
+                    color = BellTextPrimary,
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = range,
+            steps = steps,
+            colors = SliderDefaults.colors(
+                thumbColor = BellPillWhite,
+                activeTrackColor = BellPillWhite,
+                inactiveTrackColor = Color(0x26FFFFFF)
+            )
         )
     }
 }
