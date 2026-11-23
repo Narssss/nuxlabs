@@ -354,6 +354,17 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
     private var loaderVersion: String? = null
     private var installedMods: List<String> = emptyList()
 
+    private fun shouldBypassSurfaceScaler(): Boolean {
+        val settings = SettingsManager.settings.value
+        val sel = settings.selectedRenderer.lowercase()
+        val hasVulkanMod = installedMods.any { it.contains("vulkan", ignoreCase = true) }
+        return hasVulkanMod ||
+                sel.contains("vulkan") ||
+                sel.contains("zink") ||
+                sel.contains("mobileglue") ||
+                settings.graphicsApi.equals("VULKAN", ignoreCase = true)
+    }
+
     private fun isVulkanOrZinkRenderer(): Boolean {
         val settings = SettingsManager.settings.value
         val sel = settings.selectedRenderer.lowercase()
@@ -432,7 +443,11 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         val settings = SettingsManager.settings.value
         val (screenW, screenH) = getNativeLandscapeDimensions()
 
-        val effectiveRatio = if (settings.resolutionRatio == 100 && settings.autoOptimizeMinecraft && isLowEndDevice() && !isVulkanOrZinkRenderer()) {
+        if (shouldBypassSurfaceScaler()) {
+            return Pair(screenW, screenH)
+        }
+
+        val effectiveRatio = if (settings.resolutionRatio == 100 && settings.autoOptimizeMinecraft && isLowEndDevice()) {
             75
         } else {
             settings.resolutionRatio
@@ -448,7 +463,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         val updated = current.copy(resolutionRatio = newRatio)
         SettingsManager.updateSettings(this, updated)
 
-        if (!isVulkanOrZinkRenderer()) {
+        if (!shouldBypassSurfaceScaler()) {
             val (targetW, targetH) = getScaledDisplayDimensions()
             surfaceHolderRef?.setFixedSize(targetW, targetH)
             CallbackBridge.windowWidth = targetW
@@ -457,11 +472,88 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
             LoggerBridge.append("▷ [In-Game Resolution] Dynamically updated to $newRatio% (${targetW}x${targetH})")
         } else {
             val (nativeW, nativeH) = getNativeLandscapeDimensions()
+            surfaceHolderRef?.setFixedSize(nativeW, nativeH)
             CallbackBridge.windowWidth = nativeW
             CallbackBridge.windowHeight = nativeH
             CallbackBridge.sendUpdateWindowSize(nativeW, nativeH)
-            LoggerBridge.append("▷ [In-Game Resolution] Vulkan fullscreen kept at ${nativeW}x${nativeH}")
+            LoggerBridge.append("▷ [In-Game Resolution] Native surface locked at ${nativeW}x${nativeH}")
         }
+    }
+
+    private fun hasActiveShaderPack(gameDir: File): Boolean {
+        return try {
+            val irisProps = File(gameDir, "config/iris.properties")
+            if (irisProps.exists()) {
+                val text = irisProps.readText()
+                val enabled = text.lines().any { it.trim().equals("enableShaders=true", ignoreCase = true) }
+                val packLine = text.lines().firstOrNull { it.trim().startsWith("shaderPack=") }
+                val packName = packLine?.substringAfter("=")?.trim().orEmpty()
+                if (enabled && packName.isNotEmpty() && !packName.equals("(internal)", ignoreCase = true) && !packName.equals("OFF", ignoreCase = true)) {
+                    return true
+                }
+            }
+            val shaderDir = File(gameDir, "shaderpacks")
+            shaderDir.exists() && (shaderDir.listFiles()?.any { it.name.endsWith(".zip", ignoreCase = true) || it.isDirectory } == true)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Mengoptimalkan konfigurasi Iris Shader & GPU cache secara otomatis untuk perangkat mobile/potato
+     * tanpa mengubah skala SurfaceView sehingga HUD tetap tajam dan tidak terpotong.
+     */
+    private fun optimizeShaderPipeline(gameDir: File, lowEnd: Boolean): Boolean {
+        val shaderActive = hasActiveShaderPack(gameDir)
+        if (!shaderActive) return false
+
+        try {
+            val configDir = File(gameDir, "config").apply { mkdirs() }
+            val irisPropsFile = File(configDir, "iris.properties")
+
+            val lines = if (irisPropsFile.exists()) {
+                irisPropsFile.readLines().toMutableList()
+            } else {
+                mutableListOf()
+            }
+
+            fun setProp(key: String, value: String, onlyIfDefault: Boolean = false, defaultValue: String = "") {
+                val idx = lines.indexOfFirst { it.trim().startsWith("$key=") }
+                if (idx >= 0) {
+                    val currentVal = lines[idx].substringAfter("=").trim()
+                    if (!onlyIfDefault || currentVal == defaultValue) {
+                        lines[idx] = "$key=$value"
+                    }
+                } else {
+                    lines.add("$key=$value")
+                }
+            }
+
+            val userRatio = SettingsManager.settings.value.resolutionRatio
+            val targetRenderQuality = when {
+                userRatio in 40..95 -> String.format(java.util.Locale.US, "%.2f", userRatio / 100f)
+                lowEnd -> "0.65"
+                else -> "0.75"
+            }
+            setProp("renderQuality", targetRenderQuality, onlyIfDefault = (userRatio == 100), defaultValue = "1.0")
+            setProp("maxShadowRenderDistance", if (lowEnd) "48" else "64")
+            setProp("allowUnknownShaders", "true")
+
+            irisPropsFile.writeText(lines.joinToString("\n") + "\n")
+            LoggerBridge.append("▷ [Shader Optimizer] Iris tuned (renderQuality=$targetRenderQuality, shadowDist=${if (lowEnd) 48 else 64})")
+        } catch (e: Throwable) {
+            LoggerBridge.append("▷ [Shader Optimizer Warning] ${e.message}")
+        }
+
+        try {
+            val shaderCacheDir = File(cacheDir, "nux_shader_cache").apply { mkdirs() }
+            Os.setenv("MESA_SHADER_CACHE_DIR", shaderCacheDir.absolutePath, true)
+            Os.setenv("MESA_SHADER_CACHE_MAX_SIZE", if (lowEnd) "64M" else "128M", true)
+            Os.setenv("LIBGL_NOERROR", "1", true)
+            Os.setenv("LIBGL_FASTEX", "1", true)
+        } catch (_: Throwable) {}
+
+        return true
     }
 
     private fun applyImmersiveFullscreen() {
@@ -558,7 +650,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
         ZLNativeInvoker.onExitCallback = { exitCode, isSignal ->
             runOnUiThread {
-                appendLiveLog("[NUX Engine] Game process ended (code: $exitCode, signal: $isSignal)")
+                appendLiveLog("[BELL Engine] Game process ended (code: $exitCode, signal: $isSignal)")
                 handleGameExit(exitCode, isSignal)
             }
         }
@@ -587,7 +679,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     isGameRenderingState = isGameRenderingState,
                     onSurfaceReady = { surfaceHolder ->
                         surfaceHolderRef = surfaceHolder
-                        if (!isVulkanOrZinkRenderer() && SettingsManager.settings.value.resolutionRatio != 100) {
+                        if (!shouldBypassSurfaceScaler() && SettingsManager.settings.value.resolutionRatio != 100) {
                             val (targetWidth, targetHeight) = getScaledDisplayDimensions()
                             surfaceHolder.setFixedSize(targetWidth, targetHeight)
                         }
@@ -652,7 +744,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         val (nativeW, nativeH) = getNativeLandscapeDimensions()
-        val useHardwareScaler = !isVulkanOrZinkRenderer() && SettingsManager.settings.value.resolutionRatio != 100
+        val useHardwareScaler = !shouldBypassSurfaceScaler() && SettingsManager.settings.value.resolutionRatio != 100
 
         val (targetWidth, targetHeight) = if (useHardwareScaler) {
             getScaledDisplayDimensions().also { (w, h) ->
@@ -671,7 +763,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         SdlBridge.prepareSurface(this, surface, rootLayout, holder)
         try {
             ZLBridge.setupBridgeWindow(surface)
-            appendLiveLog("[Render Bridge] Native window bound (${targetWidth}x${targetHeight}, Vulkan=${isVulkanOrZinkRenderer()}).")
+            appendLiveLog("[Render Bridge] Native window bound (${targetWidth}x${targetHeight}).")
         } catch (e: Throwable) {
             appendLiveLog("[Render Bridge Error] ${e.message}")
         }
@@ -796,6 +888,15 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 }
                 LoggerBridge.append("▷ [MCOptions] Minecraft options verified (res=${initW}x${initH}, vulkan=$vulkanMode)")
 
+                val isShaderMode = if (activeSettings.autoOptimizeMinecraft || lowEnd) {
+                    optimizeShaderPipeline(gameDir, lowEnd)
+                } else {
+                    hasActiveShaderPack(gameDir)
+                }
+                if (isShaderMode) {
+                    runOnUiThread { appendLiveLog("[BELL Shader Boost] Mode hemat GPU untuk Shader diaktifkan!") }
+                }
+
                 if (!com.israadev.nuxlauncher.core.runtime.JavaRuntimeManager.isRuntimeInstalled(this@GameActivity, runtimeName)) {
                     runOnUiThread { appendLiveLog("[BELL Runtime] Mempersiapkan OpenJDK ($runtimeName)...") }
                     val extRes = kotlinx.coroutines.runBlocking {
@@ -907,13 +1008,16 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     Os.setenv("vblank_mode", "0", true)
                 }
 
+                if (rendererId.startsWith("opengles2") || targetRenderer.id == "gl4es" || isMobileGlues) {
+                    Os.setenv("LIBGL_NOERROR", "1", true)
+                    Os.setenv("LIBGL_FASTEX", "1", true)
+                }
+
                 if (rendererId.startsWith("opengles2") || targetRenderer.id == "gl4es") {
                     Os.setenv("LIBGL_ES", "2", true)
                     Os.setenv("LIBGL_MIPMAP", "3", true)
-                    Os.setenv("LIBGL_NOERROR", "1", true)
                     Os.setenv("LIBGL_NOINTOVLHACK", "1", true)
                     Os.setenv("LIBGL_NORMALIZE", "1", true)
-                    Os.setenv("LIBGL_FASTEX", "1", true)
                     if (lowEnd) {
                         Os.setenv("LIBGL_SHRINK", "2", true)
                     }
@@ -989,9 +1093,9 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     Os.setenv("VTEST_SOCKET_NAME", File(cacheDir, ".virgl_test").absolutePath, true)
                 }
 
-                if (rendererId.startsWith("gallium") || rendererId.contains("zink") || vulkanMode) {
+                if (rendererId.startsWith("gallium") || rendererId.contains("zink") || vulkanMode || isShaderMode) {
                     Os.setenv("MESA_GLSL_CACHE_DIR", cacheDir.absolutePath, true)
-                    Os.setenv("MESA_GLSL_CACHE_MAX_SIZE", if (lowEnd) "32M" else "128M", true)
+                    Os.setenv("MESA_GLSL_CACHE_MAX_SIZE", if (lowEnd) "64M" else "128M", true)
                 }
                 Os.setenv("JAVA_HOME", runtimeHome.absolutePath, true)
                 Os.setenv("HOME", gameDir.absolutePath, true)
@@ -1194,6 +1298,13 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 jvmArgs.add("-Xms${safeXmsMb}M")
                 jvmArgs.add("-Xmx${safeXmxMb}M")
 
+                val directMemMb = if (isShaderMode) {
+                    if (lowEnd) 256 else 384
+                } else {
+                    192
+                }
+                jvmArgs.add("-XX:MaxDirectMemorySize=${directMemMb}M")
+
                 val userCustomArgs = activeSettings.customJvmArgs
                 val hasCustomGc = userCustomArgs.contains("-XX:+Use") && userCustomArgs.contains("GC")
                 if (!hasCustomGc) {
@@ -1215,7 +1326,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 if (userCustomArgs.isNotBlank()) {
                     userCustomArgs.split(" ")
                         .map { it.trim() }
-                        .filter { it.isNotEmpty() && !it.startsWith("-Xmx") && !it.startsWith("-Xms") }
+                        .filter { it.isNotEmpty() && !it.startsWith("-Xmx") && !it.startsWith("-Xms") && !it.startsWith("-XX:MaxDirectMemorySize") }
                         .forEach { jvmArgs.add(it) }
                 }
 
