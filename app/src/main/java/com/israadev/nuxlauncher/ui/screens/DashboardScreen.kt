@@ -71,7 +71,7 @@ private const val KEY_BG_URI = "bg_media_uri"
 private const val KEY_BG_TYPE = "bg_media_type" // "image" | "video" | ""
 
 private val BellBgBase = Color(0xFF09090B)
-private val BellRailSurface = Color(0xFF0E0E12) // Solid opaque agar tidak overdraw GPU di low-end
+private val BellRailSurface = Color(0xFF0E0E12)
 private val BellGlassCard = Color(0xD9121217)
 private val BellGlassAlt = Color(0xF21A1A22)
 private val BellBorder = Color(0x26FFFFFF)
@@ -109,7 +109,6 @@ private fun LocalDashboardBackground(
         val lifecycleOwner = LocalLifecycleOwner.current
         var videoViewRef by remember { mutableStateOf<VideoView?>(null) }
 
-        // Pause otomatis saat launcher di-minimize atau game sedang berjalan (hemat CPU/GPU & baterai)
         DisposableEffect(lifecycleOwner, isActive) {
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
@@ -178,11 +177,10 @@ private fun LocalDashboardBackground(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
+                Brush.radialGradient(
                     colors = listOf(
-                        Color(0x9909090B),
-                        Color(0x3309090B),
-                        Color(0xE609090B)
+                        Color(0x4D09090B),
+                        Color(0xCC09090B)
                     )
                 )
             )
@@ -266,7 +264,6 @@ fun DashboardScreen() {
     var isVersionDropdownExpanded by remember { mutableStateOf(false) }
     var isAccountDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Pengecekan file instance dipindah ke IO thread agar UI thread tidak pernah nge-lag
     val isFullyDownloaded by produceState(initialValue = false, selectedInstance, selectedInstance?.isDownloaded) {
         val inst = selectedInstance
         value = if (inst != null && inst.isDownloaded) {
@@ -290,7 +287,7 @@ fun DashboardScreen() {
                 .background(BellBgBase)
         ) {
             // =================================================================
-            // 1. VERTICAL LEFT RAIL (Solid Surface -> Zero GPU Overdraw)
+            // 1. VERTICAL LEFT RAIL
             // =================================================================
             Column(
                 modifier = Modifier
@@ -495,7 +492,7 @@ fun DashboardScreen() {
             )
 
             // =================================================================
-            // 2. MAIN WORKSPACE STAGE
+            // 2. MAIN WORKSPACE STAGE (CENTER HERO + FLOATING BOTTOM DOCK)
             // =================================================================
             Box(
                 modifier = Modifier
@@ -532,12 +529,12 @@ fun DashboardScreen() {
                                 isActive = currentTab == "home"
                             )
 
-                            // TOP BAR FLOATING CHIPS
+                            // TOP STATUS BAR (BRAND PILL + INFO)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .align(Alignment.TopCenter)
-                                    .padding(horizontal = (20.dp).resp(), vertical = (14.dp).resp()),
+                                    .padding(horizontal = (22.dp).resp(), vertical = (14.dp).resp()),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -547,7 +544,7 @@ fun DashboardScreen() {
                                         .background(BellGlassCard)
                                         .border(1.dp, BellBorder, CircleShape)
                                         .clickable { showAboutDialog = true }
-                                        .padding(horizontal = (12.dp).resp(), vertical = (6.dp).resp()),
+                                        .padding(horizontal = (13.dp).resp(), vertical = (6.dp).resp()),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy((8.dp).resp())
                                 ) {
@@ -572,343 +569,221 @@ fun DashboardScreen() {
                                     )
                                 }
 
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy((8.dp).resp()),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Box(
+                                    modifier = Modifier
+                                        .size((30.dp).resp())
+                                        .clip(CircleShape)
+                                        .background(BellGlassCard)
+                                        .border(1.dp, BellBorder, CircleShape)
+                                        .clickable { showAboutDialog = true },
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .background(BellGlassCard)
-                                            .border(1.dp, BellBorder, CircleShape)
-                                            .clickable {
-                                                mediaPickerLauncher.launch(arrayOf("image/*", "video/*"))
-                                            }
-                                            .padding(horizontal = (12.dp).resp(), vertical = (6.dp).resp())
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy((5.dp).resp())
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.PermMedia,
-                                                contentDescription = "Pilih Gambar atau Video",
-                                                tint = Color.White,
-                                                modifier = Modifier.size((13.dp).resp())
-                                            )
-                                            Text(
-                                                text = "WALLPAPER",
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = (9.sp).resp(),
-                                                letterSpacing = (0.7.sp).resp()
-                                            )
-                                        }
-                                    }
-
-                                    if (!bgUriString.isNullOrBlank()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(CircleShape)
-                                                .background(BellGlassCard)
-                                                .border(1.dp, BellBorder, CircleShape)
-                                                .clickable {
-                                                    bgPrefs.edit().clear().apply()
-                                                    bgUriString = null
-                                                    bgMediaType = ""
-                                                    Toast.makeText(context, "Latar belakang direset ke bawaan", Toast.LENGTH_SHORT).show()
-                                                }
-                                                .padding(horizontal = (10.dp).resp(), vertical = (6.dp).resp())
-                                        ) {
-                                            Text(
-                                                text = "RESET",
-                                                color = BellMuted,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = (9.sp).resp()
-                                            )
-                                        }
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size((28.dp).resp())
-                                            .clip(CircleShape)
-                                            .background(BellGlassCard)
-                                            .border(1.dp, BellBorder, CircleShape)
-                                            .clickable { showAboutDialog = true },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Info,
-                                            contentDescription = "About",
-                                            tint = Color.White,
-                                            modifier = Modifier.size((14.dp).resp())
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Outlined.Info,
+                                        contentDescription = "About",
+                                        tint = Color.White,
+                                        modifier = Modifier.size((15.dp).resp())
+                                    )
                                 }
                             }
 
-                            // KIRI BAWAH: QUICK ACTION SHORTCUTS
+                            // CENTER HERO LAUNCH STAGE (HORIZONTAL WIDESCREEN CARD)
+                            val inst = selectedInstance
                             Row(
                                 modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(start = (20.dp).resp(), bottom = (18.dp).resp()),
-                                horizontalArrangement = Arrangement.spacedBy((8.dp).resp()),
+                                    .align(Alignment.Center)
+                                    .widthIn(max = (560.dp).resp())
+                                    .fillMaxWidth(0.86f)
+                                    .clip(RoundedCornerShape((18.dp).resp()))
+                                    .background(BellGlassCard)
+                                    .border(1.dp, BellBorderActive, RoundedCornerShape((18.dp).resp()))
+                                    .padding(horizontal = (20.dp).resp(), vertical = (18.dp).resp()),
+                                horizontalArrangement = Arrangement.spacedBy((18.dp).resp()),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .height((38.dp).resp())
-                                        .clip(RoundedCornerShape((10.dp).resp()))
-                                        .background(BellGlassCard)
-                                        .border(1.dp, BellBorder, RoundedCornerShape((10.dp).resp()))
-                                        .clickable { handleRequestCreateInstance() }
-                                        .padding(horizontal = (14.dp).resp()),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "New Instance",
-                                            tint = Color.White,
-                                            modifier = Modifier.size((15.dp).resp())
-                                        )
-                                        Text(
-                                            text = "NEW INSTANCE",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (9.5.sp).resp(),
-                                            letterSpacing = (0.6.sp).resp()
-                                        )
-                                    }
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .height((38.dp).resp())
-                                        .clip(RoundedCornerShape((10.dp).resp()))
-                                        .background(BellGlassCard)
-                                        .border(1.dp, BellBorder, RoundedCornerShape((10.dp).resp()))
-                                        .clickable { currentTab = "mods" }
-                                        .padding(horizontal = (14.dp).resp()),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Extension,
-                                            contentDescription = "Browse Mods",
-                                            tint = Color.White,
-                                            modifier = Modifier.size((15.dp).resp())
-                                        )
-                                        Text(
-                                            text = "MODS & PACKS",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (9.5.sp).resp(),
-                                            letterSpacing = (0.6.sp).resp()
-                                        )
-                                    }
-                                }
-                            }
-
-                            // KANAN BAWAH: FLOATING LAUNCH DECK CARD
-                            val inst = selectedInstance
-
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(end = (20.dp).resp(), bottom = (18.dp).resp())
-                                    .width((310.dp).resp())
-                                    .clip(RoundedCornerShape((16.dp).resp()))
-                                    .background(BellGlassCard)
-                                    .border(1.dp, BellBorderActive, RoundedCornerShape((16.dp).resp()))
-                                    .padding((14.dp).resp())
-                            ) {
+                                // Kolom Kiri: Profil Aktif & Metadata
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy((10.dp).resp())
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy((8.dp).resp())
                                 ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
                                     ) {
-                                        Box(modifier = Modifier.weight(1f)) {
-                                            Row(
+                                        Box(
+                                            modifier = Modifier
+                                                .size((6.dp).resp())
+                                                .background(
+                                                    if (inst != null && isFullyDownloaded) Color.White else BellMuted,
+                                                    CircleShape
+                                                )
+                                        )
+                                        Text(
+                                            text = when {
+                                                inst == null -> "NO PROFILE SELECTED"
+                                                isFullyDownloaded -> "READY TO LAUNCH"
+                                                else -> "INSTALLATION REQUIRED"
+                                            },
+                                            color = BellMuted,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = (8.5.sp).resp(),
+                                            letterSpacing = (0.9.sp).resp()
+                                        )
+                                    }
+
+                                    // Dropdown Pemilih Instance
+                                    Box {
+                                        Row(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape((8.dp).resp()))
+                                                .clickable { isVersionDropdownExpanded = true }
+                                                .padding(vertical = (2.dp).resp()),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy((8.dp).resp())
+                                        ) {
+                                            Text(
+                                                text = inst?.name ?: tr("dashboard.select_instance"),
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = (20.sp).resp(),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            )
+                                            Box(
                                                 modifier = Modifier
-                                                    .clip(RoundedCornerShape((8.dp).resp()))
-                                                    .clickable { isVersionDropdownExpanded = true }
-                                                    .padding(vertical = (2.dp).resp()),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
+                                                    .size((24.dp).resp())
+                                                    .clip(CircleShape)
+                                                    .background(Color(0x1AFFFFFF))
+                                                    .border(1.dp, BellBorder, CircleShape),
+                                                contentAlignment = Alignment.Center
                                             ) {
-                                                Column(modifier = Modifier.weight(1f, fill = false)) {
-                                                    Text(
-                                                        text = "SELECTED PROFILE",
-                                                        color = BellMuted,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = (8.sp).resp(),
-                                                        letterSpacing = (0.8.sp).resp()
-                                                    )
-                                                    Text(
-                                                        text = inst?.name ?: tr("dashboard.select_instance"),
-                                                        color = Color.White,
-                                                        fontWeight = FontWeight.Black,
-                                                        fontSize = (16.sp).resp(),
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                }
                                                 Icon(
                                                     imageVector = Icons.Outlined.UnfoldMore,
                                                     contentDescription = tr("dashboard.select_version"),
                                                     tint = Color.White,
-                                                    modifier = Modifier.size((18.dp).resp())
+                                                    modifier = Modifier.size((15.dp).resp())
                                                 )
-                                            }
-
-                                            if (isVersionDropdownExpanded) {
-                                                DropdownMenu(
-                                                    expanded = true,
-                                                    onDismissRequest = { isVersionDropdownExpanded = false },
-                                                    shape = RoundedCornerShape((12.dp).resp()),
-                                                    containerColor = BellGlassAlt,
-                                                    border = BorderStroke(1.dp, BellBorder),
-                                                    modifier = Modifier.widthIn(min = (250.dp).resp(), max = (320.dp).resp())
-                                                ) {
-                                                    if (instances.isEmpty()) {
-                                                        DropdownMenuItem(
-                                                            text = {
-                                                                Text(
-                                                                    text = tr("dashboard.no_instances"),
-                                                                    color = BellMuted,
-                                                                    fontSize = (11.sp).resp()
-                                                                )
-                                                            },
-                                                            onClick = { }
-                                                        )
-                                                    } else {
-                                                        instances.forEach { itemInst ->
-                                                            val isSelected = itemInst.id == selectedInstance?.id
-                                                            DropdownMenuItem(
-                                                                text = {
-                                                                    Row(
-                                                                        modifier = Modifier.fillMaxWidth(),
-                                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                                        verticalAlignment = Alignment.CenterVertically
-                                                                    ) {
-                                                                        Column(modifier = Modifier.weight(1f)) {
-                                                                            Text(
-                                                                                text = itemInst.name,
-                                                                                color = if (isSelected) Color.White else BellAccent,
-                                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                                                fontSize = (12.sp).resp(),
-                                                                                maxLines = 1
-                                                                            )
-                                                                            Text(
-                                                                                text = "${itemInst.loader.uppercase()} • ${itemInst.mcVersion}",
-                                                                                color = BellMuted,
-                                                                                fontSize = (9.5.sp).resp()
-                                                                            )
-                                                                        }
-                                                                        Row(
-                                                                            verticalAlignment = Alignment.CenterVertically,
-                                                                            horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
-                                                                        ) {
-                                                                            if (isSelected) {
-                                                                                Icon(
-                                                                                    imageVector = Icons.Default.Check,
-                                                                                    contentDescription = tr("common.selected"),
-                                                                                    tint = BellSuccess,
-                                                                                    modifier = Modifier.size((15.dp).resp())
-                                                                                )
-                                                                            }
-                                                                            Box(
-                                                                                modifier = Modifier
-                                                                                    .size((26.dp).resp())
-                                                                                    .clip(RoundedCornerShape((6.dp).resp()))
-                                                                                    .background(BellRailSurface)
-                                                                                    .clickable {
-                                                                                        isVersionDropdownExpanded = false
-                                                                                        instanceToEdit = itemInst
-                                                                                    },
-                                                                                contentAlignment = Alignment.Center
-                                                                            ) {
-                                                                                Icon(
-                                                                                    imageVector = Icons.Outlined.Settings,
-                                                                                    contentDescription = tr("dashboard.instance_settings"),
-                                                                                    tint = Color.White,
-                                                                                    modifier = Modifier.size((14.dp).resp())
-                                                                                )
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                },
-                                                                onClick = {
-                                                                    InstanceManager.selectInstance(itemInst)
-                                                                    isVersionDropdownExpanded = false
-                                                                }
-                                                            )
-                                                        }
-                                                    }
-
-                                                    HorizontalDivider(color = BellBorder, thickness = 1.dp)
-
-                                                    DropdownMenuItem(
-                                                        text = {
-                                                            Row(
-                                                                verticalAlignment = Alignment.CenterVertically,
-                                                                horizontalArrangement = Arrangement.spacedBy((8.dp).resp())
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Add,
-                                                                    contentDescription = tr("common.add"),
-                                                                    tint = Color.White,
-                                                                    modifier = Modifier.size((17.dp).resp())
-                                                                )
-                                                                Text(
-                                                                    text = tr("dashboard.add_new_instance"),
-                                                                    color = Color.White,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = (12.sp).resp()
-                                                                )
-                                                            }
-                                                        },
-                                                        onClick = {
-                                                            isVersionDropdownExpanded = false
-                                                            handleRequestCreateInstance()
-                                                        }
-                                                    )
-                                                }
                                             }
                                         }
 
-                                        if (inst != null) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size((34.dp).resp())
-                                                    .clip(RoundedCornerShape((9.dp).resp()))
-                                                    .background(Color(0x1AFFFFFF))
-                                                    .border(1.dp, BellBorder, RoundedCornerShape((9.dp).resp()))
-                                                    .clickable { instanceToEdit = inst },
-                                                contentAlignment = Alignment.Center
+                                        if (isVersionDropdownExpanded) {
+                                            DropdownMenu(
+                                                expanded = true,
+                                                onDismissRequest = { isVersionDropdownExpanded = false },
+                                                shape = RoundedCornerShape((12.dp).resp()),
+                                                containerColor = BellGlassAlt,
+                                                border = BorderStroke(1.dp, BellBorder),
+                                                modifier = Modifier.widthIn(min = (260.dp).resp(), max = (330.dp).resp())
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Tune,
-                                                    contentDescription = "Configure Instance",
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size((16.dp).resp())
+                                                if (instances.isEmpty()) {
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text(
+                                                                text = tr("dashboard.no_instances"),
+                                                                color = BellMuted,
+                                                                fontSize = (11.sp).resp()
+                                                            )
+                                                        },
+                                                        onClick = { }
+                                                    )
+                                                } else {
+                                                    instances.forEach { itemInst ->
+                                                        val isSelected = itemInst.id == selectedInstance?.id
+                                                        DropdownMenuItem(
+                                                            text = {
+                                                                Row(
+                                                                    modifier = Modifier.fillMaxWidth(),
+                                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                                    verticalAlignment = Alignment.CenterVertically
+                                                                ) {
+                                                                    Column(modifier = Modifier.weight(1f)) {
+                                                                        Text(
+                                                                            text = itemInst.name,
+                                                                            color = if (isSelected) Color.White else BellAccent,
+                                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                                            fontSize = (12.sp).resp(),
+                                                                            maxLines = 1
+                                                                        )
+                                                                        Text(
+                                                                            text = "${itemInst.loader.uppercase()} • ${itemInst.mcVersion}",
+                                                                            color = BellMuted,
+                                                                            fontSize = (9.5.sp).resp()
+                                                                        )
+                                                                    }
+                                                                    Row(
+                                                                        verticalAlignment = Alignment.CenterVertically,
+                                                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
+                                                                    ) {
+                                                                        if (isSelected) {
+                                                                            Icon(
+                                                                                imageVector = Icons.Default.Check,
+                                                                                contentDescription = tr("common.selected"),
+                                                                                tint = BellSuccess,
+                                                                                modifier = Modifier.size((15.dp).resp())
+                                                                            )
+                                                                        }
+                                                                        Box(
+                                                                            modifier = Modifier
+                                                                                .size((26.dp).resp())
+                                                                                .clip(RoundedCornerShape((6.dp).resp()))
+                                                                                .background(BellRailSurface)
+                                                                                .clickable {
+                                                                                    isVersionDropdownExpanded = false
+                                                                                    instanceToEdit = itemInst
+                                                                                },
+                                                                            contentAlignment = Alignment.Center
+                                                                        ) {
+                                                                            Icon(
+                                                                                imageVector = Icons.Outlined.Settings,
+                                                                                contentDescription = tr("dashboard.instance_settings"),
+                                                                                tint = Color.White,
+                                                                                modifier = Modifier.size((14.dp).resp())
+                                                                            )
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            onClick = {
+                                                                InstanceManager.selectInstance(itemInst)
+                                                                isVersionDropdownExpanded = false
+                                                            }
+                                                        )
+                                                    }
+                                                }
+
+                                                HorizontalDivider(color = BellBorder, thickness = 1.dp)
+
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy((8.dp).resp())
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Add,
+                                                                contentDescription = tr("common.add"),
+                                                                tint = Color.White,
+                                                                modifier = Modifier.size((17.dp).resp())
+                                                            )
+                                                            Text(
+                                                                text = tr("dashboard.add_new_instance"),
+                                                                color = Color.White,
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = (12.sp).resp()
+                                                            )
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        isVersionDropdownExpanded = false
+                                                        handleRequestCreateInstance()
+                                                    }
                                                 )
                                             }
                                         }
                                     }
 
-                                    // Chips Spesifikasi
+                                    // Chips Spesifikasi Instance
                                     if (inst != null) {
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy((6.dp).resp()),
@@ -916,29 +791,29 @@ fun DashboardScreen() {
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .background(Color(0x26FFFFFF), RoundedCornerShape((5.dp).resp()))
-                                                    .padding(horizontal = (7.dp).resp(), vertical = (3.dp).resp())
+                                                    .background(Color(0x26FFFFFF), RoundedCornerShape((6.dp).resp()))
+                                                    .padding(horizontal = (8.dp).resp(), vertical = (3.5.dp).resp())
                                             ) {
                                                 Text(
                                                     text = inst.loader.uppercase(),
                                                     color = Color.White,
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = (8.5.sp).resp(),
+                                                    fontSize = (9.sp).resp(),
                                                     letterSpacing = (0.5.sp).resp()
                                                 )
                                             }
 
                                             Box(
                                                 modifier = Modifier
-                                                    .background(Color(0x14FFFFFF), RoundedCornerShape((5.dp).resp()))
-                                                    .border(1.dp, BellBorder, RoundedCornerShape((5.dp).resp()))
-                                                    .padding(horizontal = (7.dp).resp(), vertical = (3.dp).resp())
+                                                    .background(Color(0x14FFFFFF), RoundedCornerShape((6.dp).resp()))
+                                                    .border(1.dp, BellBorder, RoundedCornerShape((6.dp).resp()))
+                                                    .padding(horizontal = (8.dp).resp(), vertical = (3.5.dp).resp())
                                             ) {
                                                 Text(
                                                     text = inst.mcVersion,
                                                     color = BellAccent,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    fontSize = (8.5.sp).resp()
+                                                    fontSize = (9.sp).resp()
                                                 )
                                             }
 
@@ -948,26 +823,49 @@ fun DashboardScreen() {
                                             }
                                             Box(
                                                 modifier = Modifier
-                                                    .background(Color(0x14FFFFFF), RoundedCornerShape((5.dp).resp()))
-                                                    .border(1.dp, BellBorder, RoundedCornerShape((5.dp).resp()))
-                                                    .padding(horizontal = (7.dp).resp(), vertical = (3.dp).resp())
+                                                    .background(Color(0x14FFFFFF), RoundedCornerShape((6.dp).resp()))
+                                                    .border(1.dp, BellBorder, RoundedCornerShape((6.dp).resp()))
+                                                    .padding(horizontal = (8.dp).resp(), vertical = (3.5.dp).resp())
                                             ) {
                                                 Text(
                                                     text = activeRuntime.replace("jre-", "JAVA "),
                                                     color = BellMuted,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    fontSize = (8.5.sp).resp()
+                                                    fontSize = (9.sp).resp()
                                                 )
                                             }
                                         }
                                     }
+                                }
 
-                                    // Tombol Utama PLAY / DOWNLOAD
-                                    val playBtnShape = RoundedCornerShape((11.dp).resp())
+                                // Kolom Kanan: Tombol Konfigurasi + Tombol Utama PLAY
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy((10.dp).resp())
+                                ) {
+                                    if (inst != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size((48.dp).resp())
+                                                .clip(RoundedCornerShape((13.dp).resp()))
+                                                .background(Color(0x1AFFFFFF))
+                                                .border(1.dp, BellBorder, RoundedCornerShape((13.dp).resp()))
+                                                .clickable { instanceToEdit = inst },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Tune,
+                                                contentDescription = "Configure Instance",
+                                                tint = Color.White,
+                                                modifier = Modifier.size((20.dp).resp())
+                                            )
+                                        }
+                                    }
+
+                                    val playBtnShape = RoundedCornerShape((13.dp).resp())
                                     Row(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height((44.dp).resp())
+                                            .height((48.dp).resp())
                                             .clip(playBtnShape)
                                             .background(Color.White, playBtnShape)
                                             .clickable {
@@ -1042,7 +940,8 @@ fun DashboardScreen() {
                                                         GameLauncher.launch(context, inst, account)
                                                     }
                                                 }
-                                            },
+                                            }
+                                            .padding(horizontal = (22.dp).resp()),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.Center
                                     ) {
@@ -1050,15 +949,137 @@ fun DashboardScreen() {
                                             imageVector = if (inst == null) Icons.Default.Add else if (isFullyDownloaded) Icons.Default.PlayArrow else Icons.Default.Download,
                                             contentDescription = "Action",
                                             tint = BellBgBase,
-                                            modifier = Modifier.size((19.dp).resp())
+                                            modifier = Modifier.size((21.dp).resp())
                                         )
                                         Spacer(modifier = Modifier.width((8.dp).resp()))
                                         Text(
                                             text = if (inst == null) tr("dashboard.play_new_instance") else if (isFullyDownloaded) tr("dashboard.play_button") else tr("dashboard.play_download"),
                                             color = BellBgBase,
                                             fontWeight = FontWeight.Black,
-                                            fontSize = (13.sp).resp(),
+                                            fontSize = (13.5.sp).resp(),
                                             letterSpacing = (0.9.sp).resp()
+                                        )
+                                    }
+                                }
+                            }
+
+                            // BOTTOM FLOATING UTILITY DOCK (NEW INSTANCE • MODS • WALLPAPER)
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = (16.dp).resp())
+                                    .clip(CircleShape)
+                                    .background(BellGlassCard)
+                                    .border(1.dp, BellBorder, CircleShape)
+                                    .padding(horizontal = (8.dp).resp(), vertical = (6.dp).resp()),
+                                horizontalArrangement = Arrangement.spacedBy((6.dp).resp()),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(Color(0x14FFFFFF))
+                                        .clickable { handleRequestCreateInstance() }
+                                        .padding(horizontal = (13.dp).resp(), vertical = (7.dp).resp()),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "New Instance",
+                                            tint = Color.White,
+                                            modifier = Modifier.size((14.dp).resp())
+                                        )
+                                        Text(
+                                            text = "NEW INSTANCE",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = (9.sp).resp(),
+                                            letterSpacing = (0.6.sp).resp()
+                                        )
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(Color(0x14FFFFFF))
+                                        .clickable { currentTab = "mods" }
+                                        .padding(horizontal = (13.dp).resp(), vertical = (7.dp).resp()),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Extension,
+                                            contentDescription = "Browse Mods",
+                                            tint = Color.White,
+                                            modifier = Modifier.size((14.dp).resp())
+                                        )
+                                        Text(
+                                            text = "MODS & PACKS",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = (9.sp).resp(),
+                                            letterSpacing = (0.6.sp).resp()
+                                        )
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(Color(0x14FFFFFF))
+                                        .clickable {
+                                            mediaPickerLauncher.launch(arrayOf("image/*", "video/*"))
+                                        }
+                                        .padding(horizontal = (13.dp).resp(), vertical = (7.dp).resp()),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy((6.dp).resp())
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.PermMedia,
+                                            contentDescription = "Wallpaper",
+                                            tint = Color.White,
+                                            modifier = Modifier.size((14.dp).resp())
+                                        )
+                                        Text(
+                                            text = "WALLPAPER",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = (9.sp).resp(),
+                                            letterSpacing = (0.6.sp).resp()
+                                        )
+                                    }
+                                }
+
+                                if (!bgUriString.isNullOrBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(Color(0x1FFFFFFF))
+                                            .clickable {
+                                                bgPrefs.edit().clear().apply()
+                                                bgUriString = null
+                                                bgMediaType = ""
+                                                Toast.makeText(context, "Latar belakang direset ke bawaan", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .padding(horizontal = (11.dp).resp(), vertical = (7.dp).resp()),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "RESET BG",
+                                            color = BellMuted,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = (9.sp).resp()
                                         )
                                     }
                                 }
@@ -1176,10 +1197,6 @@ fun DashboardScreen() {
     }
 }
 
-/**
- * Mengosongkan sisa memori UI launcher tepat sebelum proses JVM Minecraft dimulai
- * agar HP dengan RAM 3GB–4GB memiliki ruang maksimum dan tidak terkena LMK (Low Memory Killer).
- */
 private fun trimLauncherMemoryBeforeGame() {
     try {
         System.gc()
