@@ -110,6 +110,19 @@ import java.io.File
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 
+// Token Desain BELL Launcher (Monochrome Obsidian Glass + Crisp White)
+private val BellGlassCard = Color(0xCC131318)
+private val BellGlassElevated = Color(0xEB1A1A22)
+private val BellGlassInput = Color(0xD90A0A0E)
+private val BellBorder = Color(0x26FFFFFF)
+private val BellBorderActive = Color(0x66FFFFFF)
+private val BellPillWhite = Color(0xFFFFFFFF)
+private val BellInkDark = Color(0xFF09090B)
+private val BellTextPrimary = Color(0xFFFFFFFF)
+private val BellTextSecondary = Color(0xFFB4B6BE)
+private val BellTextMuted = Color(0xFF787B85)
+private val BellDanger = Color(0xFFF87171)
+
 class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     companion object {
@@ -189,7 +202,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     fun requestStopScreenRecording() {
         ScreenRecordManager.stopRecording(this)
-        Toast.makeText(this, "Recording stopped and saved to Movies/NUX-Launcher!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Recording stopped and saved to Movies/BELL-Launcher!", Toast.LENGTH_SHORT).show()
     }
 
     private val liveLogs = mutableStateListOf<String>()
@@ -499,10 +512,6 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         }
     }
 
-    /**
-     * Mengoptimalkan konfigurasi Iris Shader & GPU cache secara otomatis untuk perangkat mobile/potato
-     * tanpa mengubah skala SurfaceView sehingga HUD tetap tajam dan tidak terpotong.
-     */
     private fun optimizeShaderPipeline(gameDir: File, lowEnd: Boolean): Boolean {
         val shaderActive = hasActiveShaderPack(gameDir)
         if (!shaderActive) return false
@@ -546,7 +555,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         }
 
         try {
-            val shaderCacheDir = File(cacheDir, "nux_shader_cache").apply { mkdirs() }
+            val shaderCacheDir = File(cacheDir, "bell_shader_cache").apply { mkdirs() }
             Os.setenv("MESA_SHADER_CACHE_DIR", shaderCacheDir.absolutePath, true)
             Os.setenv("MESA_SHADER_CACHE_MAX_SIZE", if (lowEnd) "64M" else "128M", true)
             Os.setenv("LIBGL_NOERROR", "1", true)
@@ -1658,23 +1667,23 @@ fun GameScreen(
                         .align(Alignment.TopCenter)
                         .padding(top = 10.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xD9180808))
-                        .border(1.2.dp, Color(0xFFEF4444), RoundedCornerShape(20.dp))
+                        .background(BellGlassElevated)
+                        .border(1.2.dp, BellDanger, RoundedCornerShape(20.dp))
                         .clickable { onRequestStopRecord() }
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(9.dp).background(Color(0xFFEF4444), CircleShape))
+                        Box(modifier = Modifier.size(9.dp).background(BellDanger, CircleShape))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "REC ${recordState.formattedDuration}",
-                            color = Color.White,
+                            color = BellTextPrimary,
                             fontWeight = FontWeight.Black,
                             fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "TAP TO STOP", color = Color(0xFFFCA5A5), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                        Text(text = "TAP TO STOP", color = BellDanger, fontWeight = FontWeight.Bold, fontSize = 9.sp)
                     }
                 }
             }
@@ -1685,8 +1694,8 @@ fun GameScreen(
                         .align(Alignment.TopStart)
                         .padding(16.dp)
                         .width(if (isConsoleExpanded) 420.dp else 300.dp)
-                        .background(Color(0xF2090D14), RoundedCornerShape(12.dp))
-                        .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(12.dp))
+                        .background(BellGlassElevated, RoundedCornerShape(12.dp))
+                        .border(1.dp, BellBorderActive, RoundedCornerShape(12.dp))
                         .padding(12.dp)
                 ) {
                     Row(
@@ -1705,10 +1714,10 @@ fun GameScreen(
                                 backgroundColor = when {
                                     currentFps >= 50 -> Color(0xFF10B981)
                                     currentFps >= 25 -> Color(0xFFF59E0B)
-                                    currentFps > 0 -> Color(0xFFEF4444)
-                                    else -> Color(0xFF4B5563)
+                                    currentFps > 0 -> BellDanger
+                                    else -> BellGlassInput
                                 },
-                                textColor = Color.White
+                                textColor = BellTextPrimary
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1719,7 +1728,7 @@ fun GameScreen(
                             ) {
                                 Text(
                                     text = if (isConsoleExpanded) "▲ KECILKAN" else "▼ LOG LENGKAP",
-                                    color = Color(0xFF34D399),
+                                    color = BellTextPrimary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 9.sp
                                 )
@@ -1733,7 +1742,7 @@ fun GameScreen(
                                     }
                                     .padding(horizontal = 4.dp, vertical = 2.dp)
                             ) {
-                                Text(text = "✕", color = Color(0xFFA1A1AA), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(text = "✕", color = BellTextMuted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }
@@ -1748,7 +1757,7 @@ fun GameScreen(
                             items(liveLogs) { log ->
                                 Text(
                                     text = log,
-                                    color = Color(0xFFA7F3D0),
+                                    color = BellTextSecondary,
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 9.sp,
                                     lineHeight = 12.sp
@@ -1759,7 +1768,7 @@ fun GameScreen(
                         liveLogs.takeLast(4).forEach { log ->
                             Text(
                                 text = log,
-                                color = Color(0xFFA7F3D0),
+                                color = BellTextSecondary,
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 9.sp,
                                 maxLines = 1,
@@ -1797,13 +1806,11 @@ fun GameScreen(
                                         .wrapContentWidth()
                                         .defaultMinSize(minWidth = btn.widthDp.dp, minHeight = btn.heightDp.dp)
                                         .alpha(btn.opacity)
-                                        .background(
-                                            if (isPinned) Color(0xCC091E2A) else Color(0x800A0E17),
-                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                        )
+                                        .clip(RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .background(BellGlassCard)
                                         .border(
-                                            1.5.dp,
-                                            if (isPinned) Color(0xFF38BDF8) else Color(0x3834D399),
+                                            1.dp,
+                                            if (isPinned) BellPillWhite else BellBorderActive,
                                             RoundedCornerShape(btn.cornerRadiusDp.dp)
                                         )
                                         .clickable {
@@ -1822,13 +1829,13 @@ fun GameScreen(
                                         }
                                         Box(
                                             modifier = Modifier
-                                                .size(7.dp)
+                                                .size(6.dp)
                                                 .background(
                                                     when {
-                                                        currentFps >= 50 -> Color(0xFF10B981)
+                                                        currentFps >= 50 -> BellPillWhite
                                                         currentFps >= 25 -> Color(0xFFF59E0B)
-                                                        currentFps > 0 -> Color(0xFFEF4444)
-                                                        else -> Color(0xFF6B7280)
+                                                        currentFps > 0 -> BellDanger
+                                                        else -> BellTextMuted
                                                     },
                                                     CircleShape
                                                 )
@@ -1836,9 +1843,9 @@ fun GameScreen(
                                         Spacer(modifier = Modifier.width(5.dp))
                                         Text(
                                             text = if (currentFps > 0) "$currentFps FPS" else "FPS: --",
-                                            color = if (isPinned) Color(0xFFBAE6FD) else Color.White,
+                                            color = BellTextPrimary,
                                             fontWeight = FontWeight.Black,
-                                            fontSize = 11.sp,
+                                            fontSize = 10.sp,
                                             maxLines = 1
                                         )
                                     }
@@ -1852,13 +1859,11 @@ fun GameScreen(
                                     modifier = buttonModifier
                                         .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
                                         .alpha(btn.opacity)
-                                        .background(
-                                            if (active) Color(0xCC10B981) else Color(0x730A0E17),
-                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                        )
+                                        .clip(RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .background(if (active) BellPillWhite else BellGlassCard)
                                         .border(
-                                            1.5.dp,
-                                            if (active) Color(0xFF34D399) else Color(0x3834D399),
+                                            1.dp,
+                                            if (active) BellPillWhite else BellBorderActive,
                                             RoundedCornerShape(btn.cornerRadiusDp.dp)
                                         )
                                         .clickable { isKeyboardRequested = !isKeyboardRequested },
@@ -1866,7 +1871,7 @@ fun GameScreen(
                                 ) {
                                     Text(
                                         text = "KEYBOARD",
-                                        color = if (active) Color(0xFF022C22) else Color.White,
+                                        color = if (active) BellInkDark else BellTextPrimary,
                                         fontWeight = FontWeight.Black,
                                         fontSize = 10.sp,
                                         maxLines = 1
@@ -1875,22 +1880,31 @@ fun GameScreen(
                             }
                         }
                         "HIDE_GUI" -> {
+                            // Saat isControlVisible == false, tombol sepenuhnya transparan secara visual
+                            // namun area sentuhnya tetap aktif di posisinya untuk memunculkan GUI kembali.
                             Box(
                                 modifier = buttonModifier
                                     .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
-                                    .alpha(btn.opacity)
-                                    .background(Color(0x730A0E17), RoundedCornerShape(btn.cornerRadiusDp.dp))
-                                    .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                    .alpha(if (isControlVisible) btn.opacity else 0f)
+                                    .clip(RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                    .background(if (isControlVisible) BellGlassCard else Color.Transparent)
+                                    .border(
+                                        1.dp,
+                                        if (isControlVisible) BellBorderActive else Color.Transparent,
+                                        RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                    )
                                     .clickable { isControlVisible = !isControlVisible },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = if (isControlVisible) "HIDE GUI" else "SHOW GUI",
-                                    color = Color(0xFF34D399),
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
-                                    maxLines = 1
-                                )
+                                if (isControlVisible) {
+                                    Text(
+                                        text = "HIDE GUI",
+                                        color = BellTextSecondary,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 10.sp,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                         "CLOSE" -> {
@@ -1899,12 +1913,13 @@ fun GameScreen(
                                     modifier = buttonModifier
                                         .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
                                         .alpha(btn.opacity)
-                                        .background(Color(0x80EF4444).copy(alpha = 0.35f), RoundedCornerShape(btn.cornerRadiusDp.dp))
-                                        .border(1.5.dp, Color(0x80EF4444), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .clip(RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .background(BellDanger.copy(alpha = 0.28f))
+                                        .border(1.dp, BellDanger.copy(alpha = 0.6f), RoundedCornerShape(btn.cornerRadiusDp.dp))
                                         .clickable { showExitConfirmDialog = true },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(text = "✕", color = Color(0xFFFCA5A5), fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                    Text(text = "✕", color = BellDanger, fontWeight = FontWeight.Black, fontSize = 13.sp)
                                 }
                             }
                         }
@@ -1915,13 +1930,11 @@ fun GameScreen(
                                     modifier = buttonModifier
                                         .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
                                         .alpha(btn.opacity)
-                                        .background(
-                                            if (isRec) Color(0xCCEF4444) else Color(0x730A0E17),
-                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
-                                        )
+                                        .clip(RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .background(if (isRec) BellDanger else Color(0x4DD97706))
                                         .border(
-                                            1.5.dp,
-                                            if (isRec) Color(0xFFEF4444) else Color(0xFFF59E0B),
+                                            1.dp,
+                                            if (isRec) BellDanger else Color(0xFFF59E0B),
                                             RoundedCornerShape(btn.cornerRadiusDp.dp)
                                         )
                                         .clickable {
@@ -1933,13 +1946,13 @@ fun GameScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                                         Box(
                                             modifier = Modifier
-                                                .size(7.dp)
-                                                .background(if (isRec) Color.White else Color(0xFFEF4444), CircleShape)
+                                                .size(6.dp)
+                                                .background(if (isRec) BellPillWhite else BellDanger, CircleShape)
                                         )
                                         Spacer(modifier = Modifier.width(3.dp))
                                         Text(
                                             text = if (isRec) recordState.formattedDuration else "REC",
-                                            color = Color.White,
+                                            color = BellTextPrimary,
                                             fontWeight = FontWeight.Black,
                                             fontSize = 10.sp,
                                             maxLines = 1
@@ -2145,13 +2158,11 @@ fun CustomVirtualButton(
             modifier = modifier
                 .size(width = button.widthDp.dp, height = button.heightDp.dp)
                 .alpha(button.opacity)
-                .background(
-                    if (isPressed) Color(0xCC10B981) else Color(0x730A0E17),
-                    RoundedCornerShape(button.cornerRadiusDp.dp)
-                )
+                .clip(RoundedCornerShape(button.cornerRadiusDp.dp))
+                .background(if (isPressed) BellPillWhite else BellGlassCard)
                 .border(
-                    1.5.dp,
-                    if (isPressed) Color(0xFF34D399) else Color(0x3834D399),
+                    1.dp,
+                    if (isPressed) BellPillWhite else BellBorderActive,
                     RoundedCornerShape(button.cornerRadiusDp.dp)
                 )
                 .pointerInput(button.id) {
@@ -2202,9 +2213,9 @@ fun CustomVirtualButton(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxHeight().padding(vertical = 4.dp)
             ) {
-                Text(text = "▲", color = if (isPressed) Color(0xFF022C22) else Color(0xFF34D399), fontSize = 9.sp, fontWeight = FontWeight.Black)
-                Text(text = button.name, color = if (isPressed) Color(0xFF022C22) else Color.White, fontWeight = FontWeight.Black, fontSize = 9.sp, maxLines = 1)
-                Text(text = "▼", color = if (isPressed) Color(0xFF022C22) else Color(0xFF34D399), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                Text(text = "▲", color = if (isPressed) BellInkDark else BellTextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                Text(text = button.name, color = if (isPressed) BellInkDark else BellTextPrimary, fontWeight = FontWeight.Black, fontSize = 9.sp, maxLines = 1)
+                Text(text = "▼", color = if (isPressed) BellInkDark else BellTextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Black)
             }
         }
         return
@@ -2222,13 +2233,11 @@ fun CustomVirtualButton(
         modifier = modifier
             .size(width = button.widthDp.dp, height = button.heightDp.dp)
             .alpha(button.opacity)
-            .background(
-                if (isPressed) Color(0xCC10B981) else Color(0x730A0E17),
-                RoundedCornerShape(button.cornerRadiusDp.dp)
-            )
+            .clip(RoundedCornerShape(button.cornerRadiusDp.dp))
+            .background(if (isPressed) BellPillWhite else BellGlassCard)
             .border(
-                1.5.dp,
-                if (isPressed) Color(0xFF34D399) else Color(0x3834D399),
+                1.dp,
+                if (isPressed) BellPillWhite else BellBorderActive,
                 RoundedCornerShape(button.cornerRadiusDp.dp)
             )
             .pointerInput(button.id, button.isToggle, button.isMacro, button.macroType, button.macroCommand, button.macroComboKey, button.macroComboKeys, button.macroTurboIntervalMs) {
@@ -2336,7 +2345,7 @@ fun CustomVirtualButton(
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text(
                 text = button.name,
-                color = if (isPressed) Color(0xFF022C22) else Color.White,
+                color = if (isPressed) BellInkDark else BellTextPrimary,
                 fontWeight = FontWeight.Black,
                 fontSize = if (button.name.length > 5) 10.sp else 12.sp,
                 maxLines = 1
@@ -2349,14 +2358,14 @@ fun CustomVirtualButton(
                         "TURBO" -> "⚡TRB"
                         else -> "⚡MAC"
                     },
-                    color = if (isPressed) Color(0xFF022C22) else Color(0xFFFFD166),
+                    color = if (isPressed) BellInkDark else BellTextSecondary,
                     fontWeight = FontWeight.Black,
                     fontSize = 7.sp
                 )
             }
             if (button.isToggle && isPressed) {
                 Spacer(modifier = Modifier.height(2.dp))
-                Box(modifier = Modifier.size(4.dp).background(Color(0xFF022C22), CircleShape))
+                Box(modifier = Modifier.size(4.dp).background(BellInkDark, CircleShape))
             }
         }
     }
@@ -2457,38 +2466,38 @@ fun CustomVirtualJoystick(
             val r = size.minDimension / 2f
             val c = Offset(size.width / 2f, size.height / 2f)
 
-            drawCircle(color = if (isTouching) Color(0xCC0E1813) else Color(0x990A0E17), radius = r, center = c)
+            drawCircle(color = if (isTouching) BellGlassElevated else BellGlassCard, radius = r, center = c)
             drawCircle(
-                color = if (isTouching) Color(0xFF34D399) else Color(0x4034D399),
-                radius = r - 1.5.dp.toPx(),
+                color = if (isTouching) BellPillWhite else BellBorderActive,
+                radius = r - 2.dp.toPx(),
                 center = c,
-                style = Stroke(width = if (isTouching) 2.dp.toPx() else 1.5.dp.toPx())
+                style = Stroke(width = 2.dp.toPx())
             )
-            drawLine(color = if (isTouching) Color(0x5534D399) else Color(0x2534D399), start = Offset(c.x, c.y - r * 0.7f), end = Offset(c.x, c.y + r * 0.7f), strokeWidth = 1.dp.toPx())
-            drawLine(color = if (isTouching) Color(0x5534D399) else Color(0x2534D399), start = Offset(c.x - r * 0.7f, c.y), end = Offset(c.x + r * 0.7f, c.y), strokeWidth = 1.dp.toPx())
+            drawLine(color = BellBorder, start = Offset(c.x, c.y - r * 0.7f), end = Offset(c.x, c.y + r * 0.7f), strokeWidth = 1.dp.toPx())
+            drawLine(color = BellBorder, start = Offset(c.x - r * 0.7f, c.y), end = Offset(c.x + r * 0.7f, c.y), strokeWidth = 1.dp.toPx())
 
-            if (isWDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x, c.y - r * 0.8f))
-            if (isSDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x, c.y + r * 0.8f))
-            if (isADown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x - r * 0.8f, c.y))
-            if (isDDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x + r * 0.8f, c.y))
+            if (isWDown) drawCircle(BellPillWhite, radius = 3.dp.toPx(), center = Offset(c.x, c.y - r * 0.8f))
+            if (isSDown) drawCircle(BellPillWhite, radius = 3.dp.toPx(), center = Offset(c.x, c.y + r * 0.8f))
+            if (isADown) drawCircle(BellPillWhite, radius = 3.dp.toPx(), center = Offset(c.x - r * 0.8f, c.y))
+            if (isDDown) drawCircle(BellPillWhite, radius = 3.dp.toPx(), center = Offset(c.x + r * 0.8f, c.y))
 
             val currentKnobCenter = c + knobOffset
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = if (isTouching) listOf(Color(0xFF2E7D5B), Color(0xFF143325)) else listOf(Color(0xFF1B2921), Color(0xFF0F1A14)),
+                    colors = if (isTouching) listOf(Color(0xFF27272F), BellInkDark) else listOf(BellGlassElevated, BellGlassInput),
                     center = currentKnobCenter,
                     radius = knobRadiusPx
                 ),
                 radius = knobRadiusPx,
                 center = currentKnobCenter
             )
-            drawCircle(color = if (isTouching) Color(0xFF69F0AE) else Color(0xFF34D399), radius = knobRadiusPx, center = currentKnobCenter, style = Stroke(width = 2.dp.toPx()))
-            drawCircle(color = if (isTouching) Color(0xFF69F0AE) else Color(0xFF10B981), radius = 4.dp.toPx(), center = currentKnobCenter)
+            drawCircle(color = BellPillWhite, radius = knobRadiusPx, center = currentKnobCenter, style = Stroke(width = 1.5.dp.toPx()))
+            drawCircle(color = BellPillWhite, radius = 3.5.dp.toPx(), center = currentKnobCenter)
         }
 
-        Text(text = "▲ W", color = if (isWDown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp))
-        Text(text = "S ▼", color = if (isSDown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp))
-        Text(text = "◀ A", color = if (isADown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterStart).padding(start = 4.dp))
-        Text(text = "D ▶", color = if (isDDown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp))
+        Text(text = "W", color = if (isWDown) BellTextPrimary else BellTextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp))
+        Text(text = "S", color = if (isSDown) BellTextPrimary else BellTextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp))
+        Text(text = "A", color = if (isADown) BellTextPrimary else BellTextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterStart).padding(start = 5.dp))
+        Text(text = "D", color = if (isDDown) BellTextPrimary else BellTextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 5.dp))
     }
 }
