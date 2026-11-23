@@ -416,17 +416,15 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private fun getNativeLandscapeDimensions(): Pair<Int, Int> {
+        val dm = resources.displayMetrics
         val (rawW, rawH) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val bounds = windowManager.currentWindowMetrics.bounds
             Pair(bounds.width(), bounds.height())
         } else {
-            val dm = android.util.DisplayMetrics()
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay.getRealMetrics(dm)
             Pair(dm.widthPixels, dm.heightPixels)
         }
-        val screenW = (maxOf(rawW, rawH) / 2) * 2
-        val screenH = (minOf(rawW, rawH) / 2) * 2
+        val screenW = maxOf(rawW, rawH)
+        val screenH = minOf(rawW, rawH)
         return Pair(screenW.coerceAtLeast(640), screenH.coerceAtLeast(360))
     }
 
@@ -434,12 +432,7 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
         val settings = SettingsManager.settings.value
         val (screenW, screenH) = getNativeLandscapeDimensions()
 
-        // Saat menggunakan Vulkan/Zink, gunakan dimensi native penuh agar Surface tidak mengecil di pojok
-        if (isVulkanOrZinkRenderer()) {
-            return Pair(screenW, screenH)
-        }
-
-        val effectiveRatio = if (settings.resolutionRatio == 100 && settings.autoOptimizeMinecraft && isLowEndDevice()) {
+        val effectiveRatio = if (settings.resolutionRatio == 100 && settings.autoOptimizeMinecraft && isLowEndDevice() && !isVulkanOrZinkRenderer()) {
             75
         } else {
             settings.resolutionRatio
@@ -461,13 +454,13 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
             CallbackBridge.windowWidth = targetW
             CallbackBridge.windowHeight = targetH
             CallbackBridge.sendUpdateWindowSize(targetW, targetH)
-            LoggerBridge.append("▷ [In-Game Resolution] Updated to $newRatio% (${targetW}x${targetH})")
+            LoggerBridge.append("▷ [In-Game Resolution] Dynamically updated to $newRatio% (${targetW}x${targetH})")
         } else {
             val (nativeW, nativeH) = getNativeLandscapeDimensions()
             CallbackBridge.windowWidth = nativeW
             CallbackBridge.windowHeight = nativeH
             CallbackBridge.sendUpdateWindowSize(nativeW, nativeH)
-            LoggerBridge.append("▷ [In-Game Resolution] Vulkan active: keeping fullscreen native viewport (${nativeW}x${nativeH})")
+            LoggerBridge.append("▷ [In-Game Resolution] Vulkan fullscreen kept at ${nativeW}x${nativeH}")
         }
     }
 
@@ -574,7 +567,8 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
             runOnUiThread {
                 isGameRenderingState.value = true
                 appendLiveLog("🎨 [Render Engine] First graphical frame rendered on Surface!")
-                val (winW, winH) = getScaledDisplayDimensions()
+                val winW = CallbackBridge.windowWidth.takeIf { it > 0 } ?: getNativeLandscapeDimensions().first
+                val winH = CallbackBridge.windowHeight.takeIf { it > 0 } ?: getNativeLandscapeDimensions().second
                 CallbackBridge.sendCursorPos(winW / 2f, winH / 2f)
             }
         }
@@ -593,12 +587,9 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                     isGameRenderingState = isGameRenderingState,
                     onSurfaceReady = { surfaceHolder ->
                         surfaceHolderRef = surfaceHolder
-                        if (!isVulkanOrZinkRenderer()) {
+                        if (!isVulkanOrZinkRenderer() && SettingsManager.settings.value.resolutionRatio != 100) {
                             val (targetWidth, targetHeight) = getScaledDisplayDimensions()
-                            val (nativeWidth, nativeHeight) = getNativeLandscapeDimensions()
-                            if (targetWidth != nativeWidth || targetHeight != nativeHeight) {
-                                surfaceHolder.setFixedSize(targetWidth, targetHeight)
-                            }
+                            surfaceHolder.setFixedSize(targetWidth, targetHeight)
                         }
                         surfaceHolder.addCallback(this@GameActivity)
                     },
@@ -661,11 +652,11 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         val (nativeW, nativeH) = getNativeLandscapeDimensions()
-        val (targetWidth, targetHeight) = if (!isVulkanOrZinkRenderer()) {
+        val useHardwareScaler = !isVulkanOrZinkRenderer() && SettingsManager.settings.value.resolutionRatio != 100
+
+        val (targetWidth, targetHeight) = if (useHardwareScaler) {
             getScaledDisplayDimensions().also { (w, h) ->
-                if (w != nativeW || h != nativeH) {
-                    holder.setFixedSize(w, h)
-                }
+                holder.setFixedSize(w, h)
             }
         } else {
             Pair(nativeW, nativeH)
@@ -692,9 +683,8 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        if (width < height && !isGameStarted) {
-            return
-        }
+        if (width < height && !isGameStarted) return
+
         val landscapeW = maxOf(width, height).coerceAtLeast(640)
         val landscapeH = minOf(width, height).coerceAtLeast(360)
 
@@ -772,9 +762,8 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 runOnUiThread { appendLiveLog("[BELL Launcher] Menyiapkan JVM (LowEnd=$lowEnd, Vulkan=$vulkanMode)...") }
 
                 val activeSettings = SettingsManager.settings.value
-                val (fallbackW, fallbackH) = getScaledDisplayDimensions()
-                val targetWidth = CallbackBridge.windowWidth.takeIf { it > 0 } ?: fallbackW
-                val targetHeight = CallbackBridge.windowHeight.takeIf { it > 0 } ?: fallbackH
+                val initW = CallbackBridge.windowWidth.takeIf { it > 0 } ?: getNativeLandscapeDimensions().first
+                val initH = CallbackBridge.windowHeight.takeIf { it > 0 } ?: getNativeLandscapeDimensions().second
 
                 MCOptions.setup(this@GameActivity, gameDir)
                 MCOptions.apply {
@@ -801,12 +790,11 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                         }
                     }
 
-                    // Sinkronkan overrideWidth/Height dengan buffer SurfaceView agar selalu fullscreen penuh
-                    set("overrideWidth", "$targetWidth")
-                    set("overrideHeight", "$targetHeight")
+                    set("overrideWidth", "$initW")
+                    set("overrideHeight", "$initH")
                     save()
                 }
-                LoggerBridge.append("▷ [MCOptions] Minecraft options verified (res=${targetWidth}x${targetHeight}, vulkan=$vulkanMode)")
+                LoggerBridge.append("▷ [MCOptions] Minecraft options verified (res=${initW}x${initH}, vulkan=$vulkanMode)")
 
                 if (!com.israadev.nuxlauncher.core.runtime.JavaRuntimeManager.isRuntimeInstalled(this@GameActivity, runtimeName)) {
                     runOnUiThread { appendLiveLog("[BELL Runtime] Mempersiapkan OpenJDK ($runtimeName)...") }
@@ -1010,8 +998,8 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 Os.setenv("TMPDIR", cacheDir.absolutePath, true)
                 Os.setenv("PATH", "${runtimeHome.absolutePath}/bin:" + (Os.getenv("PATH") ?: "/system/bin"), true)
                 Os.setenv("LD_LIBRARY_PATH", gameLdLibraryPath, true)
-                Os.setenv("AWTSTUB_WIDTH", "$targetWidth", true)
-                Os.setenv("AWTSTUB_HEIGHT", "$targetHeight", true)
+                Os.setenv("AWTSTUB_WIDTH", "$initW", true)
+                Os.setenv("AWTSTUB_HEIGHT", "$initH", true)
                 Os.setenv("ALSOFT_DRIVERS", "opensl", true)
                 if (lowEnd) {
                     Os.setenv("ALSOFT_PERIODS", "3", true)
@@ -1173,8 +1161,8 @@ class GameActivity : ComponentActivity(), SurfaceHolder.Callback {
                 jvmArgs.add("-Dorg.lwjgl.spvc.defaultname=spirv-cross-c-shared")
                 jvmArgs.add("-Dorg.lwjgl.system.allocator=system")
                 jvmArgs.add("-Djna.boot.library.path=$nativeLibDir")
-                jvmArgs.add("-Dglfwstub.windowWidth=$targetWidth")
-                jvmArgs.add("-Dglfwstub.windowHeight=$targetHeight")
+                jvmArgs.add("-Dglfwstub.windowWidth=$initW")
+                jvmArgs.add("-Dglfwstub.windowHeight=$initH")
                 jvmArgs.add("-Dglfwstub.initEgl=${!vulkanMode}")
                 jvmArgs.add("-Dos.name=Linux")
                 jvmArgs.add("-Dos.version=Android-${Build.VERSION.RELEASE}")
@@ -1495,3 +1483,901 @@ fun GameScreen(
                     isPhysicalMouseMode = true
                     isControlVisible = false
                 },
+                onTouch = { isPhysicalMouseMode = false },
+                onTap = { pos ->
+                    val winW = CallbackBridge.windowWidth
+                    val winH = CallbackBridge.windowHeight
+                    val targetX = if (screenWidth > 0 && winW > 0) pos.x * (winW.toFloat() / screenWidth) else pos.x
+                    val targetY = if (screenHeight > 0 && winH > 0) pos.y * (winH.toFloat() / screenHeight) else pos.y
+                    CallbackBridge.putMouseEventWithCoords(LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT, targetX, targetY)
+                },
+                onLongPress = {
+                    isMousePressed = true
+                    CallbackBridge.putMouseEvent(LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT, true)
+                },
+                onLongPressEnd = {
+                    isMousePressed = false
+                    CallbackBridge.putMouseEvent(LwjglGlfwKeycode.GLFW_MOUSE_BUTTON_LEFT, false)
+                },
+                onCapturedMove = { delta ->
+                    val sens = launcherSettings.captureSensitivity / 100f
+                    CallbackBridge.sendCursorDelta(delta.x * sens, delta.y * sens)
+                }
+            )
+
+            if (showLoadingOverlay) {
+                GameLoadingOverlay(
+                    visible = true,
+                    instanceName = instanceName,
+                    mcVersion = mcVersion,
+                    latestLog = latestLogState.value,
+                    onClose = { isManualLoadingDismissed = true },
+                    onViewLog = {
+                        fpsMode = FpsMode.SHOW_LOG
+                        isConsoleVisible = true
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            if (isKeyboardRequested) {
+                HidableInputLayout(onClose = { isKeyboardRequested = false })
+            }
+
+            val shouldShowPointer = if (mouseControlMode == MouseControlMode.CLICK && launcherSettings.hideMouseInClickMode) {
+                false
+            } else if (PhysicalMouseChecker.physicalMouseConnected && isPhysicalMouseMode && launcherSettings.physicalMouseMode) {
+                false
+            } else {
+                gameCursorMode == CURSOR_ENABLED && cursorX > 0f && cursorY > 0f
+            }
+
+            if (shouldShowPointer) {
+                VirtualCursorPointer(
+                    x = cursorX,
+                    y = cursorY,
+                    isPressed = isMousePressed,
+                    cursorSizeDp = launcherSettings.mouseSizeDp
+                )
+            }
+
+            if (recordState.isRecording) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 10.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xD9180808))
+                        .border(1.2.dp, Color(0xFFEF4444), RoundedCornerShape(20.dp))
+                        .clickable { onRequestStopRecord() }
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(9.dp).background(Color(0xFFEF4444), CircleShape))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "REC ${recordState.formattedDuration}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "TAP TO STOP", color = Color(0xFFFCA5A5), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                    }
+                }
+            }
+
+            if (isConsoleVisible) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .width(if (isConsoleExpanded) 420.dp else 300.dp)
+                        .background(Color(0xF2090D14), RoundedCornerShape(12.dp))
+                        .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(
+                            modifier = Modifier.clickable {
+                                inGameSettingsInitialTab = 0
+                                showInGameSettingsDialog = true
+                            }
+                        ) {
+                            NuxBadge(
+                                text = if (currentFps > 0) "$currentFps FPS" else "FPS: --",
+                                backgroundColor = when {
+                                    currentFps >= 50 -> Color(0xFF10B981)
+                                    currentFps >= 25 -> Color(0xFFF59E0B)
+                                    currentFps > 0 -> Color(0xFFEF4444)
+                                    else -> Color(0xFF4B5563)
+                                },
+                                textColor = Color.White
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .clickable { isConsoleExpanded = !isConsoleExpanded }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = if (isConsoleExpanded) "▲ KECILKAN" else "▼ LOG LENGKAP",
+                                    color = Color(0xFF34D399),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clickable {
+                                        isConsoleVisible = false
+                                        fpsMode = FpsMode.NORMAL
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                Text(text = "✕", color = Color(0xFFA1A1AA), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (isConsoleExpanded) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxWidth().height(180.dp)
+                        ) {
+                            items(liveLogs) { log ->
+                                Text(
+                                    text = log,
+                                    color = Color(0xFFA7F3D0),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 9.sp,
+                                    lineHeight = 12.sp
+                                )
+                            }
+                        }
+                    } else {
+                        liveLogs.takeLast(4).forEach { log ->
+                            Text(
+                                text = log,
+                                color = Color(0xFFA7F3D0),
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 9.sp,
+                                maxLines = 1,
+                                lineHeight = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            val density = LocalDensity.current
+            customButtons.forEach { btn ->
+                val btnWidthPx = with(density) { btn.widthDp.dp.toPx() }
+                val btnHeightPx = with(density) { btn.heightDp.dp.toPx() }
+                val centerX = screenWidth * (btn.xPercent / 100f)
+                val centerY = screenHeight * (btn.yPercent / 100f)
+                val leftPx = (centerX - btnWidthPx / 2f).coerceIn(0f, (screenWidth - btnWidthPx).coerceAtLeast(0f))
+                val topPx = (centerY - btnHeightPx / 2f).coerceIn(0f, (screenHeight - btnHeightPx).coerceAtLeast(0f))
+                val leftDp = with(density) { leftPx.toDp() }
+                val topDp = with(density) { topPx.toDp() }
+                val buttonModifier = Modifier.offset(x = leftDp, y = topDp)
+
+                if (btn.isSystem) {
+                    when (btn.systemAction) {
+                        "FPS" -> {
+                            val shouldShowFps = when (fpsMode) {
+                                FpsMode.NORMAL -> isControlVisible && !isConsoleVisible
+                                FpsMode.PINNED -> !isConsoleVisible
+                                FpsMode.SHOW_LOG -> false
+                            }
+                            if (shouldShowFps) {
+                                val isPinned = fpsMode == FpsMode.PINNED
+                                Box(
+                                    modifier = buttonModifier
+                                        .wrapContentWidth()
+                                        .defaultMinSize(minWidth = btn.widthDp.dp, minHeight = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(
+                                            if (isPinned) Color(0xCC091E2A) else Color(0x800A0E17),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            if (isPinned) Color(0xFF38BDF8) else Color(0x3834D399),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .clickable {
+                                            inGameSettingsInitialTab = 0
+                                            showInGameSettingsDialog = true
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        if (isPinned) {
+                                            Text(text = "📌", fontSize = 9.sp, modifier = Modifier.padding(end = 4.dp))
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(
+                                                    when {
+                                                        currentFps >= 50 -> Color(0xFF10B981)
+                                                        currentFps >= 25 -> Color(0xFFF59E0B)
+                                                        currentFps > 0 -> Color(0xFFEF4444)
+                                                        else -> Color(0xFF6B7280)
+                                                    },
+                                                    CircleShape
+                                                )
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = if (currentFps > 0) "$currentFps FPS" else "FPS: --",
+                                            color = if (isPinned) Color(0xFFBAE6FD) else Color.White,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 11.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        "KEYBOARD" -> {
+                            if (isControlVisible) {
+                                val active = isKeyboardRequested
+                                Box(
+                                    modifier = buttonModifier
+                                        .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(
+                                            if (active) Color(0xCC10B981) else Color(0x730A0E17),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            if (active) Color(0xFF34D399) else Color(0x3834D399),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .clickable { isKeyboardRequested = !isKeyboardRequested },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "KEYBOARD",
+                                        color = if (active) Color(0xFF022C22) else Color.White,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 10.sp,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                        "HIDE_GUI" -> {
+                            Box(
+                                modifier = buttonModifier
+                                    .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                    .alpha(btn.opacity)
+                                    .background(Color(0x730A0E17), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                    .border(1.5.dp, Color(0x3834D399), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                    .clickable { isControlVisible = !isControlVisible },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isControlVisible) "HIDE GUI" else "SHOW GUI",
+                                    color = Color(0xFF34D399),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        "CLOSE" -> {
+                            if (isControlVisible) {
+                                Box(
+                                    modifier = buttonModifier
+                                        .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(Color(0x80EF4444).copy(alpha = 0.35f), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .border(1.5.dp, Color(0x80EF4444), RoundedCornerShape(btn.cornerRadiusDp.dp))
+                                        .clickable { showExitConfirmDialog = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "✕", color = Color(0xFFFCA5A5), fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                }
+                            }
+                        }
+                        "RECORD" -> {
+                            if (isControlVisible) {
+                                val isRec = recordState.isRecording
+                                Box(
+                                    modifier = buttonModifier
+                                        .size(width = btn.widthDp.dp, height = btn.heightDp.dp)
+                                        .alpha(btn.opacity)
+                                        .background(
+                                            if (isRec) Color(0xCCEF4444) else Color(0x730A0E17),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            if (isRec) Color(0xFFEF4444) else Color(0xFFF59E0B),
+                                            RoundedCornerShape(btn.cornerRadiusDp.dp)
+                                        )
+                                        .clickable {
+                                            inGameSettingsInitialTab = 3
+                                            showInGameSettingsDialog = true
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(if (isRec) Color.White else Color(0xFFEF4444), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = if (isRec) recordState.formattedDuration else "REC",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 10.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (isControlVisible) {
+                        if (btn.isJoystick) {
+                            CustomVirtualJoystick(button = btn, modifier = buttonModifier)
+                        } else {
+                            CustomVirtualButton(button = btn, modifier = buttonModifier)
+                        }
+                    }
+                }
+            }
+
+            if (showExitConfirmDialog) {
+                Dialog(
+                    onDismissRequest = { showExitConfirmDialog = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        NuxCard(
+                            modifier = Modifier.width(360.dp).wrapContentHeight(),
+                            backgroundColor = NuxColors.SurfaceWhite,
+                            shadowOffset = 5.dp,
+                            cornerRadius = NuxSizes.CornerRadiusLarge,
+                            fillMaxHeight = false
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
+                                Text(text = "EXIT MINECRAFT?", color = NuxColors.DarkGray, fontWeight = FontWeight.Black, fontSize = 15.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "The Minecraft JVM process will be stopped and you will return to the launcher.",
+                                    color = NuxColors.GrayNeutral,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    NuxButton(
+                                        onClick = { showExitConfirmDialog = false },
+                                        backgroundColor = NuxColors.SurfaceWhite,
+                                        contentColor = NuxColors.DarkGray,
+                                        shadowOffset = 2.dp,
+                                        cornerRadius = 8.dp,
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("CANCEL", fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    NuxButton(
+                                        onClick = {
+                                            showExitConfirmDialog = false
+                                            onExit()
+                                        },
+                                        backgroundColor = NuxColors.Coral,
+                                        contentColor = Color.White,
+                                        shadowOffset = 2.dp,
+                                        cornerRadius = 8.dp,
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("QUIT ✕", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Color.White)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            InGameSettingsDialog(
+                visible = showInGameSettingsDialog,
+                onDismissRequest = { showInGameSettingsDialog = false },
+                initialTab = inGameSettingsInitialTab,
+                currentFps = currentFps,
+                instanceName = instanceName,
+                mcVersion = mcVersion,
+                currentResolutionRatio = launcherSettings.resolutionRatio,
+                onResolutionChange = { newRatio -> onResolutionChange(newRatio) },
+                fpsMode = fpsMode,
+                onFpsModeChange = { newMode -> fpsMode = newMode },
+                onOpenConsoleLog = {
+                    fpsMode = FpsMode.SHOW_LOG
+                    isConsoleVisible = true
+                },
+                cursorSensitivity = launcherSettings.cursorSensitivity,
+                onCursorSensitivityChange = { newSens ->
+                    SettingsManager.updateSettings(context, launcherSettings.copy(cursorSensitivity = newSens))
+                },
+                captureSensitivity = launcherSettings.captureSensitivity,
+                onCaptureSensitivityChange = { newSens ->
+                    SettingsManager.updateSettings(context, launcherSettings.copy(captureSensitivity = newSens))
+                },
+                mouseControlMode = mouseControlMode,
+                onMouseControlModeChange = { newMode ->
+                    SettingsManager.updateSettings(
+                        context,
+                        launcherSettings.copy(mouseControlMode = if (newMode == MouseControlMode.CLICK) "CLICK" else "SLIDE")
+                    )
+                },
+                isControlVisible = isControlVisible,
+                onToggleControlVisibility = { isControlVisible = !isControlVisible },
+                onRequestKeyboard = { isKeyboardRequested = true },
+                onSendKeycode = { keycode ->
+                    CallbackBridge.sendKeyPress(keycode, true)
+                    CallbackBridge.sendKeyPress(keycode, false)
+                },
+                onForceExitRequest = { showExitConfirmDialog = true },
+                onOpenCustomGui = {
+                    showInGameSettingsDialog = false
+                    isCustomGuiEditorActive = true
+                },
+                isRecording = recordState.isRecording,
+                recordingDurationSeconds = recordState.durationSeconds,
+                onRequestStartRecord = { config -> onRequestStartRecord(config) },
+                onStopRecord = { onRequestStopRecord() },
+                onOpenPremium = { showPremiumDialog = true }
+            )
+
+            if (showPremiumDialog) {
+                NuxPremiumDialog(onDismissRequest = { showPremiumDialog = false })
+            }
+        }
+    }
+}
+
+@Composable
+fun VirtualCursorPointer(
+    x: Float,
+    y: Float,
+    isPressed: Boolean = false,
+    cursorSizeDp: Int = 24,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val xDp = with(density) { x.toDp() }
+    val yDp = with(density) { y.toDp() }
+
+    Box(
+        modifier = modifier
+            .offset(x = xDp, y = yDp)
+            .size(cursorSizeDp.dp)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val scale = (cursorSizeDp / 24f) * (if (isPressed) 0.88f else 1.0f)
+            scale(scale, pivot = Offset.Zero) {
+                val path = Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(0f, 22f * density.density)
+                    lineTo(5.5f * density.density, 16.5f * density.density)
+                    lineTo(10.5f * density.density, 24.5f * density.density)
+                    lineTo(13.5f * density.density, 23f * density.density)
+                    lineTo(8.5f * density.density, 15f * density.density)
+                    lineTo(15.5f * density.density, 15f * density.density)
+                    close()
+                }
+
+                val shadowPath = Path().apply {
+                    addPath(path, Offset(2f * density.density, 2f * density.density))
+                }
+                drawPath(path = shadowPath, color = Color.Black.copy(alpha = 0.45f), style = Fill)
+                drawPath(path = path, color = Color.White, style = Fill)
+                drawPath(
+                    path = path,
+                    color = Color.Black,
+                    style = Stroke(width = 1.8f * density.density, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomVirtualButton(
+    button: CustomControlButton,
+    modifier: Modifier = Modifier
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    var turboJob by remember { mutableStateOf<Job?>(null) }
+
+    DisposableEffect(button.id) {
+        onDispose { turboJob?.cancel() }
+    }
+
+    if (button.isScroll) {
+        val density = LocalDensity.current
+        val thresholdPx = with(density) { 14.dp.toPx() }
+
+        Box(
+            modifier = modifier
+                .size(width = button.widthDp.dp, height = button.heightDp.dp)
+                .alpha(button.opacity)
+                .background(
+                    if (isPressed) Color(0xCC10B981) else Color(0x730A0E17),
+                    RoundedCornerShape(button.cornerRadiusDp.dp)
+                )
+                .border(
+                    1.5.dp,
+                    if (isPressed) Color(0xFF34D399) else Color(0x3834D399),
+                    RoundedCornerShape(button.cornerRadiusDp.dp)
+                )
+                .pointerInput(button.id) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            isPressed = true
+                            val startY = down.position.y
+                            var totalDragY = 0f
+                            var hasDragged = false
+
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                if (!change.pressed) {
+                                    if (!hasDragged) {
+                                        val h = size.height
+                                        if (startY < h / 2f) {
+                                            CallbackBridge.sendScroll(0.0, 1.0)
+                                        } else {
+                                            CallbackBridge.sendScroll(0.0, -1.0)
+                                        }
+                                    }
+                                    break
+                                }
+
+                                val dy = change.position.y - change.previousPosition.y
+                                totalDragY += dy
+                                if (kotlin.math.abs(totalDragY) > 6f) hasDragged = true
+
+                                if (totalDragY <= -thresholdPx) {
+                                    CallbackBridge.sendScroll(0.0, 1.0)
+                                    totalDragY = 0f
+                                } else if (totalDragY >= thresholdPx) {
+                                    CallbackBridge.sendScroll(0.0, -1.0)
+                                    totalDragY = 0f
+                                }
+                                change.consume()
+                            }
+                            isPressed = false
+                        }
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxHeight().padding(vertical = 4.dp)
+            ) {
+                Text(text = "▲", color = if (isPressed) Color(0xFF022C22) else Color(0xFF34D399), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                Text(text = button.name, color = if (isPressed) Color(0xFF022C22) else Color.White, fontWeight = FontWeight.Black, fontSize = 9.sp, maxLines = 1)
+                Text(text = "▼", color = if (isPressed) Color(0xFF022C22) else Color(0xFF34D399), fontSize = 9.sp, fontWeight = FontWeight.Black)
+            }
+        }
+        return
+    }
+
+    fun sendPress(down: Boolean) {
+        if (button.isMouseButton) {
+            CallbackBridge.putMouseEvent(button.mouseButton, down)
+        } else {
+            CallbackBridge.sendKeyPress(button.keyCode, down)
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .size(width = button.widthDp.dp, height = button.heightDp.dp)
+            .alpha(button.opacity)
+            .background(
+                if (isPressed) Color(0xCC10B981) else Color(0x730A0E17),
+                RoundedCornerShape(button.cornerRadiusDp.dp)
+            )
+            .border(
+                1.5.dp,
+                if (isPressed) Color(0xFF34D399) else Color(0x3834D399),
+                RoundedCornerShape(button.cornerRadiusDp.dp)
+            )
+            .pointerInput(button.id, button.isToggle, button.isMacro, button.macroType, button.macroCommand, button.macroComboKey, button.macroComboKeys, button.macroTurboIntervalMs) {
+                detectTapGestures(
+                    onPress = {
+                        if (button.isMacro) {
+                            when (button.macroType) {
+                                "COMMAND" -> {
+                                    val cmd = button.macroCommand.trim()
+                                    if (cmd.isNotEmpty()) {
+                                        isPressed = true
+                                        coroutineScope.launch {
+                                            try {
+                                                if (cmd.startsWith("/")) {
+                                                    CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_SLASH, true)
+                                                    delay(20)
+                                                    CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_SLASH, false)
+                                                    delay(50)
+                                                    for (ch in cmd.substring(1)) {
+                                                        CallbackBridge.sendChar(ch, 0)
+                                                        delay(10)
+                                                    }
+                                                } else {
+                                                    CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_T, true)
+                                                    delay(20)
+                                                    CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_T, false)
+                                                    delay(50)
+                                                    for (ch in cmd) {
+                                                        CallbackBridge.sendChar(ch, 0)
+                                                        delay(10)
+                                                    }
+                                                }
+                                                delay(40)
+                                                CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_ENTER, true)
+                                                delay(25)
+                                                CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_ENTER, false)
+                                            } finally {
+                                                delay(50)
+                                                isPressed = false
+                                            }
+                                        }
+                                        tryAwaitRelease()
+                                    }
+                                }
+                                "COMBO" -> {
+                                    val comboKeys = if (button.macroComboKeys.isNotEmpty()) button.macroComboKeys
+                                    else if (button.macroComboKey != 0) listOf(button.macroComboKey) else emptyList()
+
+                                    if (button.isToggle) {
+                                        isPressed = !isPressed
+                                        if (isPressed) {
+                                            for (k in comboKeys) { CallbackBridge.sendKeyPress(k, true); delay(12) }
+                                            sendPress(true)
+                                        } else {
+                                            sendPress(false)
+                                            for (k in comboKeys.reversed()) { CallbackBridge.sendKeyPress(k, false); delay(12) }
+                                        }
+                                    } else {
+                                        isPressed = true
+                                        for (k in comboKeys) { CallbackBridge.sendKeyPress(k, true); delay(12) }
+                                        sendPress(true)
+                                        tryAwaitRelease()
+                                        sendPress(false)
+                                        for (k in comboKeys.reversed()) { CallbackBridge.sendKeyPress(k, false); delay(12) }
+                                        isPressed = false
+                                    }
+                                }
+                                "TURBO" -> {
+                                    val interval = button.macroTurboIntervalMs.coerceAtLeast(30L)
+                                    val downTime = (interval / 2).coerceAtLeast(15L)
+                                    val upTime = (interval - downTime).coerceAtLeast(15L)
+
+                                    if (button.isToggle) {
+                                        isPressed = !isPressed
+                                        if (isPressed) {
+                                            turboJob = coroutineScope.launch {
+                                                while (isActive) { sendPress(true); delay(downTime); sendPress(false); delay(upTime) }
+                                            }
+                                        } else {
+                                            turboJob?.cancel(); turboJob = null; sendPress(false)
+                                        }
+                                    } else {
+                                        isPressed = true
+                                        val job = coroutineScope.launch {
+                                            while (isActive) { sendPress(true); delay(downTime); sendPress(false); delay(upTime) }
+                                        }
+                                        tryAwaitRelease()
+                                        job.cancel(); sendPress(false); isPressed = false
+                                    }
+                                }
+                                else -> {
+                                    if (button.isToggle) { isPressed = !isPressed; sendPress(isPressed) }
+                                    else { isPressed = true; sendPress(true); tryAwaitRelease(); isPressed = false; sendPress(false) }
+                                }
+                            }
+                        } else {
+                            if (button.isToggle) { isPressed = !isPressed; sendPress(isPressed) }
+                            else { isPressed = true; sendPress(true); tryAwaitRelease(); isPressed = false; sendPress(false) }
+                        }
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(
+                text = button.name,
+                color = if (isPressed) Color(0xFF022C22) else Color.White,
+                fontWeight = FontWeight.Black,
+                fontSize = if (button.name.length > 5) 10.sp else 12.sp,
+                maxLines = 1
+            )
+            if (button.isMacro) {
+                Text(
+                    text = when (button.macroType) {
+                        "COMMAND" -> "⚡CMD"
+                        "COMBO" -> "⚡CMB"
+                        "TURBO" -> "⚡TRB"
+                        else -> "⚡MAC"
+                    },
+                    color = if (isPressed) Color(0xFF022C22) else Color(0xFFFFD166),
+                    fontWeight = FontWeight.Black,
+                    fontSize = 7.sp
+                )
+            }
+            if (button.isToggle && isPressed) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Box(modifier = Modifier.size(4.dp).background(Color(0xFF022C22), CircleShape))
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomVirtualJoystick(
+    button: CustomControlButton,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val sizePx = with(density) { button.widthDp.dp.toPx() }
+    val radiusPx = sizePx / 2f
+    val knobRadiusPx = radiusPx * 0.38f
+    val maxDragDistance = radiusPx - knobRadiusPx
+
+    var knobOffset by remember { mutableStateOf(Offset.Zero) }
+    var isTouching by remember { mutableStateOf(false) }
+
+    var isWDown by remember { mutableStateOf(false) }
+    var isADown by remember { mutableStateOf(false) }
+    var isSDown by remember { mutableStateOf(false) }
+    var isDDown by remember { mutableStateOf(false) }
+
+    fun updateKeys(needW: Boolean, needA: Boolean, needS: Boolean, needD: Boolean) {
+        if (needW != isWDown) { isWDown = needW; CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_W, needW) }
+        if (needA != isADown) { isADown = needA; CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_A, needA) }
+        if (needS != isSDown) { isSDown = needS; CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_S, needS) }
+        if (needD != isDDown) { isDDown = needD; CallbackBridge.sendKeyPress(LwjglGlfwKeycode.GLFW_KEY_D, needD) }
+    }
+
+    fun releaseAll() {
+        updateKeys(false, false, false, false)
+        knobOffset = Offset.Zero
+        isTouching = false
+    }
+
+    DisposableEffect(button.id) {
+        onDispose { releaseAll() }
+    }
+
+    Box(
+        modifier = modifier
+            .size(button.widthDp.dp)
+            .alpha(button.opacity)
+            .pointerInput(button.id) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        isTouching = true
+                        val center = Offset(size.width / 2f, size.height / 2f)
+
+                        fun processPosition(pos: Offset) {
+                            val rawDelta = pos - center
+                            val dist = kotlin.math.hypot(rawDelta.x.toDouble(), rawDelta.y.toDouble()).toFloat()
+                            val clampedDist = dist.coerceAtMost(maxDragDistance)
+                            val angleRad = kotlin.math.atan2(rawDelta.y.toDouble(), rawDelta.x.toDouble())
+
+                            knobOffset = if (dist > 0f) {
+                                Offset(
+                                    (kotlin.math.cos(angleRad) * clampedDist).toFloat(),
+                                    (kotlin.math.sin(angleRad) * clampedDist).toFloat()
+                                )
+                            } else {
+                                Offset.Zero
+                            }
+
+                            val deadzone = maxDragDistance * 0.20f
+                            if (clampedDist < deadzone) {
+                                updateKeys(false, false, false, false)
+                            } else {
+                                val deg = Math.toDegrees(angleRad)
+                                updateKeys(
+                                    needW = deg in -157.5..-22.5,
+                                    needA = deg !in -112.5..112.5,
+                                    needS = deg in 22.5..157.5,
+                                    needD = deg in -67.5..67.5
+                                )
+                            }
+                        }
+
+                        processPosition(down.position)
+
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) break
+                            processPosition(change.position)
+                            change.consume()
+                        }
+                        releaseAll()
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val r = size.minDimension / 2f
+            val c = Offset(size.width / 2f, size.height / 2f)
+
+            drawCircle(color = if (isTouching) Color(0xCC0E1813) else Color(0x990A0E17), radius = r, center = c)
+            drawCircle(
+                color = if (isTouching) Color(0xFF34D399) else Color(0x4034D399),
+                radius = r - 1.5.dp.toPx(),
+                center = c,
+                style = Stroke(width = if (isTouching) 2.dp.toPx() else 1.5.dp.toPx())
+            )
+            drawLine(color = if (isTouching) Color(0x5534D399) else Color(0x2534D399), start = Offset(c.x, c.y - r * 0.7f), end = Offset(c.x, c.y + r * 0.7f), strokeWidth = 1.dp.toPx())
+            drawLine(color = if (isTouching) Color(0x5534D399) else Color(0x2534D399), start = Offset(c.x - r * 0.7f, c.y), end = Offset(c.x + r * 0.7f, c.y), strokeWidth = 1.dp.toPx())
+
+            if (isWDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x, c.y - r * 0.8f))
+            if (isSDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x, c.y + r * 0.8f))
+            if (isADown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x - r * 0.8f, c.y))
+            if (isDDown) drawCircle(Color(0xFF69F0AE), radius = 3.dp.toPx(), center = Offset(c.x + r * 0.8f, c.y))
+
+            val currentKnobCenter = c + knobOffset
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = if (isTouching) listOf(Color(0xFF2E7D5B), Color(0xFF143325)) else listOf(Color(0xFF1B2921), Color(0xFF0F1A14)),
+                    center = currentKnobCenter,
+                    radius = knobRadiusPx
+                ),
+                radius = knobRadiusPx,
+                center = currentKnobCenter
+            )
+            drawCircle(color = if (isTouching) Color(0xFF69F0AE) else Color(0xFF34D399), radius = knobRadiusPx, center = currentKnobCenter, style = Stroke(width = 2.dp.toPx()))
+            drawCircle(color = if (isTouching) Color(0xFF69F0AE) else Color(0xFF10B981), radius = 4.dp.toPx(), center = currentKnobCenter)
+        }
+
+        Text(text = "▲ W", color = if (isWDown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp))
+        Text(text = "S ▼", color = if (isSDown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp))
+        Text(text = "◀ A", color = if (isADown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterStart).padding(start = 4.dp))
+        Text(text = "D ▶", color = if (isDDown) Color(0xFF69F0AE) else Color(0x80A5D6A7), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp))
+    }
+}
